@@ -563,7 +563,7 @@ function Toasts({list,onDismiss,onNavigate}){
 /* ═══════════════════════════════════════════════════════
    TABLES VIEW
 ═══════════════════════════════════════════════════════ */
-function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent}){
+function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress}){
   const [modal,setModal]=useState(null);
   const [tgtT,setTgtT]=useState("");
   const [tgtS,setTgtS]=useState("");
@@ -3888,7 +3888,7 @@ export default function App(){
 
       {/* Content */}
       <div style={{padding:"20px 22px",maxWidth:1300,margin:"0 auto"}}>
-        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent}/>}
+        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress}/>}
         {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l}/>}
         {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx}/>}
         {tab==="menu"       &&<MenuView       menu={menu}           setMenu={setMenu}        stock={stock}/>}
