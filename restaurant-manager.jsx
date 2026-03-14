@@ -1,5 +1,66 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+/* ─── Sauvegarde localStorage ─────────────────────────── */
+const SAVE_KEY = "resto_save_v1";
+
+const saveGame = (state) => {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({...state, savedAt: Date.now()}));
+  } catch(e) { console.warn("Save failed:", e); }
+};
+
+const loadGame = () => {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+};
+
+// Nettoie les états liés aux timers qui ne sont plus valides après un rechargement
+const sanitizeSave = (save) => {
+  const now = Date.now();
+  // Tables : reset les timers expirés
+  const tables = (save.tables || []).map(t => {
+    if (t.status === "nettoyage") {
+      // Si le nettoyage est terminé → libre
+      if (!t.cleanUntil || now >= t.cleanUntil)
+        return { ...t, status: "libre", server: null, cleanUntil: null, cleanDur: null, freedAt: now };
+      return t; // encore en nettoyage
+    }
+    if (t.status === "mange") {
+      // Repas terminé → prêt à encaisser (on efface le timer)
+      return { ...t, eatUntil: null, eatDur: null };
+    }
+    if (t.status === "occupée") {
+      // Effacer le timer de prise de commande
+      return { ...t, svcUntil: null };
+    }
+    return t;
+  });
+  // Serveurs : libérer ceux bloqués en "service"
+  const servers = (save.servers || []).map(s =>
+    s.status === "service" ? { ...s, status: "actif", serviceUntil: null } : s
+  );
+  // Cuisine : les plats en cuisson sont remis en file d'attente
+  const kitchen = save.kitchen ? {
+    ...save.kitchen,
+    queue: [...(save.kitchen.queue || []), ...(save.kitchen.cooking || []).map(d => ({
+      ...d, startedAt: undefined, timerMax: undefined
+    }))],
+    cooking: [],
+    done: save.kitchen.done || [],
+  } : null;
+  // File d'attente clients : vider (timers expirés)
+  const queue = [];
+  return { ...save, tables, servers, kitchen, queue };
+};
+
+const resetGame = () => {
+  try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+  window.location.reload();
+};
+
 /* ─── Palette ─────────────────────────────────────────── */
 const C = {
   bg:"#f4f0e8", surface:"#ffffff", card:"#fdfbf6", border:"#ddd4c0",
@@ -3395,54 +3456,64 @@ const TABS=[
 ];
 
 export default function App(){
+  /* ── Chargement de la sauvegarde ───────────────────── */
+  const _raw = loadGame();
+  const _sv  = _raw ? sanitizeSave(_raw) : null;
+  const _today = new Date().toLocaleDateString("fr-FR");
+
+  /* ── États principaux (avec fallback sur valeurs initiales) ── */
   const [tab,setTab]=useState("tables");
-  const [tables,setTables]=useState(TABLES0);
-  const [servers,setServers]=useState(SERVERS0);
+  const [tables,setTables]=useState(()=>_sv?.tables||TABLES0);
+  const [servers,setServers]=useState(()=>_sv?.servers||SERVERS0);
   const [queue,setQueue]=useState(()=>{
+    if(_sv) return _sv.queue||[];
     const mood=rMood();
     return [{id:1,name:rName(),size:Math.min(rSize(),2),mood,expiresAt:Date.now()+mood.p*1000,patMax:mood.p}];
   });
-  const [menu,setMenu]=useState(MENU0);
-  const [stock,setStock]=useState(STOCK0);
-  const [complaints,setComplaints]=useState(COMPLAINTS0);
-  const [kitchen,setKitchen]=useState(KITCHEN0);
+  const [menu,setMenu]=useState(()=>_sv?.menu||MENU0);
+  const [stock,setStock]=useState(()=>_sv?.stock||STOCK0);
+  const [complaints,setComplaints]=useState(()=>_sv?.complaints||COMPLAINTS0);
+  const [kitchen,setKitchen]=useState(()=>_sv?.kitchen||KITCHEN0);
   const [toasts,setToasts]=useState([]);
-  const [restoXp,setRestoXp]=useState(0);
-  const [cash,setCash]=useState(5000);
-  const [transactions,setTransactions]=useState([
+  const [restoXp,setRestoXp]=useState(()=>_sv?.restoXp||0);
+  const [cash,setCash]=useState(()=>_sv?.cash??5000);
+  const [transactions,setTransactions]=useState(()=>_sv?.transactions||[
     {id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now()}
   ]);
   const [showLedger,setShowLedger]=useState(false);
   const [showBank,setShowBank]=useState(false);
   // Loan state: null = no active loan
-  const [loan,setLoan]=useState(null); // {id,amount,remaining,rate,takenAt,repayPerHour}
+  const [loan,setLoan]=useState(()=>_sv?.loan||null);
   // Supplier
-  const [supplierMode,setSupplierMode]=useState("premium");
+  const [supplierMode,setSupplierMode]=useState(()=>_sv?.supplierMode||"premium");
   // Pending deliveries (standard supplier)
-  const [pendingDeliveries,setPendingDeliveries]=useState([]); // [{id,items:[{stockId,qty}],labels,arrivedAt}]
+  const [pendingDeliveries,setPendingDeliveries]=useState(()=>_sv?.pendingDeliveries||[]);
   // Daily specials: 2 random dishes from menu with price discount
   const [dailySpecials,setDailySpecials]=useState(()=>{
+    if(_sv?.dailySpecials) return _sv.dailySpecials;
     const base=MENU0.filter(m=>m.cat!=="Boissons");
     const picks=base.sort(()=>Math.random()-0.5).slice(0,2);
     return picks.map(m=>({...m,originalPrice:m.price,price:+(m.price*0.8).toFixed(2),isSpecial:true}));
   });
   const [activeEvent,setActiveEvent]=useState(null);
-  const [completedIds,setCompletedIds]=useState([]);
+  const [completedIds,setCompletedIds]=useState(()=>_sv?.completedIds||[]);
   // Daily challenges
-  const [challengeDate,setChallengeDate]=useState(()=>new Date().toLocaleDateString("fr-FR"));
-  const [todayChallenges,setTodayChallenges]=useState(()=>pickDailyChallenges(new Date().toLocaleDateString("fr-FR")));
-  const [challengeProgress,setChallengeProgress]=useState(()=>({served:0,revenue:0,noLoss:1,highRating:0,fastPlace:0,vip:0,fullHouse:0,tips:0}));
-  const [challengeClaimed,setChallengeClaimed]=useState(()=>({})); // {challengeId: true}
-  const [challengeLostToday,setChallengeLostToday]=useState(false);
-  const [pendingClaim,setPendingClaim]=useState([]);
-  const [objStats,setObjStats]=useState({
+  const [challengeDate,setChallengeDate]=useState(()=>_sv?.challengeDate||_today);
+  const [todayChallenges,setTodayChallenges]=useState(()=>_sv?.todayChallenges||pickDailyChallenges(_today));
+  const [challengeProgress,setChallengeProgress]=useState(()=>_sv?.challengeProgress||{served:0,revenue:0,noLoss:1,highRating:0,fastPlace:0,vip:0,fullHouse:0,tips:0});
+  const [challengeClaimed,setChallengeClaimed]=useState(()=>_sv?.challengeClaimed||{});
+  const [challengeLostToday,setChallengeLostToday]=useState(()=>_sv?.challengeLostToday||false);
+  const [pendingClaim,setPendingClaim]=useState(()=>_sv?.pendingClaim||[]);
+  const [objStats,setObjStats]=useState(()=>_sv?.objStats||{
     totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0,
   });
   const [dailyStats,setDailyStats]=useState(()=>{
-    // Seed with today as starting day
-    const today=new Date().toLocaleDateString("fr-FR");
-    return [{date:today,served:0,lost:0,revenue:0}];
+    if(_sv?.dailyStats) return _sv.dailyStats;
+    return [{date:_today,served:0,lost:0,revenue:0}];
   });
+  /* ── Indicateur de sauvegarde ──────────────────────── */
+  const [saveStatus,setSaveStatus]=useState("idle"); // "idle" | "saving" | "saved"
+  const saveTimerRef=useRef(null);
   const addDayStat=useCallback((key,value=1)=>{
     const today=new Date().toLocaleDateString("fr-FR");
     setDailyStats(p=>{
@@ -3468,6 +3539,29 @@ export default function App(){
   const addTx=useCallback((type,label,amount)=>{
     setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now()},...p].slice(0,200));
   },[]);
+
+  /* ── Sauvegarde automatique debounced (2s) ─────────── */
+  useEffect(()=>{
+    setSaveStatus("saving");
+    if(saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current=setTimeout(()=>{
+      saveGame({
+        tables,servers,menu,stock,complaints,kitchen,
+        restoXp,cash,transactions,loan,supplierMode,
+        pendingDeliveries,dailySpecials,completedIds,
+        challengeDate,todayChallenges,challengeProgress,
+        challengeClaimed,challengeLostToday,pendingClaim,
+        objStats,dailyStats,
+      });
+      setSaveStatus("saved");
+      setTimeout(()=>setSaveStatus("idle"),2000);
+    },2000);
+    return()=>{if(saveTimerRef.current)clearTimeout(saveTimerRef.current);};
+  },[tables,servers,menu,stock,complaints,kitchen,
+     restoXp,cash,loan,supplierMode,pendingDeliveries,
+     completedIds,challengeProgress,challengeClaimed,
+     challengeLostToday,pendingClaim,objStats,dailyStats]);
+
   const [showHelp,setShowHelp]=useState(false);
 
   const dismissToast=useCallback(id=>setToasts(p=>p.filter(x=>x.id!==id)),[]);
@@ -3732,6 +3826,7 @@ export default function App(){
         @keyframes toastBar { from{width:100%} to{width:0%} }
         @keyframes ledPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         @keyframes shimmer  { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+        @keyframes saveFlash{ 0%{opacity:0;transform:scale(0.8)} 20%{opacity:1;transform:scale(1.1)} 80%{opacity:1;transform:scale(1)} 100%{opacity:0;transform:scale(0.95)} }
       `}</style>
 
       {/* Header — 2 lignes */}
@@ -3786,6 +3881,37 @@ export default function App(){
               color:C.green,display:"flex",alignItems:"center",justifyContent:"center",
               flexShrink:0,fontWeight:800}}>
               ?
+            </button>
+
+            {/* Indicateur de sauvegarde */}
+            <div title={saveStatus==="saved"?"Partie sauvegardée":saveStatus==="saving"?"Sauvegarde en cours…":"Sauvegarde auto active"}
+              style={{display:"flex",alignItems:"center",gap:4,
+                padding:"3px 8px",borderRadius:6,flexShrink:0,
+                background:saveStatus==="saved"?C.greenP:saveStatus==="saving"?C.amberP:C.bg,
+                border:`1px solid ${saveStatus==="saved"?C.green+"44":saveStatus==="saving"?C.amber+"44":C.border}`,
+                transition:"all 0.4s"}}>
+              <span style={{fontSize:12,
+                animation:saveStatus==="saving"?"pulse 0.8s ease-in-out infinite":undefined}}>
+                {saveStatus==="saved"?"✅":saveStatus==="saving"?"⏳":"💾"}
+              </span>
+              <span style={{fontSize:9,fontWeight:600,fontFamily:F.body,
+                color:saveStatus==="saved"?C.green:saveStatus==="saving"?C.amber:C.muted,
+                whiteSpace:"nowrap"}}>
+                {saveStatus==="saved"?"Sauvé":saveStatus==="saving"?"…":"Auto"}
+              </span>
+            </div>
+
+            {/* Bouton reset */}
+            <button onClick={()=>{
+              if(window.confirm("⚠️ Effacer la sauvegarde et recommencer une nouvelle partie ?"))
+                resetGame();
+            }} title="Nouvelle partie" style={{
+              width:28,height:28,borderRadius:"50%",
+              border:`1.5px solid ${C.red}44`,
+              background:C.redP,cursor:"pointer",fontSize:13,
+              color:C.red,display:"flex",alignItems:"center",justifyContent:"center",
+              flexShrink:0,fontWeight:800,opacity:0.7}} >
+              ↺
             </button>
           </div>
         </div>
