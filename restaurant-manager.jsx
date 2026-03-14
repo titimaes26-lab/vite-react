@@ -1338,9 +1338,17 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,a
   const canAfford = cash >= hireCost;
 
   const openAdd = () => {
-    setEditId(null);
-    setForm({name:"",status:"actif",salary:"12"});
-    setModal("add");
+    const salary = String(Math.floor(Math.random()*5+10));
+    const name   = rName();
+    const hireCost = Math.round(+(salary)*3);
+    if(cash < hireCost){
+      addToast&&addToast({icon:"❌",title:"Fonds insuffisants",msg:`Recrutement : ${hireCost}€ requis`,color:C.red,tab:"servers"});
+      return;
+    }
+    setCash&&setCash(c=>+(c-hireCost).toFixed(2));
+    addTx&&addTx("achat",`Recrutement — ${name}`,hireCost);
+    setServers(p=>[...p,{id:Date.now(),name,status:"actif",totalXp:0,rating:4.0,salary:+salary}]);
+    addToast&&addToast({icon:"👔",title:`${name} embauché·e !`,msg:`−${hireCost}€ · Salaire ${salary}€/h`,color:C.green,tab:"servers"});
   };
   const openEdit = (sv) => {
     setEditId(sv.id);
@@ -1531,77 +1539,6 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,a
           });
         })()}
       </div>
-
-      {/* ── Modale Embauche / Édition ── */}
-      {(modal==="add"||modal==="edit")&&(
-        <Modal title={modal==="add"?"➕ Embaucher un serveur":"✏️ Modifier le serveur"}
-          onClose={()=>setModal(false)}>
-          <div style={{display:"flex",flexDirection:"column",gap:16}}>
-
-            {/* Aperçu coût embauche */}
-            {modal==="add"&&(
-              <div style={{background:canAfford?C.greenP:C.redP,
-                border:`1.5px solid ${canAfford?C.green:C.red}33`,
-                borderRadius:12,padding:"12px 16px",
-                display:"flex",alignItems:"center",gap:12}}>
-                <span style={{fontSize:22}}>{canAfford?"💼":"💸"}</span>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:700,
-                    color:canAfford?C.green:C.red,fontFamily:F.title}}>
-                    Coût de recrutement : {hireCost} €
-                  </div>
-                  <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                    {canAfford
-                      ?`Solde après embauche : ${(cash-hireCost).toFixed(2)} €`
-                      :`Solde actuel insuffisant : ${cash.toFixed(2)} €`}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div>
-              <Lbl>Nom complet</Lbl>
-              <Inp value={form.name} placeholder="Prénom Nom"
-                onChange={e=>setForm(p=>({...p,name:e.target.value}))}/>
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div>
-                <Lbl>Statut initial</Lbl>
-                <Sel value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>
-                  <option value="actif">Actif</option>
-                  <option value="pause">Pause</option>
-                  <option value="repos">Repos</option>
-                </Sel>
-              </div>
-              <div>
-                <Lbl>Salaire (€/h)</Lbl>
-                <Inp type="number" step="0.5" min="8" value={form.salary}
-                  onChange={e=>setForm(p=>({...p,salary:e.target.value}))}/>
-              </div>
-            </div>
-
-            {modal==="add"&&(
-              <div style={{background:C.navyP,border:`1px solid ${C.navy}22`,
-                borderRadius:10,padding:"10px 14px",fontSize:11,
-                color:C.navy,fontFamily:F.body,lineHeight:1.6}}>
-                💡 Le coût de recrutement correspond à <strong>3× le salaire horaire</strong>.
-                Le serveur sera payé <strong>{form.salary||12} €/h</strong> toutes les heures réelles.
-              </div>
-            )}
-
-            <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:4}}>
-              <Btn onClick={()=>setModal(false)} v="ghost">Annuler</Btn>
-              <Btn onClick={save}
-                disabled={!form.name.trim()||(modal==="add"&&!canAfford)}
-                v={modal==="add"?"primary":"navy"}
-                icon={modal==="add"?"✅":"💾"}>
-                {modal==="add"?"Confirmer l'embauche":"Enregistrer"}
-              </Btn>
-            </div>
-          </div>
-        </Modal>
-      )}
 
       {/* ── Modale Licenciement ── */}
       {modal==="fire"&&(()=>{
@@ -3886,12 +3823,16 @@ export default function App(){
     return()=>clearInterval(iv);
   },[]);
 
-  // Spawn clients every 30s — use ref to read latest tables without resetting the interval
+  // Spawn clients — polling toutes les 500ms, spawn garanti toutes les 30s
+  // On stocke le timestamp du dernier spawn dans un ref (jamais remis à zéro par les re-renders)
   const tablesRef=useRef(tables);
+  const lastSpawnRef=useRef(Date.now());
   useEffect(()=>{tablesRef.current=tables;},[tables]);
   useEffect(()=>{
     const iv=setInterval(()=>{
-      if(Math.random()<0.65){
+      const now=Date.now();
+      if(now-lastSpawnRef.current>=30000){
+        lastSpawnRef.current=now;
         const mood=rMood();
         const maxCap=Math.max(...tablesRef.current.filter(t=>t.status==="libre").map(t=>t.capacity),2);
         const size=Math.min(rSize(),maxCap);
@@ -3900,7 +3841,7 @@ export default function App(){
           mood,expiresAt:Date.now()+mood.p*1000,patMax:mood.p,
         }]);
       }
-    },30000);
+    },500);
     return()=>clearInterval(iv);
   },[]);
 
@@ -4103,24 +4044,6 @@ export default function App(){
               ?
             </button>
 
-            {/* Indicateur de sauvegarde */}
-            <div title={saveStatus==="saved"?"Partie sauvegardée":saveStatus==="saving"?"Sauvegarde en cours…":"Sauvegarde auto active"}
-              style={{display:"flex",alignItems:"center",gap:4,
-                padding:"3px 8px",borderRadius:6,flexShrink:0,
-                background:saveStatus==="saved"?C.greenP:saveStatus==="saving"?C.amberP:C.bg,
-                border:`1px solid ${saveStatus==="saved"?C.green+"44":saveStatus==="saving"?C.amber+"44":C.border}`,
-                transition:"all 0.4s"}}>
-              <span style={{fontSize:12,
-                animation:saveStatus==="saving"?"pulse 0.8s ease-in-out infinite":undefined}}>
-                {saveStatus==="saved"?"✅":saveStatus==="saving"?"⏳":"💾"}
-              </span>
-              <span style={{fontSize:9,fontWeight:600,fontFamily:F.body,
-                color:saveStatus==="saved"?C.green:saveStatus==="saving"?C.amber:C.muted,
-                whiteSpace:"nowrap"}}>
-                {saveStatus==="saved"?"Sauvé":saveStatus==="saving"?"…":"Auto"}
-              </span>
-            </div>
-
             {/* Bouton reset */}
             <button onClick={()=>setShowResetModal(true)} title="Nouvelle partie" style={{
               width:28,height:28,borderRadius:"50%",
@@ -4187,6 +4110,39 @@ export default function App(){
               🏦
             </button>
           </div>
+
+          {/* Bouton sauvegarde manuelle */}
+          <button
+            onClick={async ()=>{
+              if(saveStatus==="saving") return;
+              setSaveStatus("saving");
+              if(saveTimerRef.current) clearTimeout(saveTimerRef.current);
+              await saveGame({
+                tables,servers,menu,stock,complaints,kitchen,
+                restoXp,cash,transactions,loan,supplierMode,
+                pendingDeliveries,dailySpecials,completedIds,
+                challengeDate,todayChallenges,challengeProgress,
+                challengeClaimed,challengeLostToday,pendingClaim,
+                objStats,dailyStats,
+              });
+              setSaveStatus("saved");
+              setTimeout(()=>setSaveStatus("idle"),2000);
+            }}
+            title="Sauvegarder maintenant"
+            style={{
+              flexShrink:0,display:"flex",alignItems:"center",gap:5,
+              padding:"5px 12px",borderRadius:7,
+              background:saveStatus==="saved"?C.green:saveStatus==="saving"?C.amber:C.navy,
+              border:"none",cursor:saveStatus==="saving"?"not-allowed":"pointer",
+              transition:"background 0.3s",fontFamily:F.body}}>
+            <span style={{fontSize:13,
+              animation:saveStatus==="saving"?"pulse 0.8s ease-in-out infinite":undefined}}>
+              {saveStatus==="saved"?"✅":saveStatus==="saving"?"⏳":"💾"}
+            </span>
+            <span style={{fontSize:11,fontWeight:700,color:"#fff",whiteSpace:"nowrap"}}>
+              {saveStatus==="saved"?"Sauvé !":saveStatus==="saving"?"…":"Sauvegarder"}
+            </span>
+          </button>
         </div>
       </div>
 
