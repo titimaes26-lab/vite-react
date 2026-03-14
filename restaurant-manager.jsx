@@ -1,19 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-/* ─── Sauvegarde localStorage ─────────────────────────── */
+/* ─── Sauvegarde window.storage (API Artifacts Claude) ── */
 const SAVE_KEY = "resto_save_v1";
 
-const saveGame = (state) => {
+const saveGame = async (state) => {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({...state, savedAt: Date.now()}));
+    await window.storage.set(SAVE_KEY, JSON.stringify({...state, savedAt: Date.now()}));
   } catch(e) { console.warn("Save failed:", e); }
 };
 
-const loadGame = () => {
+const loadGame = async () => {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    const result = await window.storage.get(SAVE_KEY);
+    if (!result || !result.value) return null;
+    return JSON.parse(result.value);
   } catch(e) { return null; }
 };
 
@@ -23,26 +23,19 @@ const sanitizeSave = (save) => {
   // Tables : reset les timers expirés
   const tables = (save.tables || []).map(t => {
     if (t.status === "nettoyage") {
-      // Si le nettoyage est terminé → libre
       if (!t.cleanUntil || now >= t.cleanUntil)
         return { ...t, status: "libre", server: null, cleanUntil: null, cleanDur: null, freedAt: now };
-      return t; // encore en nettoyage
+      return t;
     }
-    if (t.status === "mange") {
-      // Repas terminé → prêt à encaisser (on efface le timer)
-      return { ...t, eatUntil: null, eatDur: null };
-    }
-    if (t.status === "occupée") {
-      // Effacer le timer de prise de commande
-      return { ...t, svcUntil: null };
-    }
+    if (t.status === "mange") return { ...t, eatUntil: null, eatDur: null };
+    if (t.status === "occupée") return { ...t, svcUntil: null };
     return t;
   });
   // Serveurs : libérer ceux bloqués en "service"
   const servers = (save.servers || []).map(s =>
     s.status === "service" ? { ...s, status: "actif", serviceUntil: null } : s
   );
-  // Cuisine : les plats en cuisson sont remis en file d'attente
+  // Cuisine : remettre les plats en cuisson dans la file
   const kitchen = save.kitchen ? {
     ...save.kitchen,
     queue: [...(save.kitchen.queue || []), ...(save.kitchen.cooking || []).map(d => ({
@@ -52,14 +45,11 @@ const sanitizeSave = (save) => {
     done: save.kitchen.done || [],
   } : null;
   // File d'attente clients : vider (timers expirés)
-  const queue = [];
-  return { ...save, tables, servers, kitchen, queue };
+  return { ...save, tables, servers, kitchen, queue: [] };
 };
 
-const resetGame = () => {
-  try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
-  window.location.reload();
-};
+// resetGame est appelé depuis l'intérieur du composant App
+// pour pouvoir réinitialiser les états React sans reload
 
 /* ─── Palette ─────────────────────────────────────────── */
 const C = {
@@ -1335,26 +1325,89 @@ function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen
 /* ═══════════════════════════════════════════════════════
    SERVERS VIEW
 ═══════════════════════════════════════════════════════ */
-function ServersView({servers,setServers,tables,clockNow,restoLvN}){
-  const [modal,setModal]=useState(false);
+function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast}){
+  const [modal,setModal]=useState(false);   // "add" | "edit" | "fire" | false
   const [form,setForm]=useState({name:"",status:"actif",salary:"12"});
   const [editId,setEditId]=useState(null);
-  const save=()=>{
-    if(editId)setServers(p=>p.map(s=>s.id===editId?{...s,...form,salary:+(form.salary||0)}:s));
-    else setServers(p=>[...p,{id:Date.now(),name:form.name,status:form.status,totalXp:0,rating:4.0,salary:+(form.salary||12)}]);
+  const [fireId,setFireId]=useState(null);
+
+  const maxSlots = SERVER_SLOTS_BY_LEVEL[Math.min(restoLvN||0,5)]||2;
+  const canHire  = servers.length < maxSlots;
+  // Coût de recrutement : 3× le salaire horaire
+  const hireCost = Math.round(+(form.salary||12)*3);
+  const canAfford = cash >= hireCost;
+
+  const openAdd = () => {
+    setEditId(null);
+    setForm({name:"",status:"actif",salary:"12"});
+    setModal("add");
+  };
+  const openEdit = (sv) => {
+    setEditId(sv.id);
+    setForm({name:sv.name,status:sv.status,salary:String(sv.salary||12)});
+    setModal("edit");
+  };
+  const openFire = (sv) => {
+    setFireId(sv.id);
+    setModal("fire");
+  };
+
+  const save = () => {
+    if(!form.name.trim()) return;
+    if(modal==="add"){
+      if(!canAfford){ addToast&&addToast({icon:"❌",title:"Fonds insuffisants",msg:`Recrutement : ${hireCost}€ requis`,color:C.red,tab:"servers"}); return; }
+      setCash&&setCash(c=>+(c-hireCost).toFixed(2));
+      addTx&&addTx("achat",`Recrutement — ${form.name}`,hireCost);
+      setServers(p=>[...p,{id:Date.now(),name:form.name,status:form.status,totalXp:0,rating:4.0,salary:+(form.salary||12)}]);
+      addToast&&addToast({icon:"👔",title:`${form.name} embauché·e !`,msg:`−${hireCost}€ · Salaire ${form.salary}€/h`,color:C.green,tab:"servers"});
+    } else {
+      setServers(p=>p.map(s=>s.id===editId?{...s,name:form.name,status:form.status,salary:+(form.salary||0)}:s));
+    }
     setModal(false);
   };
+
+  const doFire = () => {
+    const sv = servers.find(s=>s.id===fireId);
+    if(!sv) return;
+    setServers(p=>p.filter(s=>s.id!==fireId));
+    addToast&&addToast({icon:"👋",title:`${sv.name} licencié·e`,msg:"Le serveur a quitté l'équipe.",color:C.terra,tab:"servers"});
+    setModal(false);
+    setFireId(null);
+  };
+
   const sColor={actif:C.green,pause:C.terra,repos:C.muted,service:C.amber};
-  const sBg={actif:C.greenP,pause:C.terraP,repos:C.bg,service:C.amberP};
+  const sBg   ={actif:C.greenP,pause:C.terraP,repos:C.bg,service:C.amberP};
+
   return(
     <div>
+      {/* ── Header barre ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+        marginBottom:16,flexWrap:"wrap",gap:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+            👤 Équipe — {servers.length}/{maxSlots} serveurs
+          </span>
+          <span style={{fontSize:11,background:canHire?C.greenP:C.redP,
+            color:canHire?C.green:C.red,border:`1px solid ${canHire?C.green:C.red}33`,
+            borderRadius:20,padding:"2px 10px",fontFamily:F.body,fontWeight:600}}>
+            {canHire?`${maxSlots-servers.length} poste${maxSlots-servers.length>1?"s":""} disponible${maxSlots-servers.length>1?"s":""}`:"Équipe complète"}
+          </span>
+        </div>
+        <Btn onClick={openAdd} disabled={!canHire} v={canHire?"primary":"disabled"} icon="➕">
+          Embaucher un serveur
+        </Btn>
+      </div>
+
+      {/* ── Grille des serveurs ── */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(255px,1fr))",gap:13}}>
         {servers.map(sv=>{
           const sl=srvLv(sv.totalXp);
           const slD=SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
           const asgn=tables.filter(t=>t.server===sv.name);
+          const isWorking=sv.status==="service";
           return(
             <Card key={sv.id} accent={slD.color+"44"}>
+              {/* Ligne 1 : avatar + nom + note */}
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
                 <div style={{display:"flex",gap:10,alignItems:"center"}}>
                   <div style={{width:44,height:44,background:slD.color+"1a",
@@ -1364,22 +1417,24 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN}){
                   </div>
                   <div>
                     <div style={{fontSize:14,fontWeight:600,color:C.ink,fontFamily:F.title}}>{sv.name}</div>
-                    <div style={{display:"flex",gap:5,marginTop:4}}>
+                    <div style={{display:"flex",gap:5,marginTop:4,flexWrap:"wrap"}}>
                       <Badge color={slD.color} sm>{slD.name}</Badge>
                       <Badge color={sColor[sv.status]||C.muted} bg={sBg[sv.status]||C.bg} sm>
-                        {sv.status==="service"
-                          ?`🛎 en service (${Math.max(0,Math.ceil((sv.serviceUntil-clockNow)/1000))}s)`
+                        {isWorking
+                          ?`🛎 service (${Math.max(0,Math.ceil((sv.serviceUntil-clockNow)/1000))}s)`
                           :sv.status}
                       </Badge>
                     </div>
                   </div>
                 </div>
-                <div style={{textAlign:"right"}}>
+                <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{fontSize:22,fontWeight:700,color:C.amber,fontFamily:F.title}}>
                     {sv.rating}<span style={{fontSize:10,color:C.muted}}>/5</span>
                   </div>
                 </div>
               </div>
+
+              {/* Barre XP */}
               <div style={{marginBottom:12}}>
                 <div style={{display:"flex",justifyContent:"space-between",
                   fontSize:10,color:C.muted,marginBottom:4,fontFamily:F.body}}>
@@ -1388,19 +1443,21 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN}){
                 </div>
                 <XpBar xp={sl.r} needed={sl.n} color={slD.color}/>
               </div>
-                <div style={{fontSize:11,color:C.muted,marginBottom:13,fontFamily:F.body}}>
-                  <div>📍 {asgn.length>0?asgn.map(t=>t.name).join(", "):"Aucune table"}</div>
-                  <div style={{marginTop:2}}>🏆 {sv.totalXp} XP total</div>
-                  <div style={{marginTop:4,display:"flex",alignItems:"center",gap:5}}>
-                    <span style={{fontSize:12}}>💸</span>
-                    <span style={{color:C.navy,fontWeight:600,fontSize:12}}>{(sv.salary||0).toFixed(0)} €/h</span>
-                    <span style={{fontSize:10,color:C.muted}}>
-                      {sv.status==="actif"?"· actif":"· inactif"}
-                    </span>
-                  </div>
+
+              {/* Infos */}
+              <div style={{fontSize:11,color:C.muted,marginBottom:13,fontFamily:F.body}}>
+                <div>📍 {asgn.length>0?asgn.map(t=>t.name).join(", "):"Aucune table"}</div>
+                <div style={{marginTop:2}}>🏆 {sv.totalXp} XP total</div>
+                <div style={{marginTop:4,display:"flex",alignItems:"center",gap:5}}>
+                  <span style={{fontSize:12}}>💸</span>
+                  <span style={{color:C.navy,fontWeight:600,fontSize:12}}>{(sv.salary||0).toFixed(0)} €/h</span>
+                  <span style={{fontSize:10,color:C.muted}}>{sv.status==="actif"?"· actif":"· inactif"}</span>
                 </div>
-              <div style={{display:"flex",gap:8}}>
-                {sv.status==="actif"&&(
+              </div>
+
+              {/* Actions */}
+              <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                {sv.status==="actif"&&!isWorking&&(
                   <Btn sm v="terra" onClick={()=>setServers(p=>p.map(x=>x.id===sv.id?{...x,status:"pause"}:x))}>
                     Pause
                   </Btn>
@@ -1410,74 +1467,167 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN}){
                     Activer
                   </Btn>
                 )}
-                {sv.status==="service"&&(
+                {isWorking&&(
                   <span style={{fontSize:11,color:C.amber,fontFamily:F.body,alignSelf:"center"}}>
-                    🛎 Prise de commande…
+                    🛎 En service…
                   </span>
+                )}
+                {!isWorking&&(
+                  <>
+                    <Btn sm v="danger" onClick={()=>openFire(sv)}>Licencier</Btn>
+                  </>
                 )}
               </div>
             </Card>
           );
         })}
-      </div>
-      {/* Locked server slots */}
-      {(()=>{
-        const maxSlots=SERVER_SLOTS_BY_LEVEL[Math.min(restoLvN||0,5)]||2;
-        const locked=Array.from({length:Math.max(0,4-maxSlots)},(_,i)=>({
-          slot:maxSlots+i+1,
-          unlockAt:Object.entries(SERVER_SLOTS_BY_LEVEL).find(([lv,sl])=>sl===maxSlots+i+1)?.[0]||"?",
-        }));
-        if(!locked.length)return null;
-        return(
-          <div style={{marginTop:16,display:"grid",
-            gridTemplateColumns:"repeat(auto-fill,minmax(255px,1fr))",gap:13}}>
-            {locked.map(ls=>(
-              <div key={ls.slot} style={{background:C.bg,border:`1.5px dashed ${C.border}`,
+
+        {/* ── Slots libres cliquables ── */}
+        {canHire&&Array.from({length:maxSlots-servers.length},(_,i)=>(
+          <div key={`free-${i}`} onClick={openAdd}
+            className="hovcard"
+            style={{background:C.bg,border:`1.5px dashed ${C.green}55`,
+              borderRadius:14,padding:"18px 16px",
+              display:"flex",flexDirection:"column",alignItems:"center",
+              justifyContent:"center",minHeight:160,gap:10,cursor:"pointer",
+              transition:"all 0.2s"}}>
+            <div style={{width:44,height:44,background:C.greenP,border:`2px dashed ${C.green}66`,
+              borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>
+              ➕
+            </div>
+            <div style={{fontSize:12,color:C.green,fontWeight:600,fontFamily:F.body}}>
+              Poste vacant
+            </div>
+            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,textAlign:"center"}}>
+              Cliquez pour embaucher
+            </div>
+          </div>
+        ))}
+
+        {/* ── Slots verrouillés ── */}
+        {(()=>{
+          const nextLevelSlots=Object.entries(SERVER_SLOTS_BY_LEVEL)
+            .filter(([lv,sl])=>parseInt(lv)>restoLvN&&sl>maxSlots)
+            .slice(0,2);
+          if(!nextLevelSlots.length)return null;
+          return nextLevelSlots.map(([lv])=>{
+            const r=RESTO_LVL.find(x=>x.l===parseInt(lv));
+            return(
+              <div key={`lock-${lv}`} style={{background:C.bg,border:`1.5px dashed ${C.border}`,
                 borderRadius:14,padding:"18px 16px",
                 display:"flex",flexDirection:"column",alignItems:"center",
-                justifyContent:"center",minHeight:160,gap:8,opacity:0.7}}>
+                justifyContent:"center",minHeight:160,gap:8,opacity:0.6}}>
                 <span style={{fontSize:32}}>🔒</span>
-                <div style={{fontSize:12,color:C.muted,fontFamily:F.body,textAlign:"center"}}>
-                  Serveur {ls.slot}
-                </div>
                 <div style={{fontSize:11,color:C.muted,fontFamily:F.body,textAlign:"center"}}>
-                  Débloqué au niveau <strong>N{ls.unlockAt}</strong>
+                  Poste verrouillé
                 </div>
-                <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"center"}}>
-                  {RESTO_LVL.filter(r=>r.l>=parseInt(ls.unlockAt)).slice(0,1).map(r=>(
-                    <span key={r.l} style={{fontSize:11,background:r.color+"18",color:r.color,
-                      border:`1px solid ${r.color}33`,borderRadius:6,padding:"2px 8px",
-                      fontFamily:F.body,fontWeight:600}}>
-                      {r.icon} {r.name}
-                    </span>
-                  ))}
+                {r&&<span style={{fontSize:11,background:r.color+"18",color:r.color,
+                  border:`1px solid ${r.color}33`,borderRadius:6,padding:"2px 8px",
+                  fontFamily:F.body,fontWeight:600}}>
+                  {r.icon} Niveau {r.l} — {r.name}
+                </span>}
+              </div>
+            );
+          });
+        })()}
+      </div>
+
+      {/* ── Modale Embauche / Édition ── */}
+      {(modal==="add"||modal==="edit")&&(
+        <Modal title={modal==="add"?"➕ Embaucher un serveur":"✏️ Modifier le serveur"}
+          onClose={()=>setModal(false)}>
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+            {/* Aperçu coût embauche */}
+            {modal==="add"&&(
+              <div style={{background:canAfford?C.greenP:C.redP,
+                border:`1.5px solid ${canAfford?C.green:C.red}33`,
+                borderRadius:12,padding:"12px 16px",
+                display:"flex",alignItems:"center",gap:12}}>
+                <span style={{fontSize:22}}>{canAfford?"💼":"💸"}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:700,
+                    color:canAfford?C.green:C.red,fontFamily:F.title}}>
+                    Coût de recrutement : {hireCost} €
+                  </div>
+                  <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>
+                    {canAfford
+                      ?`Solde après embauche : ${(cash-hireCost).toFixed(2)} €`
+                      :`Solde actuel insuffisant : ${cash.toFixed(2)} €`}
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        );
-      })()}
+            )}
 
-      {modal&&(
-        <Modal title={editId?"Modifier le serveur":"Nouveau serveur"} onClose={()=>setModal(false)}>
-          <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            <div><Lbl>Nom</Lbl><Inp value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/></div>
             <div>
-              <Lbl>Statut</Lbl>
-              <Sel value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>
-                <option value="actif">Actif</option>
-                <option value="pause">Pause</option>
-                <option value="repos">Repos</option>
-              </Sel>
+              <Lbl>Nom complet</Lbl>
+              <Inp value={form.name} placeholder="Prénom Nom"
+                onChange={e=>setForm(p=>({...p,name:e.target.value}))}/>
             </div>
-            <div><Lbl>Salaire (€/h)</Lbl><Inp type="number" step="0.5" value={form.salary||""} onChange={e=>setForm(p=>({...p,salary:e.target.value}))}/></div>
-            <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:6}}>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div>
+                <Lbl>Statut initial</Lbl>
+                <Sel value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>
+                  <option value="actif">Actif</option>
+                  <option value="pause">Pause</option>
+                  <option value="repos">Repos</option>
+                </Sel>
+              </div>
+              <div>
+                <Lbl>Salaire (€/h)</Lbl>
+                <Inp type="number" step="0.5" min="8" value={form.salary}
+                  onChange={e=>setForm(p=>({...p,salary:e.target.value}))}/>
+              </div>
+            </div>
+
+            {modal==="add"&&(
+              <div style={{background:C.navyP,border:`1px solid ${C.navy}22`,
+                borderRadius:10,padding:"10px 14px",fontSize:11,
+                color:C.navy,fontFamily:F.body,lineHeight:1.6}}>
+                💡 Le coût de recrutement correspond à <strong>3× le salaire horaire</strong>.
+                Le serveur sera payé <strong>{form.salary||12} €/h</strong> toutes les heures réelles.
+              </div>
+            )}
+
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:4}}>
               <Btn onClick={()=>setModal(false)} v="ghost">Annuler</Btn>
-              <Btn onClick={save}>Sauvegarder</Btn>
+              <Btn onClick={save}
+                disabled={!form.name.trim()||(modal==="add"&&!canAfford)}
+                v={modal==="add"?"primary":"navy"}
+                icon={modal==="add"?"✅":"💾"}>
+                {modal==="add"?"Confirmer l'embauche":"Enregistrer"}
+              </Btn>
             </div>
           </div>
         </Modal>
       )}
+
+      {/* ── Modale Licenciement ── */}
+      {modal==="fire"&&(()=>{
+        const sv=servers.find(s=>s.id===fireId);
+        if(!sv)return null;
+        return(
+          <Modal title="👋 Licencier un serveur" onClose={()=>{setModal(false);setFireId(null);}}>
+            <div style={{display:"flex",flexDirection:"column",gap:18,textAlign:"center"}}>
+              <div style={{fontSize:42}}>{SRV_LVL[Math.min(srvLv(sv.totalXp).l,SRV_LVL.length-1)].icon}</div>
+              <div>
+                <div style={{fontSize:18,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:6}}>
+                  {sv.name}
+                </div>
+                <div style={{fontSize:12,color:C.muted,fontFamily:F.body,lineHeight:1.6}}>
+                  Niv.{srvLv(sv.totalXp).l} · {sv.totalXp} XP · {sv.rating}/5 ⭐<br/>
+                  Cette action est <strong>irréversible</strong>. Tout son XP sera perdu.
+                </div>
+              </div>
+              <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                <Btn v="ghost" onClick={()=>{setModal(false);setFireId(null);}}>Annuler</Btn>
+                <Btn v="danger" onClick={doFire} icon="👋">Licencier</Btn>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
@@ -3168,7 +3318,7 @@ const pickDailyChallenges=(dateStr)=>{
 
 /* ─── Progression: Server slot unlock by level ────────── */
 // Extra server slots unlocked at resto level
-const SERVER_SLOTS_BY_LEVEL={0:2,1:2,2:3,3:4,4:4,5:4};
+const SERVER_SLOTS_BY_LEVEL={0:2,1:3,2:4,3:5,4:6,5:8};
 
 const OBJECTIVES_DEF=[
   // Série 1 — Premiers pas
@@ -3456,64 +3606,121 @@ const TABS=[
 ];
 
 export default function App(){
-  /* ── Chargement de la sauvegarde ───────────────────── */
-  const _raw = loadGame();
-  const _sv  = _raw ? sanitizeSave(_raw) : null;
   const _today = new Date().toLocaleDateString("fr-FR");
 
-  /* ── États principaux (avec fallback sur valeurs initiales) ── */
+  /* ── États principaux — initialisés avec les valeurs par défaut ── */
+  /* La sauvegarde est chargée de façon asynchrone dans le useEffect  */
+  const [isLoaded, setIsLoaded] = useState(false);
   const [tab,setTab]=useState("tables");
-  const [tables,setTables]=useState(()=>_sv?.tables||TABLES0);
-  const [servers,setServers]=useState(()=>_sv?.servers||SERVERS0);
+  const [tables,setTables]=useState(TABLES0);
+  const [servers,setServers]=useState(SERVERS0);
   const [queue,setQueue]=useState(()=>{
-    if(_sv) return _sv.queue||[];
     const mood=rMood();
     return [{id:1,name:rName(),size:Math.min(rSize(),2),mood,expiresAt:Date.now()+mood.p*1000,patMax:mood.p}];
   });
-  const [menu,setMenu]=useState(()=>_sv?.menu||MENU0);
-  const [stock,setStock]=useState(()=>_sv?.stock||STOCK0);
-  const [complaints,setComplaints]=useState(()=>_sv?.complaints||COMPLAINTS0);
-  const [kitchen,setKitchen]=useState(()=>_sv?.kitchen||KITCHEN0);
+  const [menu,setMenu]=useState(MENU0);
+  const [stock,setStock]=useState(STOCK0);
+  const [complaints,setComplaints]=useState(COMPLAINTS0);
+  const [kitchen,setKitchen]=useState(KITCHEN0);
   const [toasts,setToasts]=useState([]);
-  const [restoXp,setRestoXp]=useState(()=>_sv?.restoXp||0);
-  const [cash,setCash]=useState(()=>_sv?.cash??5000);
-  const [transactions,setTransactions]=useState(()=>_sv?.transactions||[
+  const [restoXp,setRestoXp]=useState(0);
+  const [cash,setCash]=useState(5000);
+  const [transactions,setTransactions]=useState([
     {id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now()}
   ]);
   const [showLedger,setShowLedger]=useState(false);
   const [showBank,setShowBank]=useState(false);
-  // Loan state: null = no active loan
-  const [loan,setLoan]=useState(()=>_sv?.loan||null);
-  // Supplier
-  const [supplierMode,setSupplierMode]=useState(()=>_sv?.supplierMode||"premium");
-  // Pending deliveries (standard supplier)
-  const [pendingDeliveries,setPendingDeliveries]=useState(()=>_sv?.pendingDeliveries||[]);
-  // Daily specials: 2 random dishes from menu with price discount
+  const [loan,setLoan]=useState(null);
+  const [supplierMode,setSupplierMode]=useState("premium");
+  const [pendingDeliveries,setPendingDeliveries]=useState([]);
   const [dailySpecials,setDailySpecials]=useState(()=>{
-    if(_sv?.dailySpecials) return _sv.dailySpecials;
     const base=MENU0.filter(m=>m.cat!=="Boissons");
     const picks=base.sort(()=>Math.random()-0.5).slice(0,2);
     return picks.map(m=>({...m,originalPrice:m.price,price:+(m.price*0.8).toFixed(2),isSpecial:true}));
   });
   const [activeEvent,setActiveEvent]=useState(null);
-  const [completedIds,setCompletedIds]=useState(()=>_sv?.completedIds||[]);
-  // Daily challenges
-  const [challengeDate,setChallengeDate]=useState(()=>_sv?.challengeDate||_today);
-  const [todayChallenges,setTodayChallenges]=useState(()=>_sv?.todayChallenges||pickDailyChallenges(_today));
-  const [challengeProgress,setChallengeProgress]=useState(()=>_sv?.challengeProgress||{served:0,revenue:0,noLoss:1,highRating:0,fastPlace:0,vip:0,fullHouse:0,tips:0});
-  const [challengeClaimed,setChallengeClaimed]=useState(()=>_sv?.challengeClaimed||{});
-  const [challengeLostToday,setChallengeLostToday]=useState(()=>_sv?.challengeLostToday||false);
-  const [pendingClaim,setPendingClaim]=useState(()=>_sv?.pendingClaim||[]);
-  const [objStats,setObjStats]=useState(()=>_sv?.objStats||{
-    totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0,
-  });
-  const [dailyStats,setDailyStats]=useState(()=>{
-    if(_sv?.dailyStats) return _sv.dailyStats;
-    return [{date:_today,served:0,lost:0,revenue:0}];
-  });
+  const [completedIds,setCompletedIds]=useState([]);
+  const [challengeDate,setChallengeDate]=useState(_today);
+  const [todayChallenges,setTodayChallenges]=useState(()=>pickDailyChallenges(_today));
+  const [challengeProgress,setChallengeProgress]=useState({served:0,revenue:0,noLoss:1,highRating:0,fastPlace:0,vip:0,fullHouse:0,tips:0});
+  const [challengeClaimed,setChallengeClaimed]=useState({});
+  const [challengeLostToday,setChallengeLostToday]=useState(false);
+  const [pendingClaim,setPendingClaim]=useState([]);
+  const [objStats,setObjStats]=useState({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
+  const [dailyStats,setDailyStats]=useState([{date:_today,served:0,lost:0,revenue:0}]);
+
   /* ── Indicateur de sauvegarde ──────────────────────── */
-  const [saveStatus,setSaveStatus]=useState("idle"); // "idle" | "saving" | "saved"
+  const [saveStatus,setSaveStatus]=useState("idle");
   const saveTimerRef=useRef(null);
+  const [showResetModal,setShowResetModal]=useState(false);
+
+  /* ── Réinitialisation complète (sans reload) ────────── */
+  const doReset = useCallback(async () => {
+    try { await window.storage.delete(SAVE_KEY); } catch(e) {}
+    const today = new Date().toLocaleDateString("fr-FR");
+    const mood  = rMood();
+    setTables(TABLES0);
+    setServers(SERVERS0);
+    setQueue([{id:1,name:rName(),size:Math.min(rSize(),2),mood,expiresAt:Date.now()+mood.p*1000,patMax:mood.p}]);
+    setMenu(MENU0);
+    setStock(STOCK0);
+    setComplaints(COMPLAINTS0);
+    setKitchen(KITCHEN0);
+    setRestoXp(0);
+    setCash(5000);
+    setTransactions([{id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now()}]);
+    setLoan(null);
+    setSupplierMode("premium");
+    setPendingDeliveries([]);
+    const base=MENU0.filter(m=>m.cat!=="Boissons");
+    const picks=base.sort(()=>Math.random()-0.5).slice(0,2);
+    setDailySpecials(picks.map(m=>({...m,originalPrice:m.price,price:+(m.price*0.8).toFixed(2),isSpecial:true})));
+    setCompletedIds([]);
+    setChallengeDate(today);
+    setTodayChallenges(pickDailyChallenges(today));
+    setChallengeProgress({served:0,revenue:0,noLoss:1,highRating:0,fastPlace:0,vip:0,fullHouse:0,tips:0});
+    setChallengeClaimed({});
+    setChallengeLostToday(false);
+    setPendingClaim([]);
+    setObjStats({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
+    setDailyStats([{date:today,served:0,lost:0,revenue:0}]);
+    setTab("tables");
+    setShowResetModal(false);
+  },[]);
+
+  /* ── Chargement asynchrone depuis window.storage ───── */
+  useEffect(()=>{
+    loadGame().then(raw=>{
+      if(raw){
+        const sv=sanitizeSave(raw);
+        if(sv.tables)    setTables(sv.tables);
+        if(sv.servers)   setServers(sv.servers);
+        if(sv.menu)      setMenu(sv.menu);
+        if(sv.stock)     setStock(sv.stock);
+        if(sv.complaints)setComplaints(sv.complaints);
+        if(sv.kitchen)   setKitchen(sv.kitchen);
+        if(sv.restoXp!=null) setRestoXp(sv.restoXp);
+        if(sv.cash!=null)    setCash(sv.cash);
+        if(sv.transactions)  setTransactions(sv.transactions);
+        if(sv.loan!=null)    setLoan(sv.loan);
+        if(sv.supplierMode)  setSupplierMode(sv.supplierMode);
+        if(sv.pendingDeliveries) setPendingDeliveries(sv.pendingDeliveries);
+        if(sv.dailySpecials) setDailySpecials(sv.dailySpecials);
+        if(sv.completedIds)  setCompletedIds(sv.completedIds);
+        if(sv.challengeDate) setChallengeDate(sv.challengeDate);
+        if(sv.todayChallenges) setTodayChallenges(sv.todayChallenges);
+        if(sv.challengeProgress) setChallengeProgress(sv.challengeProgress);
+        if(sv.challengeClaimed)  setChallengeClaimed(sv.challengeClaimed);
+        if(sv.challengeLostToday!=null) setChallengeLostToday(sv.challengeLostToday);
+        if(sv.pendingClaim)  setPendingClaim(sv.pendingClaim);
+        if(sv.objStats)      setObjStats(sv.objStats);
+        if(sv.dailyStats)    setDailyStats(sv.dailyStats);
+        setQueue(sv.queue||[]);
+      }
+      setIsLoaded(true);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
   const addDayStat=useCallback((key,value=1)=>{
     const today=new Date().toLocaleDateString("fr-FR");
     setDailyStats(p=>{
@@ -3542,10 +3749,12 @@ export default function App(){
 
   /* ── Sauvegarde automatique debounced (2s) ─────────── */
   useEffect(()=>{
+    // Ne pas sauvegarder avant que la partie soit entièrement chargée
+    if(!isLoaded) return;
     setSaveStatus("saving");
     if(saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current=setTimeout(()=>{
-      saveGame({
+    saveTimerRef.current=setTimeout(async ()=>{
+      await saveGame({
         tables,servers,menu,stock,complaints,kitchen,
         restoXp,cash,transactions,loan,supplierMode,
         pendingDeliveries,dailySpecials,completedIds,
@@ -3557,7 +3766,7 @@ export default function App(){
       setTimeout(()=>setSaveStatus("idle"),2000);
     },2000);
     return()=>{if(saveTimerRef.current)clearTimeout(saveTimerRef.current);};
-  },[tables,servers,menu,stock,complaints,kitchen,
+  },[isLoaded,tables,servers,menu,stock,complaints,kitchen,
      restoXp,cash,loan,supplierMode,pendingDeliveries,
      completedIds,challengeProgress,challengeClaimed,
      challengeLostToday,pendingClaim,objStats,dailyStats]);
@@ -3809,6 +4018,17 @@ export default function App(){
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:F.body}}>
+      {/* Écran de chargement */}
+      {!isLoaded&&(
+        <div style={{position:"fixed",inset:0,background:C.bg,zIndex:99999,
+          display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+          <div style={{width:52,height:52,background:C.green,borderRadius:14,
+            display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,
+            animation:"pulse 1s ease-in-out infinite"}}>🍽</div>
+          <div style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>Chargement de la partie…</div>
+          <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Récupération de la sauvegarde</div>
+        </div>
+      )}
       <style>{`
         * { box-sizing: border-box; }
         .hovcard:hover { box-shadow: 0 6px 22px rgba(0,0,0,0.11) !important; transform: translateY(-1px); }
@@ -3902,15 +4122,12 @@ export default function App(){
             </div>
 
             {/* Bouton reset */}
-            <button onClick={()=>{
-              if(window.confirm("⚠️ Effacer la sauvegarde et recommencer une nouvelle partie ?"))
-                resetGame();
-            }} title="Nouvelle partie" style={{
+            <button onClick={()=>setShowResetModal(true)} title="Nouvelle partie" style={{
               width:28,height:28,borderRadius:"50%",
               border:`1.5px solid ${C.red}44`,
               background:C.redP,cursor:"pointer",fontSize:13,
               color:C.red,display:"flex",alignItems:"center",justifyContent:"center",
-              flexShrink:0,fontWeight:800,opacity:0.7}} >
+              flexShrink:0,fontWeight:800,opacity:0.7}}>
               ↺
             </button>
           </div>
@@ -4015,7 +4232,7 @@ export default function App(){
       {/* Content */}
       <div style={{padding:"20px 22px",maxWidth:1300,margin:"0 auto"}}>
         {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress}/>}
-        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l}/>}
+        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast}/>}
         {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx}/>}
         {tab==="menu"       &&<MenuView       menu={menu}           setMenu={setMenu}        stock={stock}/>}
         {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries}/>}
@@ -4108,6 +4325,41 @@ export default function App(){
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale confirmation reset */}
+      {showResetModal&&(
+        <div onClick={()=>setShowResetModal(false)} style={{position:"fixed",inset:0,
+          background:"rgba(0,0,0,0.55)",zIndex:10001,
+          display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:18,
+            padding:28,width:"100%",maxWidth:380,
+            boxShadow:"0 24px 60px rgba(0,0,0,0.3)",textAlign:"center"}}>
+            <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
+            <div style={{fontSize:18,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8}}>
+              Nouvelle partie ?
+            </div>
+            <div style={{fontSize:13,color:C.muted,fontFamily:F.body,marginBottom:24,lineHeight:1.6}}>
+              Toute la progression sera effacée.<br/>
+              Cette action est <strong>irréversible</strong>.
+            </div>
+            <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+              <button onClick={()=>setShowResetModal(false)} style={{
+                padding:"10px 22px",borderRadius:9,border:`1.5px solid ${C.border}`,
+                background:C.bg,color:C.muted,cursor:"pointer",
+                fontSize:13,fontWeight:600,fontFamily:F.body}}>
+                Annuler
+              </button>
+              <button onClick={doReset} style={{
+                padding:"10px 22px",borderRadius:9,border:"none",
+                background:C.red,color:"#fff",cursor:"pointer",
+                fontSize:13,fontWeight:700,fontFamily:F.body,
+                boxShadow:`0 4px 14px ${C.red}55`}}>
+                🗑 Recommencer
+              </button>
             </div>
           </div>
         </div>
