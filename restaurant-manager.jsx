@@ -1,26 +1,45 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-/* ─── Sauvegarde window.storage (API Artifacts Claude) ── */
+/* ─── Sauvegarde localStorage ─────────────────────────── */
 const SAVE_KEY = "resto_save_v1";
 
-const saveGame = async (state) => {
-  try {
-    await window.storage.set(SAVE_KEY, JSON.stringify({...state, savedAt: Date.now()}));
-  } catch(e) { console.warn("Save failed:", e); }
+const saveToLocalStorage = (state) => {
+    if (!window.localStorage) {
+        console.error("LocalStorage non supporté sur ce navigateur");
+        return;
+    }
+    try {
+        const payload = JSON.stringify({
+            ...state,
+            savedAt: Date.now()
+        });
+        window.localStorage.setItem(SAVE_KEY, payload);
+    } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+            alert("Espace de stockage saturé sur la tablette !");
+        } else {
+            console.warn("Erreur de sauvegarde :", error);
+        }
+    }
 };
 
+const saveGame = (state) => saveToLocalStorage(state);
+
 const loadGame = async () => {
-  try {
-    const result = await window.storage.get(SAVE_KEY);
-    if (!result || !result.value) return null;
-    return JSON.parse(result.value);
-  } catch(e) { return null; }
+    try {
+        if (!window.localStorage) return null;
+        const raw = window.localStorage.getItem(SAVE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch(e) { return null; }
 };
+
+// resetGame est appelé depuis l'intérieur du composant App
+// pour pouvoir réinitialiser les états React sans reload
 
 // Nettoie les états liés aux timers qui ne sont plus valides après un rechargement
 const sanitizeSave = (save) => {
   const now = Date.now();
-  // Tables : reset les timers expirés
   const tables = (save.tables || []).map(t => {
     if (t.status === "nettoyage") {
       if (!t.cleanUntil || now >= t.cleanUntil)
@@ -31,11 +50,9 @@ const sanitizeSave = (save) => {
     if (t.status === "occupée") return { ...t, svcUntil: null };
     return t;
   });
-  // Serveurs : libérer ceux bloqués en "service"
   const servers = (save.servers || []).map(s =>
     s.status === "service" ? { ...s, status: "actif", serviceUntil: null } : s
   );
-  // Cuisine : remettre les plats en cuisson dans la file
   const kitchen = save.kitchen ? {
     ...save.kitchen,
     queue: [...(save.kitchen.queue || []), ...(save.kitchen.cooking || []).map(d => ({
@@ -44,12 +61,8 @@ const sanitizeSave = (save) => {
     cooking: [],
     done: save.kitchen.done || [],
   } : null;
-  // File d'attente clients : vider (timers expirés)
   return { ...save, tables, servers, kitchen, queue: [] };
 };
-
-// resetGame est appelé depuis l'intérieur du composant App
-// pour pouvoir réinitialiser les états React sans reload
 
 /* ─── Palette ─────────────────────────────────────────── */
 const C = {
@@ -3592,8 +3605,8 @@ export default function App(){
   const [showResetModal,setShowResetModal]=useState(false);
 
   /* ── Réinitialisation complète (sans reload) ────────── */
-  const doReset = useCallback(async () => {
-    try { await window.storage.delete(SAVE_KEY); } catch(e) {}
+  const doReset = useCallback(() => {
+    try { window.localStorage.removeItem(SAVE_KEY); } catch(e) {}
     const today = new Date().toLocaleDateString("fr-FR");
     const mood  = rMood();
     setTables(TABLES0);
@@ -3625,7 +3638,7 @@ export default function App(){
     setShowResetModal(false);
   },[]);
 
-  /* ── Chargement asynchrone depuis window.storage ───── */
+  /* ── Chargement depuis localStorage ───────────────── */
   useEffect(()=>{
     loadGame().then(raw=>{
       if(raw){
@@ -3690,8 +3703,8 @@ export default function App(){
     if(!isLoaded) return;
     setSaveStatus("saving");
     if(saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current=setTimeout(async ()=>{
-      await saveGame({
+    saveTimerRef.current=setTimeout(()=>{
+      saveGame({
         tables,servers,menu,stock,complaints,kitchen,
         restoXp,cash,transactions,loan,supplierMode,
         pendingDeliveries,dailySpecials,completedIds,
@@ -4113,11 +4126,11 @@ export default function App(){
 
           {/* Bouton sauvegarde manuelle */}
           <button
-            onClick={async ()=>{
+            onClick={()=>{
               if(saveStatus==="saving") return;
               setSaveStatus("saving");
               if(saveTimerRef.current) clearTimeout(saveTimerRef.current);
-              await saveGame({
+              saveGame({
                 tables,servers,menu,stock,complaints,kitchen,
                 restoXp,cash,transactions,loan,supplierMode,
                 pendingDeliveries,dailySpecials,completedIds,
