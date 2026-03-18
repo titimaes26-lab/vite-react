@@ -37,6 +37,65 @@ const loadGame = async () => {
 // resetGame est appelé depuis l'intérieur du composant App
 // pour pouvoir réinitialiser les états React sans reload
 
+/* ─── Pont de communication React ↔ GDevelop ──────────── */
+// Envoie un message structuré au parent (GDevelop via iframe)
+const sendToGDevelop = (payload) => {
+  try {
+    window.parent.postMessage({ source: "react-ui", payload }, "*");
+  } catch(e) {
+    console.warn("[GDevelop Bridge] postMessage échoué :", e);
+  }
+};
+
+// Construit le payload standardisé depuis les états React
+const buildGDevelopPayload = ({ cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats }) => {
+  const rl = restoLv(restoXp);
+  const cl = chefLv(kitchen?.chef?.totalXp || 0);
+  return {
+    argent: cash,
+    niveaux: {
+      restaurant: {
+        niveau    : rl.l,
+        nom       : RESTO_LVL[rl.l]?.name || "",
+        xp        : restoXp,
+        xpProchain: rl.next?.xpNeeded || 0,
+        pct       : rl.pct,
+      },
+      chef: {
+        niveau : cl.l,
+        nom    : CHEF_LVL[Math.min(cl.l, CHEF_LVL.length-1)]?.name || "",
+        xp     : kitchen?.chef?.totalXp || 0,
+        vitesse: CHEF_LVL[Math.min(cl.l, CHEF_LVL.length-1)]?.speed || 1,
+      },
+      serveurs: (servers || []).map(s => {
+        const sl = srvLv(s.totalXp);
+        return { id: s.id, nom: s.name, niveau: sl.l, xp: s.totalXp, statut: s.status, salaire: s.salary };
+      }),
+    },
+    inventaire: (stock || []).map(s => ({
+      id: s.id, nom: s.name, quantite: s.qty, unite: s.unit,
+      alerte: s.qty <= s.alert, prix: s.price, categorie: s.cat,
+    })),
+    clients: {
+      enAttente      : (queue || []).length,
+      tablesOccupees : (tables || []).filter(t => t.status === "occupée" || t.status === "mange").length,
+      tablesLibres   : (tables || []).filter(t => t.status === "libre").length,
+      totalServis    : objStats?.totalServed    || 0,
+      totalPerdus    : (dailyStats || []).reduce((s, d) => s + (d.lost || 0), 0),
+      chiffreAffaires: objStats?.totalRevenue   || 0,
+    },
+    // Timers : finishAt (timestamp absolu) pour précision cross-plateforme
+    timers: (kitchen?.cooking || []).map(d => ({
+      id      : String(d.id),
+      finishAt: d.startedAt + d.timerMax * 1000,
+      label   : d.name + (d.tableName ? " · " + d.tableName : ""),
+      tableId : d.tableId || null,
+      cat     : d.cat || "",
+    })),
+    savedAt: Date.now(),
+  };
+};
+
 // Nettoie les états liés aux timers qui ne sont plus valides après un rechargement
 const sanitizeSave = (save) => {
   const now = Date.now();
@@ -84,6 +143,21 @@ const F = {
 
 /* ─── XP / Level system ───────────────────────────────── */
 
+const SERVER_SLOTS_BY_LEVEL={0:2,1:3,2:4,3:5,4:6,5:8};
+
+const SERIES_COLORS={
+  Revenus: C.amber,
+  Clients: C.green,
+  Niveau:  C.purple,
+  Salle:   C.navy,
+};
+const SERIES_LABELS={
+  Revenus:"💶 Revenus",
+  Clients:"🍽 Clients",
+  Niveau: "⭐ Niveau",
+  Salle:  "🪑 Salle",
+};
+
 const SRV_LVL = [
   { name:"Stagiaire", color:C.muted,  icon:"🎓" },
   { name:"Serveur",   color:C.green,  icon:"👔" },
@@ -91,6 +165,80 @@ const SRV_LVL = [
   { name:"Expert",    color:C.amber,  icon:"🎖" },
   { name:"Maître",    color:C.purple, icon:"👑" },
 ];
+
+/* ─── Spécialités serveurs ───────────────────────────── */
+const SRV_SPECIALTIES = [
+  { id:"speed",    icon:"⚡", name:"Rapidité",     color:"#1c3352", desc:"−30% temps de prise de commande",  tipMult:1.0,  speedMult:0.70 },
+  { id:"charm",    icon:"✨", name:"Charme",        color:"#6b3fa0", desc:"Pourboires +20%",                  tipMult:1.20, speedMult:1.0  },
+  { id:"sommelier",icon:"🍷", name:"Sommelier",     color:"#c4622d", desc:"Boissons commandées +30%",         tipMult:1.10, speedMult:1.0  },
+  { id:"vip",      icon:"🎩", name:"Gestion VIP",   color:"#b87d10", desc:"Patience clients VIP +30s",        tipMult:1.15, speedMult:1.0  },
+];
+const pickSpecialty = () => SRV_SPECIALTIES[Math.floor(Math.random()*SRV_SPECIALTIES.length)];
+
+/* ─── Catalogue de formations serveurs ───────────────── */
+const TRAINING_CATALOG = [
+  {
+    id:"accueil", icon:"🤝", name:"Accueil & Relation client",
+    color:C.purple,
+    desc:"Améliore la satisfaction client et les pourboires.",
+    levels:[
+      { l:1, name:"Initiation",  cost:80,  xp:40,  moralBonus:5,  effect:"Pourboires +5%",       specialtyId:"charm",   desc:"Introduction aux techniques d'accueil." },
+      { l:2, name:"Avancé",     cost:180, xp:100, moralBonus:8,  effect:"Pourboires +12%",      specialtyId:"charm",   desc:"Gestion des situations délicates et fidélisation." },
+      { l:3, name:"Expert",     cost:350, xp:200, moralBonus:15, effect:"Pourboires +20% + Moral max", specialtyId:"charm", desc:"Maîtrise complète de l'expérience client." },
+    ]
+  },
+  {
+    id:"service", icon:"⚡", name:"Rapidité & Efficacité",
+    color:C.navy,
+    desc:"Réduit les temps de prise de commande.",
+    levels:[
+      { l:1, name:"Initiation",  cost:70,  xp:35,  moralBonus:0,  effect:"Commandes −10%",        specialtyId:"speed",   desc:"Optimisation des déplacements en salle." },
+      { l:2, name:"Avancé",     cost:160, xp:90,  moralBonus:5,  effect:"Commandes −20%",        specialtyId:"speed",   desc:"Gestion simultanée de plusieurs tables." },
+      { l:3, name:"Expert",     cost:320, xp:180, moralBonus:10, effect:"Commandes −30% + XP×2", specialtyId:"speed",   desc:"Technique de service professionnel haute performance." },
+    ]
+  },
+  {
+    id:"sommellerie", icon:"🍷", name:"Sommellerie & Boissons",
+    color:C.terra,
+    desc:"Augmente les ventes et la qualité du service boissons.",
+    levels:[
+      { l:1, name:"Initiation",  cost:90,  xp:45,  moralBonus:5,  effect:"Ventes boissons +15%",  specialtyId:"sommelier", desc:"Bases de la dégustation et des accords mets-vins." },
+      { l:2, name:"Avancé",     cost:200, xp:110, moralBonus:8,  effect:"Ventes boissons +25%",  specialtyId:"sommelier", desc:"Connaissance approfondie des crus et spiritueux." },
+      { l:3, name:"Expert",     cost:400, xp:220, moralBonus:12, effect:"Ventes boissons +40%",  specialtyId:"sommelier", desc:"Certification sommelier — conseils personnalisés." },
+    ]
+  },
+  {
+    id:"prestige", icon:"🎩", name:"Gestion VIP & Prestige",
+    color:C.amber,
+    desc:"Optimise le service des clients importants.",
+    levels:[
+      { l:1, name:"Initiation",  cost:100, xp:50,  moralBonus:5,  effect:"Patience VIP +15s",     specialtyId:"vip",     desc:"Protocole de service haut de gamme." },
+      { l:2, name:"Avancé",     cost:220, xp:120, moralBonus:10, effect:"Patience VIP +30s",     specialtyId:"vip",     desc:"Gestion des personnalités et critiques gastronomiques." },
+      { l:3, name:"Expert",     cost:450, xp:240, moralBonus:15, effect:"Patience VIP +45s + XP×2", specialtyId:"vip",  desc:"Excellence absolue — label Palace." },
+    ]
+  },
+  {
+    id:"bienetre", icon:"🧘", name:"Bien-être & Gestion du stress",
+    color:C.green,
+    desc:"Améliore la résistance à la fatigue et le moral.",
+    levels:[
+      { l:1, name:"Initiation",  cost:60,  xp:30,  moralBonus:20, effect:"Moral max +10",         specialtyId:null,      desc:"Techniques de récupération rapide." },
+      { l:2, name:"Avancé",     cost:130, xp:70,  moralBonus:35, effect:"Moral max +20 + drain −50%", specialtyId:null,  desc:"Gestion de la fatigue en service intensif." },
+      { l:3, name:"Expert",     cost:280, xp:140, moralBonus:60, effect:"Moral plein + immunité burnout", specialtyId:null, desc:"Résilience professionnelle complète." },
+    ]
+  },
+];
+// Max moral bonus (cumul toutes formations bien-être)
+const getMaxMoral = (sv) => {
+  const bienetre = (sv.trainings||{})["bienetre"] || 0;
+  return 100 + (bienetre>=1?10:0) + (bienetre>=2?10:0);
+};
+// moral : 0-100. descend quand actif, monte en pause + pourboires
+const MORAL_DRAIN_INTERVAL = 300000; // −1 toutes les 5 min réelles si actif
+const MORAL_PAUSE_GAIN     = 3;      // +3 toutes les 5 min si en pause
+const moralColor = (m) => m>=70?C.green:m>=40?C.amber:C.red;
+const moralIcon  = (m) => m>=70?"😊":m>=40?"😐":m>=20?"😓":"💀";
+const moralLabel = (m) => m>=70?"En forme":m>=40?"Fatigué":m>=20?"Épuisé":"Burnout";
 
 const srvLv = (xp) => {
   const cap=[80,160,280,440];
@@ -149,7 +297,7 @@ const rSize=()=>pick([1,2,2,2,3,3,4,4,6]);
 
 /* ─── Auto order generator ────────────────────────────── */
 const generateOrder=(group,menu)=>{
-  const by=cat=>menu.filter(m=>m.cat===cat);
+  const by=cat=>menu.filter(m=>m.cat===cat&&m.enabled!==false);
   const items=[];
   // 1 plat par personne
   for(let i=0;i<group.size;i++) if(by("Plats").length) items.push(pick(by("Plats")));
@@ -216,8 +364,8 @@ const TABLES0=[
   mkT(10,"Table 10"),mkT(11,"Table 11"),mkT(12,"Table 12"),
 ];
 const SERVERS0=[
-  {id:1,name:"Marie Dupont",  status:"actif",totalXp:320,rating:4.8,salary:14},
-  {id:2,name:"Pierre Martin", status:"actif",totalXp:180,rating:4.5,salary:12},
+  {id:1,name:"Marie Dupont",  status:"actif",totalXp:320,rating:4.8,salary:14,moral:90,specialty:SRV_SPECIALTIES[1]},
+  {id:2,name:"Pierre Martin", status:"actif",totalXp:180,rating:4.5,salary:12,moral:75,specialty:null},
 ];
 /* ─── Primary elements (raw ingredients only) ─────────── */
 const STOCK0=[
@@ -342,7 +490,7 @@ const GAME_EVENTS=[
     id:"inspection", icon:"🔍", title:"Inspection sanitaire",
     desc:"Un inspecteur de la DGCCRF débarque à l'improviste.",
     type:"auto",
-    apply:(stock,cash,complaints,addToast,setCash,addTx,setComplaints)=>{
+    apply:(stock,cash,complaints,addToast,setCash,addTx,setComplaints,setQueue,rMood,rName,rSize,tables,setStock,updateReputation)=>{
       const alerts=stock.filter(s=>s.qty<=s.alert).length;
       if(alerts>=3){
         const fine=300;
@@ -353,12 +501,14 @@ const GAME_EVENTS=[
           status:"nouveau",prio:"haute"},...p]);
         addToast({icon:"🚨",title:"Inspection — Amende !",
           msg:`${alerts} infractions · −${fine}€`,color:"#c0392b",tab:"plaintes"});
+        updateReputation&&updateReputation(REP_DELTA.inspection,"inspection ratée");
         return "fail";
       } else {
         const bonus=100;
         setCash(c=>c+bonus);
         addTx("revenu","Bonus inspection sanitaire (dossier exemplaire)",bonus);
         addToast({icon:"✅",title:"Inspection réussie !",msg:`Dossier exemplaire · +${bonus}€`,color:"#2a5c3f",tab:"stats"});
+        updateReputation&&updateReputation(REP_DELTA.inspOk,"inspection réussie");
         return "pass";
       }
     }
@@ -416,6 +566,37 @@ const calcRating=(patienceLeftRatio, moodB)=>{
 };
 const ratingColor=(r)=>r>=4?"#b87d10":r>=3?"#2a5c3f":r>=2?"#c4622d":"#c0392b";
 const ratingStars=(r)=>"★".repeat(r)+"☆".repeat(5-r);
+
+/* ─── Système de Réputation ───────────────────────────── */
+// 0–100 : démarre à 50. Chaque action positive/négative fait varier la jauge.
+const REP_THRESHOLDS = [
+  { min:80, label:"Réputé",      icon:"🌟", color:"#6b3fa0", tipMult:1.25, spawnMult:1.20,
+    desc:"Les clients affluent. Pourboires +25%, +20% de clients." },
+  { min:60, label:"Apprécié",    icon:"😊", color:"#2a5c3f", tipMult:1.10, spawnMult:1.10,
+    desc:"Bonne réputation. Légère hausse des pourboires et des clients." },
+  { min:40, label:"Neutre",      icon:"😐", color:"#8a7d6a", tipMult:1.00, spawnMult:1.00,
+    desc:"Réputation standard, pas d'effet." },
+  { min:20, label:"Dégradée",    icon:"😟", color:"#c4622d", tipMult:0.80, spawnMult:0.80,
+    desc:"Les clients se méfient. Pourboires −20%, moins de clients." },
+  { min:0,  label:"Désastreuse", icon:"💀", color:"#c0392b", tipMult:0.50, spawnMult:0.50,
+    desc:"Votre réputation est en ruine. Urgence absolue !" },
+];
+const getRepTier = (rep) =>
+  REP_THRESHOLDS.find(t => rep >= t.min) || REP_THRESHOLDS[REP_THRESHOLDS.length-1];
+
+// Deltas de réputation par événement
+const REP_DELTA = {
+  rating5    : +4,   // ★★★★★
+  rating4    : +2,   // ★★★★
+  rating3    :  0,   // ★★★ neutre
+  rating2    : -4,   // ★★
+  rating1    : -8,   // ★
+  vip        : +6,   // Client VIP bien servi
+  lostClient : -3,   // Client parti sans être servi
+  complaint  : -5,   // Plainte générée auto
+  inspection : -6,   // Inspection ratée
+  inspOk     : +3,   // Inspection réussie
+};
 
 
 /* ─── Economy: Bank loans ─────────────────────────────── */
@@ -627,10 +808,12 @@ function Toasts({list,onDismiss,onNavigate}){
 /* ═══════════════════════════════════════════════════════
    TABLES VIEW
 ═══════════════════════════════════════════════════════ */
-function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress}){
+function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation}){
   const [modal,setModal]=useState(null);
   const [tgtT,setTgtT]=useState("");
   const [tgtS,setTgtS]=useState("");
+  const [selectedTable,setSelectedTable]=useState(null);
+  const [viewMode,setViewMode]=useState("plan"); // "plan" | "grid"
 
   const [preview,setPreview]=useState([]);
   const now=clockNow; // use App-level clock to avoid reset on tab change
@@ -641,7 +824,7 @@ function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen
     else setPreview([]);
   },[tgtT,tgtS]);
 
-  const activeSrv=servers.filter(s=>s.status==="actif");
+  const activeSrv=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
   const freeTbl=(g)=>tables.filter(t=>t.status==="libre"&&t.capacity>=g.size);
   const openAssign=(g)=>{setModal(g);setTgtT("");setTgtS("");setPreview([]);};
 
@@ -662,8 +845,10 @@ function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen
       }))
     );
     // Service duration based on group size: 30s (2p), 60s (4p), 90s (6p)
-    const svcDur=g.size<=2?30000:g.size<=4?60000:90000;
-    const svcLabel=g.size<=2?"30s":g.size<=4?"1 min":"1m30";
+    // Reduced by speed specialty
+    const speedMult=srv.specialty?.id==="speed"?(srv.specialty.speedMult||1.0):1.0;
+    const svcDur=Math.round((g.size<=2?30000:g.size<=4?60000:90000)*speedMult);
+    const svcLabel=svcDur<=21000?"~20s":svcDur<=42000?"~40s":"~1min";
     const svcUntil=Date.now()+svcDur;
     setServers(p=>p.map(s=>s.id!==srv.id?s:{...s,status:"service",serviceUntil:svcUntil}));
     setTables(p=>p.map(t=>t.id!==table.id?t:
@@ -678,6 +863,10 @@ function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen
       setKitchen(k=>({...k,queue:[...k.queue,...tickets]}));
       setServers(p=>p.map(s=>s.id!==srv.id?s:{...s,status:"actif",serviceUntil:null}));
       setTables(p=>p.map(t=>t.id!==table.id?t:{...t,svcUntil:null,server:null}));
+      // Incrémenter orderCount dans le menu
+      const counts={};
+      orderLines.forEach(o=>{if(o.menuId)counts[o.menuId]=(counts[o.menuId]||0)+o.qty;});
+      setMenu(m=>m.map(d=>counts[d.id]?{...d,orderCount:(d.orderCount||0)+counts[d.id]}:d));
       addToast({icon:"📋",title:"Commande en cuisine !",
         msg:`${table.name} · ${tickets.length} plat${tickets.length>1?"s":""}`,color:C.terra,tab:"cuisine"});
     },svcDur);
@@ -703,6 +892,10 @@ function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen
       {...t,status:"occupée",server:tgtS,group:modal,order:orderLines,svcTimer:0,svcMax:0,
         placedAt:Date.now(),patienceLeftRatio:Math.max(0,(modal.expiresAt-Date.now())/(modal.patMax*1000))}));
     setQueue(q=>q.filter(c=>c.id!==modal.id));
+    // Incrémenter orderCount dans le menu
+    const counts={};
+    orderLines.forEach(o=>{if(o.menuId)counts[o.menuId]=(counts[o.menuId]||0)+o.qty;});
+    setMenu(m=>m.map(d=>counts[d.id]?{...d,orderCount:(d.orderCount||0)+counts[d.id]}:d));
     addToast({icon:"📋",title:"Commande envoyée !",
       msg:`${tn?.name} · ${tickets.length} plat${tickets.length>1?"s":""} → cuisine`,color:C.terra,tab:"cuisine"});
     setModal(null);
@@ -714,17 +907,33 @@ function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen
     if(!t?.group)return;
     const bill=t.order.reduce((s,o)=>s+o.price*o.qty,0);
     const rating=calcRating(t.patienceLeftRatio??0.5, t.group.mood.b);
-    const tip=+(bill*(rating-1)*0.04).toFixed(2);
+    const repTier=getRepTier(reputation);
+    // Apply server specialty tip multiplier
+    const serverObj=servers.find(s=>s.name===t.server);
+    const specTipMult=serverObj?.specialty?.tipMult||1.0;
+    const tip=+(bill*(rating-1)*0.04*repTier.tipMult*specTipMult).toFixed(2);
     const isVIP=t.group.isVIP||false;
     const totalReceipt=+(bill+tip+(isVIP?200:0)).toFixed(2);
     const xpG=Math.round((20+t.group.size*8)*t.group.mood.b*(isVIP?3:1));
 
-    // Low rating → auto complaint
+    // Boost server moral on good tip
+    if(tip>0&&t.server){
+      setServers(prev=>prev.map(s=>s.name!==t.server?s:
+        {...s,moral:Math.min(100,(s.moral??100)+Math.min(5,Math.round(tip/2)))}));
+    }
+
+    // Réputation : delta selon note
+    const repDeltaKey=["","rating1","rating2","rating3","rating4","rating5"][rating];
+    updateReputation(REP_DELTA[repDeltaKey]||(rating>=4?2:rating<=2?-4:0), `note ${rating}★`);
+    if(isVIP) updateReputation(REP_DELTA.vip,"client VIP servi");
+
+    // Low rating → auto complaint + réputation
     if(rating<=2){
       const desc=rating===1?"Service très insatisfaisant — client très mécontent":"Service insuffisant";
       setComplaints(p=>[{id:Date.now(),date:new Date().toLocaleDateString("fr-FR"),
         table:t.name,server:t.server||"-",type:"Satisfaction",desc,
         status:"nouveau",prio:rating===1?"haute":"moyenne"},...p]);
+      updateReputation(REP_DELTA.complaint,"plainte générée");
     }
     // VIP bonus toast
     if(isVIP){
@@ -744,13 +953,13 @@ function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen
         svcTimer:0,svcMax:0,
         cleanUntil,cleanDur:60}));
 
-    // Lock cleaner for 60s
     if(cleaner)
       setServers(p=>p.map(s=>s.name!==cleaner.name?s:
         {...s,status:"service",serviceUntil:cleanUntil}));
 
+    const repLabel=repTier.tipMult>1?` · Rep×${repTier.tipMult}`:repTier.tipMult<1?` · Rep×${repTier.tipMult}`:"";
     addToast({icon:"✨",title:`${ratingStars(rating)} +${totalReceipt.toFixed(2)}€`,
-      msg:`${t.name} · ${t.group.mood.e}${tip>0?" · pourboire +"+tip.toFixed(2)+"€":""}`,
+      msg:`${t.name} · ${t.group.mood.e}${tip>0?" · pourboire +"+tip.toFixed(2)+"€":""}${repLabel}`,
       color:rating>=4?C.green:rating<=2?C.red:C.amber,tab:"tables"});
     addRestoXp(xpG);
     setCash(c=>+(c+totalReceipt).toFixed(2));
@@ -759,13 +968,11 @@ function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen
     addDayStat("revenue",totalReceipt);
     addDayStat("rating",rating);
 
-    // Server XP from checkout: base 15 xp + rating bonus
     const srvXpGain=15+rating*5;
     if(t.server){
       setServers(prev=>prev.map(s=>s.name!==t.server?s:{...s,totalXp:s.totalXp+srvXpGain}));
     }
 
-    // Challenge progress
     const tip2=+(bill*(rating-1)*0.04).toFixed(2);
     setChallengeProgress(p=>({
       ...p,
@@ -781,9 +988,43 @@ function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen
     libre: tables.filter(t=>t.status==="libre").length,
     occ:   tables.filter(t=>t.status==="occupée").length,
     mange: tables.filter(t=>t.status==="mange").length,
-
   };
   const catColors={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy};
+
+  // Réorganisation de la file d'attente
+  const moveInQueue=(idx,dir)=>{
+    setQueue(q=>{
+      const next=idx+dir;
+      if(next<0||next>=q.length)return q;
+      const arr=[...q];
+      [arr[idx],arr[next]]=[arr[next],arr[idx]];
+      return arr;
+    });
+  };
+
+  // Temps d'attente estimé : nb de tables occupées × durée moyenne de service restante
+  const estimatedWait=(pos)=>{
+    const occupiedCount=tables.filter(t=>t.status==="occupée"||t.status==="mange").length;
+    const freeCount=tables.filter(t=>t.status==="libre").length;
+    if(freeCount>0&&pos===0)return 0;
+    // Estimation grossière : chaque position = 90s si pas de table libre
+    return Math.max(0,(pos+1-freeCount)*90);
+  };
+
+  // Rappel d'un groupe de la liste d'attente (humeur améliorée)
+  const recallGroup=(g)=>{
+    const boostedMood={...g.mood, p:g.mood.p+15, b:Math.min(3,g.mood.b+0.2)};
+    const newGroup={
+      ...g,
+      mood:boostedMood,
+      expiresAt:Date.now()+boostedMood.p*1000,
+      patMax:boostedMood.p,
+      recalled:true,
+    };
+    setQueue(q=>[newGroup,...q]);
+    setWaitlist(w=>w.filter(x=>x.id!==g.id));
+    addToast({icon:"📞",title:`${g.name} rappelé !`,msg:`Humeur améliorée · patience +15s`,color:C.green,tab:"tables"});
+  };
 
   return(
     <div>
@@ -826,27 +1067,6 @@ function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen
           <div style={{fontSize:22,fontWeight:700,color:queue.length>3?C.red:C.amber,fontFamily:F.title,lineHeight:1}}>{queue.length}</div>
           <div style={{fontSize:10,color:C.muted,marginTop:4,fontFamily:F.body}}>File d'attente</div>
         </div>
-
-        {/* Plats du jour */}
-        {dailySpecials&&dailySpecials.length>0&&(
-          <div style={{flex:"0 0 auto",minWidth:180,background:C.purpleP,
-            border:`1.5px solid ${C.purple}22`,borderRadius:14,padding:"13px 12px",
-            boxShadow:`0 2px 8px ${C.purple}12`}}>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:7}}>
-              <span style={{fontSize:13}}>✨</span>
-              <span style={{fontSize:12,fontWeight:700,color:C.purple,fontFamily:F.title}}>Plats du jour</span>
-            </div>
-            {dailySpecials.map((s,i)=>(
-              <div key={i} style={{fontSize:10,color:C.ink,fontFamily:F.body,
-                marginBottom:3,display:"flex",justifyContent:"space-between",gap:6}}>
-                <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:110}}>{s.name}</span>
-                <span style={{color:C.purple,fontWeight:700,whiteSpace:"nowrap"}}>
-                  <s style={{color:C.muted,fontWeight:400}}>{s.originalPrice}€</s> {s.price}€
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* Nettoyage */}
         {(()=>{const n=tables.filter(t=>t.status==="nettoyage").length;
@@ -908,303 +1128,843 @@ function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen
 
       </div>
 
-      {/* Waiting queue */}
-      {queue.length>0&&(
-        <div style={{background:C.navyP,border:`1.5px solid ${C.navy}22`,
-          borderRadius:14,padding:16,marginBottom:20}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <span>🚶‍♂️</span>
-            <span style={{color:C.navy,fontWeight:600,fontSize:14,fontFamily:F.body}}>
-              {queue.length} groupe{queue.length>1?"s":""} en salle d'attente
-            </span>
-          </div>
-          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-            {queue.map(g=>{
-              const remaining=Math.max(0,Math.ceil((g.expiresAt-now)/1000));
-              const pct=(remaining/g.patMax)*100;
-              const pc=pct>60?C.green:pct>30?C.terra:C.red;
-              const ft=freeTbl(g);
-              return(
-                <div key={g.id} style={{
-                  background:g.isVIP?"#fffbef":C.white,
-                  border:`1.5px solid ${g.isVIP?"#d4af37":pc+"44"}`,
-                  borderRadius:12,padding:"12px 14px",minWidth:175,flex:"0 0 auto",
-                  boxShadow:pct<25?`0 0 12px ${C.red}44`:g.isVIP?"0 0 16px #d4af3755":"none",
-                  animation:pct<25?"breatheAmber 1.2s ease-in-out infinite":undefined,
-                  transition:"box-shadow 0.3s"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:700,color:g.isVIP?"#8a6a00":C.ink,
-                        fontFamily:F.body,display:"flex",alignItems:"center",gap:5}}>
-                        {g.isVIP&&<span style={{fontSize:14}}>🎩</span>}
-                        {g.name}
+      {/* ── File d'attente intelligente ── */}
+      {(queue.length>0||waitlist.length>0)&&(
+        <div style={{marginBottom:20}}>
+
+          {/* Header file */}
+          {queue.length>0&&(
+            <div style={{background:C.navyP,border:`1.5px solid ${C.navy}22`,
+              borderRadius:14,padding:16,marginBottom:waitlist.length>0?12:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                <span>🚶‍♂️</span>
+                <span style={{color:C.navy,fontWeight:700,fontSize:14,fontFamily:F.title}}>
+                  {queue.length} groupe{queue.length>1?"s":""} en attente
+                </span>
+                {queue.length>=5&&(
+                  <span style={{fontSize:10,background:C.redP,color:C.red,
+                    border:`1px solid ${C.red}33`,borderRadius:20,padding:"2px 8px",
+                    fontWeight:700,fontFamily:F.body,animation:"pulse 1.2s infinite"}}>
+                    🚨 Salle saturée
+                  </span>
+                )}
+                <span style={{marginLeft:"auto",fontSize:10,color:C.muted,fontFamily:F.body}}>
+                  ↑↓ pour réordonner
+                </span>
+              </div>
+
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {queue.map((g,idx)=>{
+                  const remaining=Math.max(0,Math.ceil((g.expiresAt-now)/1000));
+                  const pct=(remaining/g.patMax)*100;
+                  const pc=pct>60?C.green:pct>30?C.terra:C.red;
+                  const ft=freeTbl(g);
+                  const waitSec=estimatedWait(idx);
+                  return(
+                    <div key={g.id} style={{
+                      background:g.recalled?"#f0fff4":g.isVIP?"#fffbef":C.white,
+                      border:`1.5px solid ${g.isVIP?"#d4af37":g.recalled?C.green+"55":pc+"33"}`,
+                      borderRadius:12,padding:"10px 12px",
+                      boxShadow:pct<25?`0 0 10px ${C.red}33`:g.isVIP?"0 0 14px #d4af3744":"none",
+                      animation:pct<25?"breatheAmber 1.2s ease-in-out infinite":undefined,
+                      display:"flex",alignItems:"center",gap:10}}>
+
+                      {/* Boutons ↑↓ */}
+                      <div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}>
+                        <button onClick={()=>moveInQueue(idx,-1)} disabled={idx===0}
+                          style={{width:22,height:22,borderRadius:5,border:`1px solid ${C.border}`,
+                            background:idx===0?C.bg:C.navyP,color:idx===0?C.muted:C.navy,
+                            cursor:idx===0?"not-allowed":"pointer",fontSize:11,fontWeight:700,
+                            display:"flex",alignItems:"center",justifyContent:"center"}}>▲</button>
+                        <button onClick={()=>moveInQueue(idx,+1)} disabled={idx===queue.length-1}
+                          style={{width:22,height:22,borderRadius:5,border:`1px solid ${C.border}`,
+                            background:idx===queue.length-1?C.bg:C.navyP,color:idx===queue.length-1?C.muted:C.navy,
+                            cursor:idx===queue.length-1?"not-allowed":"pointer",fontSize:11,fontWeight:700,
+                            display:"flex",alignItems:"center",justifyContent:"center"}}>▼</button>
                       </div>
-                      <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:1}}>
-                        👥 {g.size}p
-                        <span style={{marginLeft:5,background:pct<25?C.redP:pct<60?C.amberP:C.greenP,
-                          color:pct<25?C.red:pct<60?C.amber:C.green,
-                          borderRadius:4,padding:"0px 5px",fontSize:10,fontWeight:600}}>
-                          {g.mood.e} {g.mood.l}
+
+                      {/* Position */}
+                      <div style={{width:24,height:24,borderRadius:"50%",flexShrink:0,
+                        background:idx===0?C.green:C.navy,
+                        display:"flex",alignItems:"center",justifyContent:"center",
+                        fontSize:11,fontWeight:800,color:"#fff"}}>
+                        {idx+1}
+                      </div>
+
+                      {/* Infos groupe */}
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:2}}>
+                          {g.isVIP&&<span style={{fontSize:13}}>🎩</span>}
+                          {g.recalled&&<span style={{fontSize:11}}>📞</span>}
+                          <span style={{fontSize:13,fontWeight:700,
+                            color:g.isVIP?"#8a6a00":C.ink,fontFamily:F.body,
+                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                            {g.name}
+                          </span>
+                          <span style={{fontSize:10,background:pct<25?C.redP:pct<60?C.amberP:C.greenP,
+                            color:pct<25?C.red:pct<60?C.amber:C.green,
+                            borderRadius:4,padding:"0px 5px",fontWeight:600,flexShrink:0}}>
+                            {g.mood.e} {g.size}p
+                          </span>
+                        </div>
+                        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                          <div style={{flex:1,height:4,background:C.border,borderRadius:99,overflow:"hidden",minWidth:40}}>
+                            <div style={{height:"100%",borderRadius:99,
+                              background:`linear-gradient(90deg,${C.red},${pct>50?C.amber:C.red},${pct>70?C.green:C.red})`,
+                              width:`${pct}%`,transition:"width 0.5s linear"}}/>
+                          </div>
+                          <span style={{fontSize:10,color:pc,fontWeight:700,fontFamily:F.body,flexShrink:0}}>
+                            {remaining}s
+                          </span>
+                          {waitSec>0&&(
+                            <span style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0}}>
+                              ⏳ ~{waitSec>=60?`${Math.floor(waitSec/60)}min`:waitSec+"s"} att.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Bouton placer */}
+                      <Btn sm v={ft.length>0?"primary":"ghost"}
+                        disabled={ft.length===0}
+                        onClick={()=>ft.length>0&&activeSrv.length>0?quickPlace(g):openAssign(g)}>
+                        {ft.length>0
+                          ?activeSrv.length>0?"▶ Placer":"Pas de serveur"
+                          :"Complet"
+                        }
+                      </Btn>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Liste d'attente (groupes partis rappelables) */}
+          {waitlist.length>0&&(
+            <div style={{background:C.terraP,border:`1.5px solid ${C.terra}33`,
+              borderRadius:14,padding:"12px 16px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                <span style={{fontSize:15}}>📞</span>
+                <span style={{fontSize:13,fontWeight:700,color:C.terra,fontFamily:F.title}}>
+                  {waitlist.length} groupe{waitlist.length>1?"s":""} — rappelable{waitlist.length>1?"s":""}
+                </span>
+                <span style={{fontSize:10,color:C.muted,fontFamily:F.body,marginLeft:"auto"}}>
+                  Sous 2 minutes · humeur améliorée
+                </span>
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {waitlist.map(g=>{
+                  const recallLeft=Math.max(0,Math.ceil((g.recallUntil-now)/1000));
+                  const pct=(recallLeft/120)*100;
+                  return(
+                    <div key={g.id} style={{
+                      background:C.surface,border:`1.5px solid ${C.terra}44`,
+                      borderRadius:10,padding:"10px 12px",minWidth:160,flex:"0 0 auto"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",
+                        alignItems:"center",marginBottom:6}}>
+                        <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>
+                          {g.mood.e} {g.name}
+                        </div>
+                        <span style={{fontSize:11,fontWeight:700,color:C.terra,fontFamily:F.title}}>
+                          {recallLeft}s
                         </span>
                       </div>
+                      <div style={{height:3,background:C.border,borderRadius:99,
+                        overflow:"hidden",marginBottom:8}}>
+                        <div style={{height:"100%",width:`${pct}%`,background:C.terra,
+                          borderRadius:99,transition:"width 0.5s"}}/>
+                      </div>
+                      <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:8}}>
+                        👥 {g.size}p · {g.mood.l}
+                      </div>
+                      <Btn sm full v="terra" onClick={()=>recallGroup(g)}>
+                        📞 Rappeler
+                      </Btn>
                     </div>
-                    <div style={{textAlign:"right",flexShrink:0,marginLeft:6}}>
-                      <div style={{fontSize:18,fontWeight:700,color:pc,fontFamily:F.title,lineHeight:1}}>{remaining}s</div>
-                      <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>patience</div>
-                    </div>
-                  </div>
-                  <div style={{marginBottom:10}}>
-                    <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                      <div style={{height:"100%",borderRadius:99,
-                        background:`linear-gradient(90deg,${C.red},${pct>50?C.amber:C.red},${pct>70?C.green:C.red})`,
-                        width:`${pct}%`,transition:"width 0.5s linear"}}/>
-                    </div>
-                  </div>
-                  <Btn sm full v={ft.length>0?"primary":"ghost"}
-                    disabled={ft.length===0} onClick={()=>ft.length>0&&activeSrv.length>0?quickPlace(g):openAssign(g)}>
-                    {ft.length>0
-                      ?activeSrv.length>0
-                        ?`▶ Placer (${ft.length} table${ft.length>1?"s":""})`
-                        :"Aucun serveur actif"
-                      :"Complet"
-                    }
-                  </Btn>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Tables grid */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
-        {tables.map(t=>{
+      {/* ── Bouton toggle vue ── */}
+      <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center"}}>
+        {[{k:"plan",icon:"🗺",label:"Plan de salle"},{k:"grid",icon:"⊞",label:"Grille"}].map(v=>(
+          <button key={v.k} onClick={()=>setViewMode(v.k)} style={{
+            padding:"6px 14px",borderRadius:8,fontSize:12,fontWeight:600,
+            background:viewMode===v.k?C.navy:"transparent",
+            color:viewMode===v.k?"#fff":C.muted,
+            border:`1.5px solid ${viewMode===v.k?C.navy:C.border}`,
+            cursor:"pointer",fontFamily:F.body,display:"flex",alignItems:"center",gap:5}}>
+            <span>{v.icon}</span><span>{v.label}</span>
+          </button>
+        ))}
+        {selectedTable&&viewMode==="plan"&&(
+          <button onClick={()=>setSelectedTable(null)}
+            style={{marginLeft:"auto",padding:"4px 10px",borderRadius:7,fontSize:11,
+              background:C.redP,color:C.red,border:`1px solid ${C.red}33`,
+              cursor:"pointer",fontFamily:F.body,fontWeight:600}}>
+            ✕ Fermer
+          </button>
+        )}
+      </div>
 
-          const isMange=t.status==="mange";
-          const isNettoyage=t.status==="nettoyage";
-          const bill=isMange?t.order.reduce((s,o)=>s+o.price*o.qty,0):0;
-          const isEating=isMange&&t.eatUntil&&now<t.eatUntil;
-          const eatPct=isEating?Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):100;
-          const eatSecsLeft=isEating?Math.ceil((t.eatUntil-now)/1000):0;
-          const cleanPct=isNettoyage&&t.cleanUntil?Math.min(100,Math.round(((t.cleanDur*1000-(t.cleanUntil-now))/(t.cleanDur*1000))*100)):0;
-          const cleanSecsLeft=isNettoyage&&t.cleanUntil?Math.max(0,Math.ceil((t.cleanUntil-now)/1000)):0;
-          const myQ=queue.filter(g=>g.size<=t.capacity&&t.status==="libre");
-          // Server still taking the order (30s window before kitchen)
-          const srvObj=servers.find(s=>s.name===t.server);
-          const isOrdering=t.status==="occupée"&&t.svcUntil&&now<t.svcUntil;
-          const secsLeft=isOrdering?Math.max(0,Math.ceil((t.svcUntil-now)/1000)):0;
-          const accentColor=isNettoyage?C.amber:isMange?C.green:isOrdering?C.navy:t.status==="occupée"?C.terra:C.muted;
+      {viewMode==="plan"?(
+        /* ══════════════════════════════════════════════════
+           PLAN DE SALLE SVG
+        ══════════════════════════════════════════════════ */
+        <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
 
-          return(
-            <div key={t.id} style={{
-              background:isNettoyage?C.amberP:isMange?C.greenP:isOrdering?C.navyP:t.status==="occupée"?C.terraP:C.card,
-              border:`1.5px solid ${t.group?.isVIP?"#d4af37":accentColor+"44"}`,
-              borderRadius:14,padding:16,paddingLeft:22,position:"relative",
-              boxShadow:t.group?.isVIP?"0 0 20px #d4af3755":isMange?`0 0 16px ${C.green}33`:isNettoyage?`0 0 14px ${C.amber}33`:`0 1px 5px rgba(0,0,0,0.07)`,
-              transition:"all 0.3s ease",
-              animation:t.status==="libre"&&myQ.length>0?"breathe 2.4s ease-in-out infinite":undefined,
-            }}>
-              {/* Status LED strip — left edge */}
-              <div style={{position:"absolute",left:0,top:0,bottom:0,width:5,
-                borderRadius:"14px 0 0 14px",
-                background:t.group?.isVIP?"linear-gradient(180deg,#d4af37,#f5d878,#d4af37)":
-                  isNettoyage?C.amber:isMange?C.green:isOrdering?C.navy:
-                  t.status==="occupée"?C.terra:myQ.length>0?C.green:C.muted+"44",
-                animation:isOrdering?"ledPulse 1.2s ease-in-out infinite":
-                  isMange&&isEating?"ledPulse 2s ease-in-out infinite":undefined,
-              }}/>
-              {/* VIP crown */}
-              {t.group?.isVIP&&(
-                <div style={{position:"absolute",top:8,right:8,fontSize:18}}>🎩</div>
-              )}
-              {/* Upgrade button — top right */}
-              {t.status==="libre"&&t.capLv<2&&(()=>{
-                const up=CAP_UPGRADES[t.capLv];
-                const canAfford=cash>=up.cost;
-                return(
-                  <button onClick={(e)=>{
-                    e.stopPropagation();
-                    if(!canAfford)return;
-                    setTables(p=>p.map(x=>x.id!==t.id?x:{...x,capacity:up.newCap,capLv:t.capLv+1}));
-                    setCash(c=>+(c-up.cost).toFixed(2));
-                    addTx("achat",`Agrandissement ${t.name} → ${up.newCap} couverts`,up.cost);
-                    addToast({icon:"🪑",title:"Table agrandie !",msg:`${t.name} passe à ${up.newCap} couverts`,color:C.navy,tab:"tables"});
-                    if(onTableUpgrade)onTableUpgrade();
-                  }} title={`${up.label} — ${up.cost}€`} style={{
-                    position:"absolute",top:10,right:10,
-                    background:canAfford?C.navyP:"transparent",
-                    border:`1.5px solid ${canAfford?C.navy:C.border}`,
-                    borderRadius:7,padding:"3px 8px",cursor:canAfford?"pointer":"not-allowed",
-                    opacity:canAfford?1:0.45,fontFamily:F.body,
-                    display:"flex",alignItems:"center",gap:4}}>
-                    <span style={{fontSize:10}}>🪑</span>
-                    <span style={{fontSize:10,color:canAfford?C.navy:C.muted,fontWeight:600}}>Amélioration · {up.cost}€</span>
-                  </button>
-                );
-              })()}
-              <div style={{}}>
-                <div style={{fontSize:15,fontWeight:600,color:C.ink,fontFamily:F.title,marginBottom:5}}>
-                  {t.name}
+          {/* SVG Floor plan */}
+          <div style={{flex:"1 1 420px",background:"#faf7f0",
+            border:`1.5px solid ${C.border}`,borderRadius:16,
+            overflow:"hidden",position:"relative",minHeight:340}}>
+
+            {/* Légende */}
+            <div style={{position:"absolute",top:10,left:10,zIndex:5,
+              display:"flex",gap:6,flexWrap:"wrap"}}>
+              {[
+                {c:C.green,   label:"Libre"},
+                {c:C.terra,   label:"En cuisine"},
+                {c:"#2a7a5c", label:"Repas"},
+                {c:C.amber,   label:"Nettoyage"},
+                {c:C.navy,    label:"Commande"},
+              ].map(x=>(
+                <div key={x.label} style={{display:"flex",alignItems:"center",gap:4,
+                  background:"rgba(255,255,255,0.85)",borderRadius:5,padding:"2px 7px",
+                  fontSize:9,fontFamily:F.body,fontWeight:600,color:x.c,
+                  border:`1px solid ${x.c}33`}}>
+                  <div style={{width:7,height:7,borderRadius:2,background:x.c}}/>
+                  {x.label}
                 </div>
-                <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>
-                  <Badge
-                    color={t.status==="libre"?C.green:isNettoyage?C.amber:isMange?C.green:isOrdering?C.navy:C.terra}
-                    bg={t.status==="libre"?C.greenP:isNettoyage?C.amberP:isMange?C.greenP:isOrdering?C.navyP:C.terraP} sm>
-                    {t.status==="libre"?"libre":isNettoyage?"🧹 nettoyage":isMange?(isEating?"🍴 repas en cours":"🍽 repas"):isOrdering?"🛎 prise de commande":"🔥 en cuisine"}
-                  </Badge>
+              ))}
+            </div>
 
+            {/* SVG Floor plan — layout dynamique */}
+            {(()=>{
+              const n = tables.length;
+
+              // ── 1. Grille dynamique ─────────────────────────
+              // Colonnes : adapté au nombre de tables
+              const cols = n<=2?n : n<=4?2 : n<=6?3 : n<=9?3 : 4;
+              const rows = Math.ceil(n / cols);
+
+              // ── 2. Taille de chaque cellule ─────────────────
+              // La plus grande table (6p) : tw=64, th=46
+              // Chaises : +14px gauche/droite, +14px haut/bas
+              // Espacement entre tables : 20px
+              const CELL_W = 110; // 64+14+14+18 de marge
+              const CELL_H = 90;  // 46+14+14+16 de marge
+
+              // ── 3. Marges du plan ───────────────────────────
+              const ML = 30;   // gauche (couloir cuisine)
+              const MT = 52;   // haut (déco + espace)
+              const MR = 80;   // droite (bar)
+              const MB = 36;   // bas (entrée)
+
+              // ── 4. ViewBox calculée ──────────────────────────
+              const VW = ML + cols * CELL_W + MR;
+              const VH = MT + rows * CELL_H + MB;
+
+              // ── 5. Position centre de chaque table ──────────
+              const getPos = (i) => ({
+                cx: ML + (i % cols) * CELL_W + CELL_W / 2,
+                cy: MT + Math.floor(i / cols) * CELL_H + CELL_H / 2,
+              });
+
+              return(
+                <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" style={{display:"block"}}>
+                  {/* Fond parquet */}
+                  <rect x="0" y="0" width={VW} height={VH} fill="#faf7f0"/>
+                  {Array.from({length:Math.ceil(VH/20)+1},(_,i)=>(
+                    <line key={`h${i}`} x1="0" y1={i*20} x2={VW} y2={i*20}
+                      stroke="#e8e0d0" strokeWidth="0.5"/>
+                  ))}
+                  {Array.from({length:Math.ceil(VW/20)+1},(_,i)=>(
+                    <line key={`v${i}`} x1={i*20} y1="0" x2={i*20} y2={VH}
+                      stroke="#e8e0d0" strokeWidth="0.5"/>
+                  ))}
+
+                  {/* Entrée — centrée en bas */}
+                  <rect x={VW/2-50} y={VH-20} width={100} height={20} rx="4"
+                    fill="#d4c9b0" opacity="0.8"/>
+                  <text x={VW/2} y={VH-8} textAnchor="middle" fontSize="9"
+                    fill="#8a7d6a" fontFamily="sans-serif">✦ ENTRÉE</text>
+
+                  {/* Bar — droite */}
+                  <rect x={VW-MR+6} y={MT} width={MR-10} height={Math.min(rows*CELL_H, 50)} rx="6"
+                    fill="#c4a882" opacity="0.7"/>
+                  <text x={VW-MR+MR/2+1} y={MT+18} textAnchor="middle" fontSize="9"
+                    fill="#5a3e20" fontFamily="sans-serif">🍺</text>
+                  <text x={VW-MR+MR/2+1} y={MT+30} textAnchor="middle" fontSize="8"
+                    fill="#5a3e20" fontFamily="sans-serif">Bar</text>
+
+                  {/* Cuisine — gauche */}
+                  <rect x={2} y={MT} width={ML-4} height={30} rx="4"
+                    fill="#b8d4c8" opacity="0.8"/>
+                  <text x={ML/2} y={MT+12} textAnchor="middle" fontSize="8"
+                    fill="#2a5c3f" fontFamily="sans-serif">🍳</text>
+                  <text x={ML/2} y={MT+23} textAnchor="middle" fontSize="7"
+                    fill="#2a5c3f" fontFamily="sans-serif">Cuisine</text>
+
+                  {/* Tables */}
+                  {tables.map((t,i)=>{
+                    const pos = getPos(i);
+                    const isMange=t.status==="mange";
+                    const isNettoyage=t.status==="nettoyage";
+                    const isOrdering=t.status==="occupée"&&t.svcUntil&&now<t.svcUntil;
+                    const isLibre=t.status==="libre";
+                    const myQ=queue.filter(g=>g.size<=t.capacity&&isLibre);
+
+                    const fill=isNettoyage?"#f5d878":isMange?"#4a9e78":isOrdering?"#3a5f8a":
+                      t.status==="occupée"?"#e07a45":myQ.length>0?"#5ab88a":"#c8e6d8";
+
+                    const stroke=t.id===selectedTable?.id?"#1a1612":
+                      t.group?.isVIP?"#d4af37":fill;
+                    const strokeW=t.id===selectedTable?.id?3:1.5;
+
+                    // Taille selon capacité — garantit que tw+chaises < CELL_W
+                    const tw=t.capacity<=2?40:t.capacity<=4?50:60;
+                    const th=t.capacity<=2?32:t.capacity<=4?38:44;
+
+                    const bill=isMange?t.order.reduce((s,o)=>s+o.price*o.qty,0):0;
+                    const isEating=isMange&&t.eatUntil&&now<t.eatUntil;
+                    const eatPct=isEating?
+                      Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):
+                      isMange?100:0;
+
+                    return(
+                      <g key={t.id} onClick={()=>setSelectedTable(t)} style={{cursor:"pointer"}}>
+
+                        {/* Halo sélection */}
+                        {t.id===selectedTable?.id&&(
+                          <rect x={pos.cx-tw/2-7} y={pos.cy-th/2-7}
+                            width={tw+14} height={th+14} rx="13"
+                            fill="none" stroke="#1a1612" strokeWidth="2.5"
+                            opacity="0.25" strokeDasharray="5 3"/>
+                        )}
+
+                        {/* Chaises latérales */}
+                        {[{dx:-(tw/2+7),dy:0},{dx:tw/2+7,dy:0}].map((ch,ci)=>(
+                          <ellipse key={`s${ci}`}
+                            cx={pos.cx+ch.dx} cy={pos.cy+ch.dy}
+                            rx="5" ry="7" fill="#d4c9b0" opacity="0.75"/>
+                        ))}
+                        {/* Chaises haut/bas si 4p+ */}
+                        {t.capacity>=4&&[{dx:0,dy:-(th/2+7)},{dx:0,dy:th/2+7}].map((ch,ci)=>(
+                          <ellipse key={`tb${ci}`}
+                            cx={pos.cx+ch.dx} cy={pos.cy+ch.dy}
+                            rx="7" ry="5" fill="#d4c9b0" opacity="0.75"/>
+                        ))}
+                        {/* Chaises supplémentaires si 6p */}
+                        {t.capacity>=6&&[
+                          {dx:-(tw/2+7),dy:-th/4},{dx:-(tw/2+7),dy:th/4},
+                          {dx:tw/2+7,     dy:-th/4},{dx:tw/2+7,     dy:th/4},
+                        ].map((ch,ci)=>(
+                          <ellipse key={`ex${ci}`}
+                            cx={pos.cx+ch.dx} cy={pos.cy+ch.dy}
+                            rx="4" ry="6" fill="#d4c9b0" opacity="0.65"/>
+                        ))}
+
+                        {/* Surface de la table */}
+                        <rect x={pos.cx-tw/2} y={pos.cy-th/2}
+                          width={tw} height={th} rx="8"
+                          fill={fill} stroke={stroke} strokeWidth={strokeW}
+                          opacity={isLibre&&myQ.length===0?0.85:1}/>
+
+                        {/* Barre de progression (repas / nettoyage) */}
+                        {(isMange||isNettoyage)&&(
+                          <g>
+                            <rect x={pos.cx-tw/2+4} y={pos.cy+th/2-7}
+                              width={tw-8} height={4} rx="2" fill="rgba(0,0,0,0.18)"/>
+                            <rect x={pos.cx-tw/2+4} y={pos.cy+th/2-7}
+                              width={Math.max(0,(tw-8)*eatPct/100)} height={4} rx="2"
+                              fill="rgba(255,255,255,0.75)"/>
+                          </g>
+                        )}
+
+                        {/* Numéro */}
+                        <text x={pos.cx} y={pos.cy-3}
+                          textAnchor="middle"
+                          fontSize={cols<=3?12:10} fontWeight="700"
+                          fill={isLibre&&myQ.length===0?"#2a5c3f":"white"}
+                          fontFamily="Georgia,serif">
+                          {t.name.replace("Table ","")}
+                        </text>
+
+                        {/* Icône statut + couverts */}
+                        <text x={pos.cx} y={pos.cy+10}
+                          textAnchor="middle"
+                          fontSize={cols<=3?9:8}
+                          fill={isLibre&&myQ.length===0?"#4a7c5f":"rgba(255,255,255,0.9)"}
+                          fontFamily="sans-serif">
+                          {isNettoyage?"🧹":isMange&&isEating?"🍴":isMange?"💰":
+                            isOrdering?"🛎":t.status==="occupée"?"🔥":
+                            myQ.length>0?"👥":"✓"} {t.capacity}p
+                        </text>
+
+                        {/* Badge montant prêt à encaisser */}
+                        {isMange&&!isEating&&(
+                          <g>
+                            <rect x={pos.cx-19} y={pos.cy-th/2-16}
+                              width={38} height={14} rx="7" fill={C.green} opacity="0.95"/>
+                            <text x={pos.cx} y={pos.cy-th/2-6}
+                              textAnchor="middle" fontSize="8" fontWeight="800"
+                              fill="white" fontFamily="sans-serif">
+                              💰{bill.toFixed(0)}€
+                            </text>
+                          </g>
+                        )}
+
+                        {/* Badge VIP */}
+                        {t.group?.isVIP&&(
+                          <text x={pos.cx+tw/2-5} y={pos.cy-th/2+10}
+                            textAnchor="middle" fontSize="10">🎩</text>
+                        )}
+
+                        {/* Pulse attente client */}
+                        {isLibre&&myQ.length>0&&(
+                          <rect x={pos.cx-tw/2} y={pos.cy-th/2}
+                            width={tw} height={th} rx="8"
+                            fill="none" stroke={C.green} strokeWidth="2.5"
+                            opacity="0.7">
+                            <animate attributeName="opacity"
+                              values="0.7;0.1;0.7" dur="1.8s" repeatCount="indefinite"/>
+                          </rect>
+                        )}
+                      </g>
+                    );
+                  })}
+                </svg>
+              );
+            })()}
+          </div>
+
+          {/* Panneau de détail latéral */}
+          <div style={{width:260,flexShrink:0,minWidth:220}}>
+            {selectedTable?(()=>{
+              const t=selectedTable;
+              // Refresh from live tables
+              const tLive=tables.find(x=>x.id===t.id)||t;
+              const isMange=tLive.status==="mange";
+              const isNettoyage=tLive.status==="nettoyage";
+              const isOrdering=tLive.status==="occupée"&&tLive.svcUntil&&now<tLive.svcUntil;
+              const bill=isMange?tLive.order.reduce((s,o)=>s+o.price*o.qty,0):0;
+              const isEating=isMange&&tLive.eatUntil&&now<tLive.eatUntil;
+              const eatSecsLeft=isEating?Math.ceil((tLive.eatUntil-now)/1000):0;
+              const cleanSecsLeft=isNettoyage&&tLive.cleanUntil?Math.max(0,Math.ceil((tLive.cleanUntil-now)/1000)):0;
+              const cleanPct=isNettoyage&&tLive.cleanUntil?Math.min(100,Math.round(((tLive.cleanDur*1000-(tLive.cleanUntil-now))/(tLive.cleanDur*1000))*100)):0;
+              const eatPct=isEating?Math.min(100,Math.round(((tLive.eatDur*1000-(tLive.eatUntil-now))/(tLive.eatDur*1000))*100)):100;
+              const secsLeft=isOrdering?Math.max(0,Math.ceil((tLive.svcUntil-now)/1000)):0;
+              const myQ=queue.filter(g=>g.size<=tLive.capacity&&tLive.status==="libre");
+              const accentColor=isNettoyage?C.amber:isMange?C.green:isOrdering?C.navy:tLive.status==="occupée"?C.terra:C.green;
+
+              return(
+                <div style={{background:C.surface,border:`1.5px solid ${accentColor}44`,
+                  borderRadius:16,overflow:"hidden",
+                  boxShadow:`0 4px 20px ${accentColor}18`}}>
+
+                  {/* Header */}
+                  <div style={{background:`linear-gradient(135deg,${accentColor}18,${accentColor}08)`,
+                    padding:"14px 16px",borderBottom:`1px solid ${accentColor}22`}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:18,fontWeight:800,color:C.ink,fontFamily:F.title}}>
+                          {tLive.name}
+                          {tLive.group?.isVIP&&<span style={{marginLeft:6}}>🎩</span>}
+                        </div>
+                        <div style={{fontSize:11,color:accentColor,fontWeight:600,
+                          fontFamily:F.body,marginTop:3}}>
+                          {isNettoyage?"🧹 Nettoyage":isMange&&isEating?"🍴 Repas en cours":
+                            isMange?"💰 Prêt à encaisser":isOrdering?"🛎 Prise de commande":
+                            tLive.status==="occupée"?"🔥 En cuisine":"✅ Libre"}
+                        </div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:22,fontWeight:800,color:accentColor,fontFamily:F.title}}>
+                          {tLive.capacity}
+                        </div>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>couverts</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
+
+                    {/* Groupe */}
+                    {tLive.group&&(
+                      <div style={{background:C.bg,borderRadius:10,padding:"10px 12px"}}>
+                        <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.body,marginBottom:3}}>
+                          {tLive.group.mood.e} {tLive.group.name}
+                        </div>
+                        <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
+                          👥 {tLive.group.size}p · {tLive.group.mood.l}
+                          {tLive.server&&<span> · 👔 {tLive.server}</span>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Commande */}
+                    {(tLive.order||[]).length>0&&(
+                      <div>
+                        <div style={{fontSize:10,color:C.muted,fontWeight:600,
+                          textTransform:"uppercase",letterSpacing:"0.06em",
+                          fontFamily:F.body,marginBottom:5}}>Commande</div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                          {tLive.order.map((o,i)=>(
+                            <span key={i} style={{fontSize:10,
+                              background:o.isSpecial?C.purpleP:C.terraP,
+                              color:o.isSpecial?C.purple:C.terra,
+                              borderRadius:5,padding:"2px 6px",fontFamily:F.body}}>
+                              {o.qty}× {o.item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Progressions */}
+                    {isEating&&(
+                      <div>
+                        <div style={{display:"flex",justifyContent:"space-between",
+                          fontSize:11,fontFamily:F.body,marginBottom:4}}>
+                          <span style={{color:C.green,fontWeight:600}}>🍴 Repas</span>
+                          <span style={{color:C.muted}}>
+                            {Math.floor(eatSecsLeft/60)}:{String(eatSecsLeft%60).padStart(2,"0")}
+                          </span>
+                        </div>
+                        <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                          <div style={{height:"100%",width:`${eatPct}%`,
+                            background:`linear-gradient(90deg,${C.green},${C.amber})`,
+                            borderRadius:99,transition:"width 0.5s"}}/>
+                        </div>
+                      </div>
+                    )}
+
+                    {isNettoyage&&(
+                      <div>
+                        <div style={{display:"flex",justifyContent:"space-between",
+                          fontSize:11,fontFamily:F.body,marginBottom:4}}>
+                          <span style={{color:C.amber,fontWeight:600}}>🧹 Nettoyage</span>
+                          <span style={{color:C.muted}}>
+                            {Math.floor(cleanSecsLeft/60)}:{String(cleanSecsLeft%60).padStart(2,"0")}
+                          </span>
+                        </div>
+                        <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                          <div style={{height:"100%",width:`${cleanPct}%`,
+                            background:`linear-gradient(90deg,${C.amber},${C.green})`,
+                            borderRadius:99,transition:"width 0.5s"}}/>
+                        </div>
+                      </div>
+                    )}
+
+                    {isOrdering&&(
+                      <div style={{background:C.navyP,borderRadius:8,padding:"8px 12px",
+                        textAlign:"center"}}>
+                        <div style={{fontSize:12,fontWeight:800,color:C.navy,fontFamily:F.title}}>
+                          🛎 Prise de commande
+                        </div>
+                        <div style={{fontSize:10,color:C.navy,opacity:0.7,fontFamily:F.body,marginTop:2}}>
+                          Envoi cuisine dans {secsLeft}s
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Note prévisionnelle */}
+                    {isMange&&tLive.group&&(()=>{
+                      const r=calcRating(tLive.patienceLeftRatio??0.5,tLive.group.mood.b);
+                      const rc=ratingColor(r);
+                      return(
+                        <div style={{background:rc+"11",border:`1px solid ${rc}33`,
+                          borderRadius:8,padding:"7px 10px",
+                          display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <span style={{fontSize:14,color:rc,letterSpacing:"2px"}}>{ratingStars(r)}</span>
+                          <span style={{fontSize:11,color:rc,fontWeight:700,fontFamily:F.body}}>
+                            {bill.toFixed(2)}€
+                          </span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Actions */}
+                    <div style={{display:"flex",flexDirection:"column",gap:6,paddingTop:4}}>
+
+                      {/* Encaisser */}
+                      {isMange&&(
+                        <Btn full v={isEating?"disabled":"primary"}
+                          onClick={isEating?null:()=>{checkout(tLive.id);setSelectedTable(null);}}
+                          icon={isEating?"⏳":"💰"}>
+                          {isEating?"Patienter…":`Encaisser ${bill.toFixed(2)}€`}
+                        </Btn>
+                      )}
+
+                      {/* Placer un groupe */}
+                      {tLive.status==="libre"&&(
+                        <>
+                          {myQ.length>0?(
+                            <Sel value="" style={{fontSize:11,padding:"6px 10px"}}
+                              onChange={e=>{
+                                const id=parseFloat(e.target.value);
+                                const g=queue.find(x=>x.id===id);
+                                if(g){activeSrv.length>0?quickPlace(g):openAssign(g);}
+                              }}>
+                              <option value="">↳ Placer un groupe…</option>
+                              {myQ.map(g=>(
+                                <option key={g.id} value={g.id}>
+                                  {g.mood.e} {g.name} ({g.size}p)
+                                </option>
+                              ))}
+                            </Sel>
+                          ):(
+                            <div style={{fontSize:11,color:C.muted,fontStyle:"italic",
+                              fontFamily:F.body,textAlign:"center",padding:"6px 0"}}>
+                              Aucun groupe compatible en attente
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Agrandir table */}
+                      {tLive.status==="libre"&&tLive.capLv<2&&(()=>{
+                        const up=CAP_UPGRADES[tLive.capLv];
+                        const canAfford=cash>=up.cost;
+                        return(
+                          <Btn sm v={canAfford?"navy":"disabled"} disabled={!canAfford}
+                            onClick={()=>{
+                              if(!canAfford)return;
+                              setTables(p=>p.map(x=>x.id!==tLive.id?x:{...x,capacity:up.newCap,capLv:tLive.capLv+1}));
+                              setCash(c=>+(c-up.cost).toFixed(2));
+                              addTx("achat",`Agrandissement ${tLive.name} → ${up.newCap} couverts`,up.cost);
+                              addToast({icon:"🪑",title:"Table agrandie !",msg:`${tLive.name} passe à ${up.newCap} couverts`,color:C.navy,tab:"tables"});
+                              if(onTableUpgrade)onTableUpgrade();
+                            }}>
+                            🪑 {up.label} — {up.cost}€
+                          </Btn>
+                        );
+                      })()}
+                    </div>
+                  </div>
                 </div>
-                <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>👥 {t.capacity} couverts</div>
-                {t.status==="libre"&&t.freedAt&&(
-                  <div style={{fontSize:10,color:C.green,fontWeight:600,fontFamily:F.body,marginTop:3}}>
-                    ✓ Libre depuis {new Date(t.freedAt).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+              );
+            })():(
+              <div style={{background:C.bg,border:`1.5px dashed ${C.border}`,
+                borderRadius:16,padding:24,textAlign:"center",
+                display:"flex",flexDirection:"column",alignItems:"center",
+                justifyContent:"center",gap:10,minHeight:200}}>
+                <span style={{fontSize:32,opacity:0.4}}>🍽</span>
+                <div style={{fontSize:13,color:C.muted,fontFamily:F.body}}>
+                  Cliquez sur une table pour voir ses détails
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ):(
+        /* ══════════════════════════════════════════════════
+           VUE GRILLE (ancienne vue conservée)
+        ══════════════════════════════════════════════════ */
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+          {tables.map(t=>{
+
+            const isMange=t.status==="mange";
+            const isNettoyage=t.status==="nettoyage";
+            const bill=isMange?t.order.reduce((s,o)=>s+o.price*o.qty,0):0;
+            const isEating=isMange&&t.eatUntil&&now<t.eatUntil;
+            const eatPct=isEating?Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):100;
+            const eatSecsLeft=isEating?Math.ceil((t.eatUntil-now)/1000):0;
+            const cleanPct=isNettoyage&&t.cleanUntil?Math.min(100,Math.round(((t.cleanDur*1000-(t.cleanUntil-now))/(t.cleanDur*1000))*100)):0;
+            const cleanSecsLeft=isNettoyage&&t.cleanUntil?Math.max(0,Math.ceil((t.cleanUntil-now)/1000)):0;
+            const myQ=queue.filter(g=>g.size<=t.capacity&&t.status==="libre");
+            const srvObj=servers.find(s=>s.name===t.server);
+            const isOrdering=t.status==="occupée"&&t.svcUntil&&now<t.svcUntil;
+            const secsLeft=isOrdering?Math.max(0,Math.ceil((t.svcUntil-now)/1000)):0;
+            const accentColor=isNettoyage?C.amber:isMange?C.green:isOrdering?C.navy:t.status==="occupée"?C.terra:C.muted;
+
+            return(
+              <div key={t.id} style={{
+                background:isNettoyage?C.amberP:isMange?C.greenP:isOrdering?C.navyP:t.status==="occupée"?C.terraP:C.card,
+                border:`1.5px solid ${t.group?.isVIP?"#d4af37":accentColor+"44"}`,
+                borderRadius:14,padding:16,paddingLeft:22,position:"relative",
+                boxShadow:t.group?.isVIP?"0 0 20px #d4af3755":isMange?`0 0 16px ${C.green}33`:isNettoyage?`0 0 14px ${C.amber}33`:`0 1px 5px rgba(0,0,0,0.07)`,
+                transition:"all 0.3s ease",
+                animation:t.status==="libre"&&myQ.length>0?"breathe 2.4s ease-in-out infinite":undefined,
+              }}>
+                <div style={{position:"absolute",left:0,top:0,bottom:0,width:5,
+                  borderRadius:"14px 0 0 14px",
+                  background:t.group?.isVIP?"linear-gradient(180deg,#d4af37,#f5d878,#d4af37)":
+                    isNettoyage?C.amber:isMange?C.green:isOrdering?C.navy:
+                    t.status==="occupée"?C.terra:myQ.length>0?C.green:C.muted+"44",
+                  animation:isOrdering?"ledPulse 1.2s ease-in-out infinite":
+                    isMange&&isEating?"ledPulse 2s ease-in-out infinite":undefined,
+                }}/>
+                {t.group?.isVIP&&(
+                  <div style={{position:"absolute",top:8,right:8,fontSize:18}}>🎩</div>
+                )}
+                {t.status==="libre"&&t.capLv<2&&(()=>{
+                  const up=CAP_UPGRADES[t.capLv];
+                  const canAfford=cash>=up.cost;
+                  return(
+                    <button onClick={(e)=>{
+                      e.stopPropagation();
+                      if(!canAfford)return;
+                      setTables(p=>p.map(x=>x.id!==t.id?x:{...x,capacity:up.newCap,capLv:t.capLv+1}));
+                      setCash(c=>+(c-up.cost).toFixed(2));
+                      addTx("achat",`Agrandissement ${t.name} → ${up.newCap} couverts`,up.cost);
+                      addToast({icon:"🪑",title:"Table agrandie !",msg:`${t.name} passe à ${up.newCap} couverts`,color:C.navy,tab:"tables"});
+                      if(onTableUpgrade)onTableUpgrade();
+                    }} title={`${up.label} — ${up.cost}€`} style={{
+                      position:"absolute",top:10,right:10,
+                      background:canAfford?C.navyP:"transparent",
+                      border:`1.5px solid ${canAfford?C.navy:C.border}`,
+                      borderRadius:7,padding:"3px 8px",cursor:canAfford?"pointer":"not-allowed",
+                      opacity:canAfford?1:0.45,fontFamily:F.body,
+                      display:"flex",alignItems:"center",gap:4}}>
+                      <span style={{fontSize:10}}>🪑</span>
+                      <span style={{fontSize:10,color:canAfford?C.navy:C.muted,fontWeight:600}}>Amélioration · {up.cost}€</span>
+                    </button>
+                  );
+                })()}
+                <div>
+                  <div style={{fontSize:15,fontWeight:600,color:C.ink,fontFamily:F.title,marginBottom:5}}>
+                    {t.name}
+                  </div>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>
+                    <Badge
+                      color={t.status==="libre"?C.green:isNettoyage?C.amber:isMange?C.green:isOrdering?C.navy:C.terra}
+                      bg={t.status==="libre"?C.greenP:isNettoyage?C.amberP:isMange?C.greenP:isOrdering?C.navyP:C.terraP} sm>
+                      {t.status==="libre"?"libre":isNettoyage?"🧹 nettoyage":isMange?(isEating?"🍴 repas en cours":"🍽 repas"):isOrdering?"🛎 prise de commande":"🔥 en cuisine"}
+                    </Badge>
+                  </div>
+                  <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>👥 {t.capacity} couverts</div>
+                  {t.status==="libre"&&t.freedAt&&(
+                    <div style={{fontSize:10,color:C.green,fontWeight:600,fontFamily:F.body,marginTop:3}}>
+                      ✓ Libre depuis {new Date(t.freedAt).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                    </div>
+                  )}
+                </div>
+                {t.status==="occupée"&&(
+                  <div style={{borderTop:`1px solid ${isOrdering?C.navy:C.terra}22`,paddingTop:10,marginTop:6}}>
+                    <div style={{fontSize:11,color:C.muted,marginBottom:8,fontFamily:F.body,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span>{t.group?.mood.e} {t.group?.name} · {t.group?.size}p</span>
+                      {t.server&&<span>👔 {t.server}</span>}
+                    </div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
+                      {t.order.map((o,i)=>(
+                        <span key={i} style={{fontSize:10,
+                          background:o.isSpecial?C.purpleP:C.terraP,
+                          color:o.isSpecial?C.purple:C.terra,
+                          borderRadius:5,padding:"2px 7px",fontFamily:F.body}}>
+                          {o.isSpecial?"✨ ":""}{o.qty}× {o.item}
+                        </span>
+                      ))}
+                    </div>
+                    {isOrdering?(
+                      <div style={{background:C.navyP,border:`1.5px solid ${C.navy}33`,
+                        borderRadius:10,padding:"10px 14px",textAlign:"center"}}>
+                        <div style={{fontSize:14,fontWeight:800,color:C.navy,fontFamily:F.title,marginBottom:4}}>
+                          🛎 PRISE DE COMMANDE
+                        </div>
+                        <div style={{fontSize:12,color:C.navy,fontFamily:F.body,opacity:0.8}}>
+                          Envoi cuisine dans <strong>{secsLeft}s</strong>
+                        </div>
+                      </div>
+                    ):(
+                      <div style={{fontSize:12,color:C.terra,fontWeight:600,fontFamily:F.body}}>
+                        🔥 Commande en cuisine…
+                      </div>
+                    )}
+                  </div>
+                )}
+                {isMange&&(
+                  <div style={{borderTop:`1px solid ${C.green}33`,paddingTop:10,marginTop:6}}>
+                    <div style={{fontSize:11,color:C.muted,marginBottom:4,fontFamily:F.body}}>
+                      {t.group?.mood.e} {t.group?.name} · 👔 {t.server}
+                    </div>
+                    <div style={{fontSize:11,color:C.muted,marginBottom:10,fontFamily:F.body}}>
+                      {t.order.map(o=>`${o.qty}× ${o.item}`).join(", ")}
+                    </div>
+                    {isEating&&(
+                      <div style={{marginBottom:12}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                          <span style={{fontSize:11,color:C.green,fontWeight:600,fontFamily:F.body}}>🍴 En train de manger…</span>
+                          <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
+                            {Math.floor(eatSecsLeft/60)}:{String(eatSecsLeft%60).padStart(2,"0")}
+                          </span>
+                        </div>
+                        <div style={{background:C.border,borderRadius:99,height:6,overflow:"hidden"}}>
+                          <div style={{width:`${eatPct}%`,height:"100%",
+                            background:`linear-gradient(90deg,${C.green},${C.amber})`,
+                            borderRadius:99,transition:"width 0.5s linear"}}/>
+                        </div>
+                      </div>
+                    )}
+                    {(()=>{
+                      const r=calcRating(t.patienceLeftRatio??0.5,t.group.mood.b);
+                      const tip=+(bill*(r-1)*0.04).toFixed(2);
+                      const rc=ratingColor(r);
+                      return(
+                        <div style={{background:rc+"11",border:`1px solid ${rc}33`,
+                          borderRadius:8,padding:"6px 10px",marginBottom:10,
+                          display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <span style={{fontSize:13,color:rc,letterSpacing:"1px"}}>{ratingStars(r)}</span>
+                          <span style={{fontSize:11,color:rc,fontWeight:600,fontFamily:F.body}}>
+                            {tip>0?`+${tip.toFixed(2)}€ pourboire`:"Pas de pourboire"}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                      <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Addition</span>
+                      <span style={{fontSize:22,fontWeight:700,color:C.terra,fontFamily:F.title}}>{bill.toFixed(2)}€</span>
+                    </div>
+                    <Btn full v={isEating?"disabled":"primary"} onClick={isEating?null:()=>checkout(t.id)} icon={isEating?"⏳":"💰"}>
+                      {isEating?"Patienter…":"Encaisser"}
+                    </Btn>
+                  </div>
+                )}
+                {isNettoyage&&(
+                  <div style={{borderTop:`1px solid ${C.amber}33`,paddingTop:10,marginTop:6}}>
+                    <div style={{fontSize:11,color:C.muted,marginBottom:8,fontFamily:F.body}}>
+                      🧹 {t.server||"Serveur"} nettoie la table…
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                      <span style={{fontSize:11,color:C.amber,fontWeight:600,fontFamily:F.body}}>Nettoyage en cours</span>
+                      <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
+                        {Math.floor(cleanSecsLeft/60)}:{String(cleanSecsLeft%60).padStart(2,"0")}
+                      </span>
+                    </div>
+                    <div style={{background:C.border,borderRadius:99,height:6,overflow:"hidden"}}>
+                      <div style={{width:`${cleanPct}%`,height:"100%",
+                        background:`linear-gradient(90deg,${C.amber},${C.green})`,
+                        borderRadius:99,transition:"width 0.5s linear"}}/>
+                    </div>
+                  </div>
+                )}
+                {t.status==="libre"&&myQ.length>0&&(
+                  <div style={{marginTop:10}}>
+                    <Sel value="" style={{fontSize:11,padding:"6px 10px"}}
+                      onChange={e=>{
+                        const id=parseFloat(e.target.value);
+                        const g=queue.find(x=>x.id===id);
+                        if(g)openAssign(g);
+                      }}>
+                      <option value="">↳ Assigner un groupe…</option>
+                      {myQ.map(g=>(
+                        <option key={g.id} value={g.id}>
+                          {g.mood.e} {g.name} ({g.size}p)
+                        </option>
+                      ))}
+                    </Sel>
                   </div>
                 )}
               </div>
-
-
-
-              {/* Occupied: in kitchen */}
-              {t.status==="occupée"&&(
-                <div style={{borderTop:`1px solid ${isOrdering?C.navy:C.terra}22`,paddingTop:10,marginTop:6}}>
-                  <div style={{fontSize:11,color:C.muted,marginBottom:8,fontFamily:F.body,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span>{t.group?.mood.e} {t.group?.name} · {t.group?.size}p</span>
-                    {t.server&&<span>👔 {t.server}</span>}
-                  </div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
-                    {t.order.map((o,i)=>(
-                      <span key={i} style={{fontSize:10,
-                        background:o.isSpecial?C.purpleP:C.terraP,
-                        color:o.isSpecial?C.purple:C.terra,
-                        borderRadius:5,padding:"2px 7px",fontFamily:F.body}}>
-                        {o.isSpecial?"✨ ":""}{o.qty}× {o.item}
-                      </span>
-                    ))}
-                  </div>
-                  {isOrdering?(
-                    <div style={{background:C.navyP,border:`1.5px solid ${C.navy}33`,
-                      borderRadius:10,padding:"10px 14px",textAlign:"center"}}>
-                      <div style={{fontSize:14,fontWeight:800,color:C.navy,fontFamily:F.title,marginBottom:4}}>
-                        🛎 PRISE DE COMMANDE
-                      </div>
-                      <div style={{fontSize:12,color:C.navy,fontFamily:F.body,opacity:0.8}}>
-                        Envoi cuisine dans <strong>{secsLeft}s</strong>
-                      </div>
-                    </div>
-                  ):(
-                    <div style={{fontSize:12,color:C.terra,fontWeight:600,fontFamily:F.body}}>
-                      🔥 Commande en cuisine…
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Mange: bill + checkout */}
-              {isMange&&(
-                <div style={{borderTop:`1px solid ${C.green}33`,paddingTop:10,marginTop:6}}>
-                  <div style={{fontSize:11,color:C.muted,marginBottom:4,fontFamily:F.body}}>
-                    {t.group?.mood.e} {t.group?.name} · 👔 {t.server}
-                  </div>
-                  <div style={{fontSize:11,color:C.muted,marginBottom:10,fontFamily:F.body}}>
-                    {t.order.map(o=>`${o.qty}× ${o.item}`).join(", ")}
-                  </div>
-
-                  {/* Eating progress */}
-                  {isEating&&(
-                    <div style={{marginBottom:12}}>
-                      <div style={{display:"flex",justifyContent:"space-between",
-                        alignItems:"center",marginBottom:5}}>
-                        <span style={{fontSize:11,color:C.green,fontWeight:600,fontFamily:F.body}}>
-                          🍴 En train de manger…
-                        </span>
-                        <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
-                          {Math.floor(eatSecsLeft/60)}:{String(eatSecsLeft%60).padStart(2,"0")}
-                        </span>
-                      </div>
-                      <div style={{background:C.border,borderRadius:99,height:6,overflow:"hidden"}}>
-                        <div style={{width:`${eatPct}%`,height:"100%",
-                          background:`linear-gradient(90deg,${C.green},${C.amber})`,
-                          borderRadius:99,transition:"width 0.5s linear"}}/>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Star rating preview */}
-                  {(()=>{
-                    const r=calcRating(t.patienceLeftRatio??0.5,t.group.mood.b);
-                    const tip=+(bill*(r-1)*0.04).toFixed(2);
-                    const rc=ratingColor(r);
-                    return(
-                      <div style={{background:rc+"11",border:`1px solid ${rc}33`,
-                        borderRadius:8,padding:"6px 10px",marginBottom:10,
-                        display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:13,color:rc,letterSpacing:"1px"}}>{ratingStars(r)}</span>
-                        <span style={{fontSize:11,color:rc,fontWeight:600,fontFamily:F.body}}>
-                          {tip>0?`+${tip.toFixed(2)}€ pourboire`:"Pas de pourboire"}
-                        </span>
-                      </div>
-                    );
-                  })()}
-                  <div style={{display:"flex",justifyContent:"space-between",
-                    alignItems:"center",marginBottom:12}}>
-                    <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Addition</span>
-                    <span style={{fontSize:22,fontWeight:700,color:C.terra,fontFamily:F.title}}>
-                      {bill.toFixed(2)}€
-                    </span>
-                  </div>
-                  <Btn full v={isEating?"disabled":"primary"} onClick={isEating?null:()=>checkout(t.id)} icon={isEating?"⏳":"💰"}>
-                    {isEating?"Patienter…":"Encaisser"}
-                  </Btn>
-                </div>
-              )}
-
-              {/* Nettoyage */}
-              {isNettoyage&&(
-                <div style={{borderTop:`1px solid ${C.amber}33`,paddingTop:10,marginTop:6}}>
-                  <div style={{fontSize:11,color:C.muted,marginBottom:8,fontFamily:F.body}}>
-                    🧹 {t.server||"Serveur"} nettoie la table…
-                  </div>
-                  <div style={{display:"flex",justifyContent:"space-between",
-                    alignItems:"center",marginBottom:5}}>
-                    <span style={{fontSize:11,color:C.amber,fontWeight:600,fontFamily:F.body}}>
-                      Nettoyage en cours
-                    </span>
-                    <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
-                      {Math.floor(cleanSecsLeft/60)}:{String(cleanSecsLeft%60).padStart(2,"0")}
-                    </span>
-                  </div>
-                  <div style={{background:C.border,borderRadius:99,height:6,overflow:"hidden"}}>
-                    <div style={{width:`${cleanPct}%`,height:"100%",
-                      background:`linear-gradient(90deg,${C.amber},${C.green})`,
-                      borderRadius:99,transition:"width 0.5s linear"}}/>
-                  </div>
-                </div>
-              )}
-
-              {/* Quick assign for free tables */}
-              {t.status==="libre"&&myQ.length>0&&(
-                <div style={{marginTop:10}}>
-                  <Sel value="" style={{fontSize:11,padding:"6px 10px"}}
-                    onChange={e=>{
-                      const id=parseFloat(e.target.value);
-                      const g=queue.find(x=>x.id===id);
-                      if(g)openAssign(g);
-                    }}>
-                    <option value="">↳ Assigner un groupe…</option>
-                    {myQ.map(g=>(
-                      <option key={g.id} value={g.id}>
-                        {g.mood.e} {g.name} ({g.size}p)
-                      </option>
-                    ))}
-                  </Sel>
-                </div>
-              )}
-
-
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Assign modal */}
       {modal&&(
@@ -1339,10 +2099,65 @@ function TablesView({tables,setTables,servers,setServers,menu,setKitchen,kitchen
    SERVERS VIEW
 ═══════════════════════════════════════════════════════ */
 function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast}){
-  const [modal,setModal]=useState(false);   // "add" | "edit" | "fire" | false
+  const [modal,setModal]=useState(false);   // "add" | "edit" | "fire" | "train" | false
   const [form,setForm]=useState({name:"",status:"actif",salary:"12"});
   const [editId,setEditId]=useState(null);
   const [fireId,setFireId]=useState(null);
+  const [trainId,setTrainId]=useState(null);
+
+  const openTrain = (sv) => { setTrainId(sv.id); setModal("train"); };
+
+  const doTrain = (sv, domain, level) => {
+    const cost = level.cost;
+    if(cash < cost){
+      addToast&&addToast({icon:"❌",title:"Fonds insuffisants",msg:`Formation : ${cost}€ requis`,color:C.red,tab:"servers"});
+      return;
+    }
+    const prevLevel = (sv.trainings||{})[domain.id] || 0;
+    if(prevLevel >= domain.levels.length){
+      addToast&&addToast({icon:"✅",title:"Formation maximale",msg:`${sv.name} a déjà atteint le niveau maximum.`,color:C.muted,tab:"servers"});
+      return;
+    }
+    setCash&&setCash(c=>+(c-cost).toFixed(2));
+    addTx&&addTx("achat",`Formation ${domain.name} N${level.l} — ${sv.name}`,cost);
+
+    setServers(p=>p.map(s=>{
+      if(s.id!==sv.id) return s;
+      const newTrainings = {...(s.trainings||{}), [domain.id]: level.l};
+      const newXp = s.totalXp + level.xp;
+      const newMoral = Math.min(getMaxMoral({...s,trainings:newTrainings}),(s.moral??100)+level.moralBonus);
+      // Assign/upgrade specialty if domain has one
+      let newSpecialty = s.specialty;
+      let newSpecUpgraded = s.specialtyUpgraded;
+      if(level.specialtyId){
+        const sp = SRV_SPECIALTIES.find(x=>x.id===level.specialtyId);
+        if(!s.specialty){
+          newSpecialty = sp;
+        } else if(s.specialty.id===level.specialtyId && level.l===3 && !s.specialtyUpgraded){
+          newSpecUpgraded = true;
+        } else if(!s.specialty){
+          newSpecialty = sp;
+        }
+      }
+      return {...s,
+        trainings: newTrainings,
+        totalXp: newXp,
+        moral: newMoral,
+        specialty: newSpecialty,
+        specialtyUpgraded: newSpecUpgraded,
+        lastTrainedAt: Date.now(),
+      };
+    }));
+
+    addToast&&addToast({
+      icon:domain.icon,
+      title:`${sv.name} — ${domain.name} N${level.l} !`,
+      msg:`${level.effect} · +${level.xp} XP · +${level.moralBonus} moral`,
+      color:domain.color, tab:"servers"
+    });
+    setModal(false);
+    setTrainId(null);
+  };
 
   const maxSlots = SERVER_SLOTS_BY_LEVEL[Math.min(restoLvN||0,5)]||2;
   const canHire  = servers.length < maxSlots;
@@ -1360,7 +2175,7 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,a
     }
     setCash&&setCash(c=>+(c-hireCost).toFixed(2));
     addTx&&addTx("achat",`Recrutement — ${name}`,hireCost);
-    setServers(p=>[...p,{id:Date.now(),name,status:"actif",totalXp:0,rating:4.0,salary:+salary}]);
+    setServers(p=>[...p,{id:Date.now(),name,status:"actif",totalXp:0,rating:4.0,salary:+salary,moral:100,specialty:null}]);
     addToast&&addToast({icon:"👔",title:`${name} embauché·e !`,msg:`−${hireCost}€ · Salaire ${salary}€/h`,color:C.green,tab:"servers"});
   };
   const openEdit = (sv) => {
@@ -1420,21 +2235,39 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,a
       </div>
 
       {/* ── Grille des serveurs ── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(255px,1fr))",gap:13}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:13}}>
         {servers.map(sv=>{
           const sl=srvLv(sv.totalXp);
           const slD=SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
           const asgn=tables.filter(t=>t.server===sv.name);
           const isWorking=sv.status==="service";
+          const moral=sv.moral??100;
+          const mc=moralColor(moral);
+          const mi=moralIcon(moral);
+          const ml=moralLabel(moral);
+          const isBurnout=moral<=10;
+          const isExhausted=moral<=20;
+          const sp=sv.specialty;
+          const primeCost=50;
+          const canAffordPrime=cash>=primeCost;
+
           return(
-            <Card key={sv.id} accent={slD.color+"44"}>
+            <Card key={sv.id} accent={isBurnout?C.red+"66":slD.color+"44"}>
               {/* Ligne 1 : avatar + nom + note */}
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
                 <div style={{display:"flex",gap:10,alignItems:"center"}}>
                   <div style={{width:44,height:44,background:slD.color+"1a",
-                    border:`2px solid ${slD.color}33`,borderRadius:12,
-                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>
+                    border:`2px solid ${isBurnout?C.red:slD.color}33`,borderRadius:12,
+                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,
+                    position:"relative"}}>
                     {slD.icon}
+                    {/* Moral badge */}
+                    <div style={{position:"absolute",bottom:-5,right:-5,
+                      width:18,height:18,borderRadius:"50%",fontSize:10,
+                      background:C.surface,border:`1.5px solid ${mc}`,
+                      display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      {mi}
+                    </div>
                   </div>
                   <div>
                     <div style={{fontSize:14,fontWeight:600,color:C.ink,fontFamily:F.title}}>{sv.name}</div>
@@ -1442,7 +2275,7 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,a
                       <Badge color={slD.color} sm>{slD.name}</Badge>
                       <Badge color={sColor[sv.status]||C.muted} bg={sBg[sv.status]||C.bg} sm>
                         {isWorking
-                          ?`🛎 service (${Math.max(0,Math.ceil((sv.serviceUntil-clockNow)/1000))}s)`
+                          ?`🛎 (${Math.max(0,Math.ceil((sv.serviceUntil-clockNow)/1000))}s)`
                           :sv.status}
                       </Badge>
                     </div>
@@ -1455,8 +2288,29 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,a
                 </div>
               </div>
 
+              {/* Spécialité */}
+              {sp?(
+                <div style={{background:sp.color+"12",border:`1px solid ${sp.color}33`,
+                  borderRadius:8,padding:"6px 10px",marginBottom:10,
+                  display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:16}}>{sp.icon}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11,fontWeight:700,color:sp.color,fontFamily:F.body}}>
+                      {sp.name}{sv.specialtyUpgraded?" ✦":""}
+                    </div>
+                    <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{sp.desc}</div>
+                  </div>
+                </div>
+              ):sl.l>=1?(
+                <div style={{background:C.bg,border:`1px dashed ${C.border}`,
+                  borderRadius:8,padding:"6px 10px",marginBottom:10,
+                  fontSize:10,color:C.muted,fontFamily:F.body}}>
+                  🔒 Spécialité débloquée au niveau 2
+                </div>
+              ):null}
+
               {/* Barre XP */}
-              <div style={{marginBottom:12}}>
+              <div style={{marginBottom:10}}>
                 <div style={{display:"flex",justifyContent:"space-between",
                   fontSize:10,color:C.muted,marginBottom:4,fontFamily:F.body}}>
                   <span>XP · Niv.{sl.l}</span>
@@ -1465,27 +2319,57 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,a
                 <XpBar xp={sl.r} needed={sl.n} color={slD.color}/>
               </div>
 
-              {/* Infos */}
-              <div style={{fontSize:11,color:C.muted,marginBottom:13,fontFamily:F.body}}>
-                <div>📍 {asgn.length>0?asgn.map(t=>t.name).join(", "):"Aucune table"}</div>
-                <div style={{marginTop:2}}>🏆 {sv.totalXp} XP total</div>
-                <div style={{marginTop:4,display:"flex",alignItems:"center",gap:5}}>
-                  <span style={{fontSize:12}}>💸</span>
-                  <span style={{color:C.navy,fontWeight:600,fontSize:12}}>{(sv.salary||0).toFixed(0)} €/h</span>
-                  <span style={{fontSize:10,color:C.muted}}>{sv.status==="actif"?"· actif":"· inactif"}</span>
+              {/* Jauge Moral */}
+              <div style={{marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",
+                  fontSize:10,marginBottom:4,fontFamily:F.body}}>
+                  <span style={{color:C.muted}}>Moral {mi} {ml}</span>
+                  <span style={{fontWeight:700,color:mc}}>{moral}/100</span>
                 </div>
+                <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${moral}%`,background:mc,
+                    borderRadius:99,transition:"width 0.5s ease"}}/>
+                </div>
+                {isBurnout&&(
+                  <div style={{fontSize:9,color:C.red,fontWeight:700,fontFamily:F.body,marginTop:3,
+                    animation:"pulse 1s infinite"}}>
+                    ⚠ Burnout — refuse les nouvelles tables !
+                  </div>
+                )}
+                {!isBurnout&&isExhausted&&(
+                  <div style={{fontSize:9,color:C.amber,fontFamily:F.body,marginTop:3}}>
+                    😓 Épuisé — service ralenti +20%
+                  </div>
+                )}
+              </div>
+
+              {/* Infos */}
+              <div style={{fontSize:11,color:C.muted,marginBottom:12,fontFamily:F.body}}>
+                <div>📍 {asgn.length>0?asgn.map(t=>t.name).join(", "):"Aucune table"}</div>
+                <div style={{marginTop:2}}>🏆 {sv.totalXp} XP · 💸 {(sv.salary||0).toFixed(0)} €/h</div>
+                {Object.keys(sv.trainings||{}).length>0&&(
+                  <div style={{marginTop:5,display:"flex",gap:4,flexWrap:"wrap"}}>
+                    {TRAINING_CATALOG.filter(d=>(sv.trainings||{})[d.id]>0).map(d=>(
+                      <span key={d.id} style={{fontSize:9,background:d.color+"14",color:d.color,
+                        border:`1px solid ${d.color}22`,borderRadius:5,padding:"1px 6px",
+                        fontFamily:F.body,fontWeight:600}}>
+                        {d.icon} N{(sv.trainings||{})[d.id]}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
               <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
                 {sv.status==="actif"&&!isWorking&&(
                   <Btn sm v="terra" onClick={()=>setServers(p=>p.map(x=>x.id===sv.id?{...x,status:"pause"}:x))}>
-                    Pause
+                    ⏸ Pause
                   </Btn>
                 )}
                 {sv.status==="pause"&&(
                   <Btn sm v="primary" onClick={()=>setServers(p=>p.map(x=>x.id===sv.id?{...x,status:"actif"}:x))}>
-                    Activer
+                    ▶ Activer
                   </Btn>
                 )}
                 {isWorking&&(
@@ -1493,11 +2377,27 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,a
                     🛎 En service…
                   </span>
                 )}
-                {!isWorking&&(
-                  <>
-                    <Btn sm v="danger" onClick={()=>openFire(sv)}>Licencier</Btn>
-                  </>
+                {/* Prime de motivation */}
+                {moral<60&&!isWorking&&(
+                  <Btn sm v={canAffordPrime?"navy":"disabled"}
+                    disabled={!canAffordPrime}
+                    onClick={()=>{
+                      if(!canAffordPrime)return;
+                      setCash&&setCash(c=>+(c-primeCost).toFixed(2));
+                      addTx&&addTx("achat",`Prime motivation — ${sv.name}`,primeCost);
+                      setServers(p=>p.map(x=>x.id!==sv.id?x:{...x,moral:Math.min(100,x.moral+50)}));
+                      addToast&&addToast({icon:"🎁",title:`Prime versée à ${sv.name}`,
+                        msg:`+50 moral · −${primeCost}€`,color:C.navy,tab:"servers"});
+                    }}>
+                    🎁 Prime {primeCost}€
+                  </Btn>
                 )}
+                {!isWorking&&(
+                  <Btn sm v="danger" onClick={()=>openFire(sv)}>Licencier</Btn>
+                )}
+                <Btn sm v="secondary" onClick={()=>openTrain(sv)} icon="🎓">
+                  Former
+                </Btn>
               </div>
             </Card>
           );
@@ -1552,6 +2452,196 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,a
           });
         })()}
       </div>
+
+      {/* ── Modale Formation ── */}
+      {modal==="train"&&(()=>{
+        const sv=servers.find(s=>s.id===trainId);
+        if(!sv)return null;
+        const sl=srvLv(sv.totalXp);
+        const slD=SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
+        return(
+          <div onClick={()=>{setModal(false);setTrainId(null);}}
+            style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",
+              zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+            <div onClick={e=>e.stopPropagation()}
+              style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:18,
+                width:"100%",maxWidth:620,maxHeight:"90vh",overflowY:"auto",
+                boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
+
+              {/* Header */}
+              <div style={{padding:"18px 22px",borderBottom:`1px solid ${C.border}`,
+                display:"flex",justifyContent:"space-between",alignItems:"center",
+                position:"sticky",top:0,background:C.surface,zIndex:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:40,height:40,background:slD.color+"1a",
+                    border:`2px solid ${slD.color}33`,borderRadius:10,
+                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>
+                    {slD.icon}
+                  </div>
+                  <div>
+                    <div style={{fontSize:16,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+                      🎓 Former {sv.name}
+                    </div>
+                    <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>
+                      Niv.{sl.l} · {sv.totalXp} XP · Moral {sv.moral??100}/100
+                      {sv.specialty&&` · ${sv.specialty.icon} ${sv.specialty.name}`}
+                    </div>
+                  </div>
+                </div>
+                <button onClick={()=>{setModal(false);setTrainId(null);}}
+                  style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,
+                    width:32,height:32,cursor:"pointer",fontSize:16,color:C.muted,
+                    display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+              </div>
+
+              {/* Solde */}
+              <div style={{padding:"10px 22px",background:C.bg,borderBottom:`1px solid ${C.border}`,
+                display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Solde disponible :</span>
+                <span style={{fontSize:14,fontWeight:700,color:cash<100?C.red:C.green,fontFamily:F.title}}>
+                  {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+                </span>
+              </div>
+
+              {/* Domaines */}
+              <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",gap:20}}>
+                {TRAINING_CATALOG.map(domain=>{
+                  const currentLevel=(sv.trainings||{})[domain.id]||0;
+                  const isMaxed=currentLevel>=domain.levels.length;
+                  const nextLevel=domain.levels[currentLevel]||null;
+                  return(
+                    <div key={domain.id} style={{
+                      border:`1.5px solid ${domain.color}33`,borderRadius:14,overflow:"hidden"}}>
+
+                      {/* Domain header */}
+                      <div style={{background:domain.color+"12",padding:"12px 16px",
+                        display:"flex",alignItems:"center",gap:12,
+                        borderBottom:`1px solid ${domain.color}22`}}>
+                        <span style={{fontSize:22}}>{domain.icon}</span>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:14,fontWeight:700,color:domain.color,fontFamily:F.title}}>
+                            {domain.name}
+                          </div>
+                          <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:1}}>
+                            {domain.desc}
+                          </div>
+                        </div>
+                        {/* Niveau actuel */}
+                        <div style={{display:"flex",gap:4,flexShrink:0}}>
+                          {domain.levels.map((_,i)=>(
+                            <div key={i} style={{
+                              width:10,height:10,borderRadius:"50%",
+                              background:i<currentLevel?domain.color:C.border,
+                              border:`1.5px solid ${domain.color}`,
+                              transition:"background 0.3s"}}/>
+                          ))}
+                        </div>
+                        {isMaxed&&(
+                          <span style={{fontSize:11,background:domain.color,color:"#fff",
+                            borderRadius:20,padding:"2px 8px",fontFamily:F.body,fontWeight:700}}>
+                            ✓ Max
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Niveaux */}
+                      <div style={{padding:"10px 16px",display:"flex",flexDirection:"column",gap:8}}>
+                        {domain.levels.map((level,i)=>{
+                          const isDone=i<currentLevel;
+                          const isNext=i===currentLevel;
+                          const isLocked=i>currentLevel;
+                          const canAffordThis=cash>=level.cost;
+                          return(
+                            <div key={i} style={{
+                              display:"flex",alignItems:"center",gap:12,padding:"10px 12px",
+                              borderRadius:10,
+                              background:isDone?C.greenP:isNext?domain.color+"0a":C.bg,
+                              border:`1px solid ${isDone?C.green+"33":isNext?domain.color+"33":C.border}`,
+                              opacity:isLocked?0.45:1}}>
+
+                              {/* Indicateur niveau */}
+                              <div style={{width:28,height:28,borderRadius:"50%",flexShrink:0,
+                                background:isDone?C.green:isNext?domain.color:C.border,
+                                display:"flex",alignItems:"center",justifyContent:"center",
+                                fontSize:12,fontWeight:800,color:"#fff"}}>
+                                {isDone?"✓":level.l}
+                              </div>
+
+                              {/* Infos */}
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+                                  <span style={{fontSize:12,fontWeight:700,
+                                    color:isDone?C.green:isNext?domain.color:C.muted,
+                                    fontFamily:F.body}}>
+                                    Niveau {level.l} — {level.name}
+                                  </span>
+                                  {isDone&&<span style={{fontSize:9,background:C.green,color:"#fff",
+                                    borderRadius:99,padding:"1px 7px",fontFamily:F.body,fontWeight:700}}>
+                                    Acquis
+                                  </span>}
+                                </div>
+                                <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginBottom:4}}>
+                                  {level.desc}
+                                </div>
+                                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                                  <span style={{fontSize:10,background:domain.color+"14",
+                                    color:domain.color,border:`1px solid ${domain.color}22`,
+                                    borderRadius:5,padding:"1px 7px",fontFamily:F.body,fontWeight:600}}>
+                                    ✦ {level.effect}
+                                  </span>
+                                  <span style={{fontSize:10,background:C.greenP,color:C.green,
+                                    border:`1px solid ${C.green}22`,
+                                    borderRadius:5,padding:"1px 7px",fontFamily:F.body,fontWeight:600}}>
+                                    +{level.xp} XP
+                                  </span>
+                                  {level.moralBonus>0&&(
+                                    <span style={{fontSize:10,background:C.amberP,color:C.amber,
+                                      border:`1px solid ${C.amber}22`,
+                                      borderRadius:5,padding:"1px 7px",fontFamily:F.body,fontWeight:600}}>
+                                      +{level.moralBonus} moral
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Prix + bouton */}
+                              {isNext&&(
+                                <div style={{flexShrink:0,textAlign:"right"}}>
+                                  <div style={{fontSize:14,fontWeight:800,
+                                    color:canAffordThis?domain.color:C.red,
+                                    fontFamily:F.title,marginBottom:6}}>
+                                    {level.cost} €
+                                  </div>
+                                  <Btn sm
+                                    v={canAffordThis?"primary":"disabled"}
+                                    disabled={!canAffordThis}
+                                    onClick={()=>doTrain(sv,domain,level)}>
+                                    {canAffordThis?"Financer":"Fonds insuffisants"}
+                                  </Btn>
+                                </div>
+                              )}
+                              {isDone&&(
+                                <div style={{fontSize:11,color:C.green,fontFamily:F.body,flexShrink:0}}>
+                                  ✅
+                                </div>
+                              )}
+                              {isLocked&&(
+                                <div style={{fontSize:11,color:C.muted,fontFamily:F.body,flexShrink:0}}>
+                                  🔒
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Modale Licenciement ── */}
       {modal==="fire"&&(()=>{
@@ -2078,32 +3168,143 @@ function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,addToas
 }
 
 /* ═══════════════════════════════════════════════════════
-   MENU VIEW
+   MENU VIEW — Rentabilité, activation, prix dynamique
 ═══════════════════════════════════════════════════════ */
-function MenuView({menu,setMenu,stock}){
+
+/* ── Thèmes de menu ── */
+const MENU_THEMES=[
+  {
+    id:"bistrot",  icon:"🍺", name:"Bistrot",      color:C.green,
+    desc:"Cuisine généreuse et abordable.",
+    priceMult:0.90, repBonus:0,  xpMult:1.0,
+    accent:"#eaf3ed",
+  },
+  {
+    id:"gastro",   icon:"⭐", name:"Gastronomique", color:C.purple,
+    desc:"Plats élaborés, prix premium +15%.",
+    priceMult:1.15, repBonus:5,  xpMult:1.2,
+    accent:"#f0eaf8",
+  },
+  {
+    id:"saison",   icon:"🌿", name:"Saisonnier",    color:C.terra,
+    desc:"Produits frais du marché, réputation +8.",
+    priceMult:1.00, repBonus:8,  xpMult:1.1,
+    accent:"#fdf0e8",
+  },
+  {
+    id:"none",     icon:"📋", name:"Standard",      color:C.muted,
+    desc:"Menu habituel sans modificateur.",
+    priceMult:1.00, repBonus:0,  xpMult:1.0,
+    accent:C.bg,
+  },
+];
+
+/* ── Formules ── */
+const FORMULA_PRESETS=[
+  { id:"decouverte", icon:"🍽",  name:"Menu Découverte",  discount:0.12,
+    cats:["Entrées","Plats","Desserts"], desc:"1 entrée + 1 plat + 1 dessert" },
+  { id:"express",    icon:"⚡",  name:"Menu Express",     discount:0.08,
+    cats:["Plats","Boissons"],          desc:"1 plat + 1 boisson" },
+  { id:"prestige",   icon:"👑",  name:"Menu Prestige",    discount:0.15,
+    cats:["Entrées","Plats","Desserts","Boissons"], desc:"Formule complète 4 services" },
+];
+
+function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActiveTheme,dailyStats}){
+  const [mainTab,setMainTab]=useState("carte");
   const [catFilter,setCatFilter]=useState("Tout");
+  const [sortBy,setSortBy]=useState("cat");
   const [modal,setModal]=useState(false);
   const [editId,setEditId]=useState(null);
   const [form,setForm]=useState({name:"",cat:"Plats",price:"",prepTime:""});
   const [ingLines,setIngLines]=useState([]);
   const [newIngS,setNewIngS]=useState("");
   const [newIngQ,setNewIngQ]=useState("");
+  const [formulaModal,setFormulaModal]=useState(null);
+  const [fSelections,setFSelections]=useState({});
 
   const cats=["Tout","Entrées","Plats","Desserts","Boissons"];
   const catC={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy};
-  const filtered=catFilter==="Tout"?menu:menu.filter(m=>m.cat===catFilter);
+  const theme=(MENU_THEMES||[]).find(t=>t.id===(activeTheme||"none"))||{id:"none",icon:"📋",name:"Standard",color:C.muted,desc:"",priceMult:1,repBonus:0,xpMult:1,accent:C.bg};
 
-  const canMake=(dish)=>(dish.ingredients||[]).every(ing=>{
-    const s=stock.find(x=>x.id===ing.stockId);
-    return s&&s.qty>=ing.qty;
-  });
-  const del=()=>{setMenu(p=>p.filter(m=>m.id!==editId));setModal(false);};
-
-  const openNew=()=>{
-    setEditId(null);
-    setForm({name:"",cat:"Plats",price:"",prepTime:""});
-    setIngLines([]);setNewIngS("");setNewIngQ("");setModal(true);
+  /* ── Calculs par plat ── */
+  const dishCost=(m)=>
+    (m.ingredients||[]).reduce((sum,ing)=>{
+      const s=stock.find(x=>x.id===ing.stockId);
+      return sum+(s?.price||0)*ing.qty;
+    },0);
+  const dishMargin=(m)=>{
+    const cost=dishCost(m);
+    if(!m.price||m.price===0)return null;
+    return Math.round(((m.price-cost)/m.price)*100);
   };
+  const portionsLeft=(m)=>{
+    if(!(m.ingredients||[]).length)return 99;
+    return Math.floor(Math.min(...m.ingredients.map(ing=>{
+      const s=stock.find(x=>x.id===ing.stockId);
+      if(!s||ing.qty===0)return 0;
+      return s.qty/ing.qty;
+    })));
+  };
+
+  /* ── Score de performance 0–100 ── */
+  const perfScore=(m)=>{
+    const mg=dishMargin(m)||0;
+    const maxOrd=Math.max(...menu.map(x=>x.orderCount||0),1);
+    const pop=Math.min(100,((m.orderCount||0)/maxOrd)*100);
+    const avail=portionsLeft(m)>=5?100:portionsLeft(m)*20;
+    return Math.round(mg*0.4+pop*0.4+avail*0.2);
+  };
+
+  /* ── Tri ── */
+  const base=catFilter==="Tout"?menu:menu.filter(m=>m.cat===catFilter);
+  const sorted=[...base].sort((a,b)=>{
+    if(sortBy==="margin")  return (dishMargin(b)||0)-(dishMargin(a)||0);
+    if(sortBy==="popular") return (b.orderCount||0)-(a.orderCount||0);
+    if(sortBy==="stock")   return portionsLeft(a)-portionsLeft(b);
+    if(sortBy==="score")   return perfScore(b)-perfScore(a);
+    return 0;
+  });
+  const maxOrders=Math.max(...menu.map(m=>m.orderCount||0),1);
+
+  /* ── Helpers ── */
+  const toggleEnabled=(id)=>setMenu(p=>p.map(m=>m.id===id?{...m,enabled:m.enabled===false?true:false}:m));
+  const adjustPrice=(id,factor)=>setMenu(p=>p.map(m=>{
+    if(m.id!==id)return m;
+    const base=m.basePrice||m.price;
+    return {...m,price:+(base*factor).toFixed(2),basePrice:base};
+  }));
+  const resetPrice=(id)=>setMenu(p=>p.map(m=>m.id!==id?m:{...m,price:m.basePrice||m.price,basePrice:undefined}));
+  const marginColor=(mg)=>mg>=60?C.green:mg>=40?C.amber:C.red;
+  const marginBg=(mg)=>mg>=60?C.greenP:mg>=40?C.amberP:C.redP;
+
+  /* ── Formules ── */
+  const openFormula=(preset)=>{
+    const sel={};
+    preset.cats.forEach(cat=>{
+      const first=menu.find(m=>m.cat===cat&&m.enabled!==false);
+      if(first)sel[cat]=String(first.id);
+    });
+    setFSelections(sel);
+    setFormulaModal(preset);
+  };
+  const saveFormula=()=>{
+    if(!formulaModal)return;
+    const items=Object.entries(fSelections).map(([cat,menuId])=>({cat,menuId:parseInt(menuId)}));
+    const totalBase=items.reduce((s,item)=>{
+      const d=menu.find(m=>m.id===item.menuId);
+      return s+(d?.price||0);
+    },0);
+    const formulaPrice=+(totalBase*(1-formulaModal.discount)).toFixed(2);
+    setFormulas(p=>[...p.filter(f=>f.presetId!==formulaModal.id),{
+      id:Date.now(),presetId:formulaModal.id,name:formulaModal.name,
+      icon:formulaModal.icon,items,active:true,
+      price:formulaPrice,discount:formulaModal.discount,
+    }]);
+    setFormulaModal(null);
+  };
+
+  /* ── Édition ── */
+  const del=()=>{setMenu(p=>p.filter(m=>m.id!==editId));setModal(false);};
   const openEdit=(m)=>{
     setEditId(m.id);
     setForm({name:m.name,cat:m.cat,price:String(m.price),prepTime:String(m.prepTime||"")});
@@ -2111,175 +3312,489 @@ function MenuView({menu,setMenu,stock}){
     setNewIngS("");setNewIngQ("");setModal(true);
   };
   const addIngLine=()=>{
-    const sid=parseInt(newIngS);
-    const q=parseFloat(newIngQ);
-    if(!sid||isNaN(q)||q<=0)return;
-    if(ingLines.find(i=>i.stockId===sid))return;
-    setIngLines(p=>[...p,{stockId:sid,qty:q}]);
-    setNewIngS("");setNewIngQ("");
+    const sid=parseInt(newIngS);const q=parseFloat(newIngQ);
+    if(!sid||isNaN(q)||q<=0||ingLines.find(i=>i.stockId===sid))return;
+    setIngLines(p=>[...p,{stockId:sid,qty:q}]);setNewIngS("");setNewIngQ("");
   };
   const removeIng=(sid)=>setIngLines(p=>p.filter(i=>i.stockId!==sid));
   const updateIngQty=(sid,val)=>setIngLines(p=>p.map(i=>i.stockId===sid?{...i,qty:parseFloat(val)||0}:i));
-
   const save=()=>{
     if(!form.name.trim()||!form.price)return;
-    const item={
-      name:form.name,cat:form.cat,
-      price:parseFloat(form.price),
-      prepTime:parseInt(form.prepTime)||60,
-      ingredients:ingLines,
-    };
+    const item={name:form.name,cat:form.cat,price:parseFloat(form.price),prepTime:parseInt(form.prepTime)||60,ingredients:ingLines};
     if(editId)setMenu(p=>p.map(m=>m.id===editId?{...m,...item}:m));
-    else setMenu(p=>[...p,{id:Date.now(),...item}]);
+    else setMenu(p=>[...p,{id:Date.now(),orderCount:0,enabled:true,...item}]);
     setModal(false);
   };
 
+  const criticalDishes=menu.filter(m=>m.enabled!==false&&portionsLeft(m)<2&&portionsLeft(m)>=0&&(m.ingredients||[]).length>0);
+  const disabledCount=menu.filter(m=>m.enabled===false).length;
+
   return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-        marginBottom:16,flexWrap:"wrap",gap:10}}>
-        <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-          {cats.map(c=>(
-            <button key={c} onClick={()=>setCatFilter(c)} style={{
-              background:catFilter===c?(catC[c]||C.green)+"1a":"transparent",
-              color:catFilter===c?(catC[c]||C.green):C.muted,
-              border:`1.5px solid ${catFilter===c?(catC[c]||C.green):C.border}`,
-              borderRadius:20,padding:"5px 15px",fontSize:12,
-              cursor:"pointer",fontFamily:F.body,fontWeight:500}}>
-              {c}
-            </button>
+    <div style={{background:theme.accent||C.bg,borderRadius:16,padding:16,transition:"background 0.4s"}}>
+
+      {/* Bandeau thème */}
+      {theme.id!=="none"&&(
+        <div style={{background:theme.color+"18",border:`1.5px solid ${theme.color}33`,
+          borderRadius:10,padding:"8px 14px",marginBottom:12,
+          display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+          <span style={{fontSize:18}}>{theme.icon}</span>
+          <span style={{fontSize:12,fontWeight:700,color:theme.color,fontFamily:F.title}}>
+            Thème : {theme.name}
+          </span>
+          <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>— {theme.desc}</span>
+          <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+            {[`💰 ×${theme.priceMult}`,`⭐ Rép.+${theme.repBonus}`,`🎯 XP×${theme.xpMult}`].map(t=>(
+              <span key={t} style={{fontSize:10,background:theme.color,color:"#fff",
+                borderRadius:20,padding:"2px 8px",fontFamily:F.body,fontWeight:700}}>{t}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Alertes stock critique */}
+      {criticalDishes.length>0&&(
+        <div style={{background:C.redP,border:`1.5px solid ${C.red}33`,borderRadius:10,
+          padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <span>⚠️</span>
+          <span style={{fontSize:12,fontWeight:700,color:C.red,fontFamily:F.body}}>
+            {criticalDishes.length} plat{criticalDishes.length>1?"s":""} en stock critique :
+          </span>
+          {criticalDishes.map(m=>(
+            <span key={m.id} style={{fontSize:10,background:C.red+"18",color:C.red,
+              border:`1px solid ${C.red}33`,borderRadius:5,padding:"2px 7px",fontFamily:F.body,fontWeight:600}}>
+              {m.name}
+              <button onClick={()=>toggleEnabled(m.id)}
+                style={{marginLeft:5,background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:9,fontWeight:700,padding:0}}>
+                Désactiver
+              </button>
+            </span>
           ))}
         </div>
+      )}
 
+      {/* Sous-onglets */}
+      <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+        {[
+          {k:"carte",    icon:"📋", label:"Carte"},
+          {k:"formules", icon:"🍽",  label:`Formules${(formulas||[]).filter(f=>f.active).length>0?" ("+(formulas||[]).filter(f=>f.active).length+")":""}`},
+          {k:"themes",   icon:"🎨",  label:"Thèmes"},
+          {k:"perf",     icon:"📊",  label:"Performance"},
+        ].map(t=>(
+          <button key={t.k} onClick={()=>setMainTab(t.k)} style={{
+            padding:"6px 14px",borderRadius:8,fontSize:12,fontWeight:600,
+            background:mainTab===t.k?C.navy:"transparent",
+            color:mainTab===t.k?"#fff":C.muted,
+            border:`1.5px solid ${mainTab===t.k?C.navy:C.border}`,
+            cursor:"pointer",fontFamily:F.body,display:"flex",alignItems:"center",gap:5}}>
+            <span>{t.icon}</span><span>{t.label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Dish cards */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(230px,1fr))",gap:12}}>
-        {filtered.map(m=>{
-          const cc=catC[m.cat]||C.navy;
-          const ok=canMake(m);
-          const isSpec=m.isSpecial||false;
-          return(
-            <div key={m.id} className="hovcard" onClick={()=>openEdit(m)} style={{
-              background:isSpec?C.purpleP:ok?C.card:C.bg,
-              border:`1.5px solid ${isSpec?C.purple+"66":ok?cc+"44":C.border}`,
-              borderRadius:14,padding:15,cursor:"pointer",
-              opacity:ok?1:0.75,
-              boxShadow:"0 1px 4px rgba(0,0,0,0.06)",transition:"all 0.15s"}}>
-              {/* Header */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                <div style={{fontSize:14,fontWeight:600,color:C.ink,fontFamily:F.title,
-                  flex:1,lineHeight:1.3,paddingRight:8}}>{m.name}</div>
-                <div style={{fontSize:18,fontWeight:700,color:C.terra,fontFamily:F.title,flexShrink:0}}>
-                  {m.price}€
+      {/* ══ CARTE ══ */}
+      {mainTab==="carte"&&(
+        <>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+            marginBottom:14,flexWrap:"wrap",gap:8}}>
+            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+              {cats.map(c=>(
+                <button key={c} onClick={()=>setCatFilter(c)} style={{
+                  background:catFilter===c?(catC[c]||C.green)+"1a":"transparent",
+                  color:catFilter===c?(catC[c]||C.green):C.muted,
+                  border:`1.5px solid ${catFilter===c?(catC[c]||C.green):C.border}`,
+                  borderRadius:20,padding:"4px 12px",fontSize:12,
+                  cursor:"pointer",fontFamily:F.body,fontWeight:500}}>
+                  {c}
+                </button>
+              ))}
+              {disabledCount>0&&(
+                <span style={{fontSize:11,background:C.amberP,color:C.amber,
+                  border:`1px solid ${C.amber}33`,borderRadius:20,padding:"4px 10px",
+                  fontFamily:F.body,fontWeight:600}}>
+                  ⏸ {disabledCount} désactivé{disabledCount>1?"s":""}
+                </span>
+              )}
+            </div>
+            <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
+              <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>Trier :</span>
+              {[
+                {k:"cat",     label:"Cat."},
+                {k:"margin",  label:"💰 Marge"},
+                {k:"popular", label:"🔥 Pop."},
+                {k:"stock",   label:"⚠ Stock"},
+                {k:"score",   label:"📊 Score"},
+              ].map(s=>(
+                <button key={s.k} onClick={()=>setSortBy(s.k)} style={{
+                  fontSize:10,padding:"3px 8px",borderRadius:6,
+                  background:sortBy===s.k?C.navy:C.bg,
+                  color:sortBy===s.k?"#fff":C.muted,
+                  border:`1px solid ${sortBy===s.k?C.navy:C.border}`,
+                  cursor:"pointer",fontFamily:F.body}}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12}}>
+            {sorted.map(m=>{
+              const cc=catC[m.cat]||C.navy;
+              const enabled=m.enabled!==false;
+              const mg=dishMargin(m);
+              const cost=dishCost(m);
+              const portions=portionsLeft(m);
+              const isTop=(m.orderCount||0)>0&&(m.orderCount||0)===maxOrders;
+              const isPriceModified=m.basePrice&&m.basePrice!==m.price;
+              const criticalStock=portions<2&&(m.ingredients||[]).length>0;
+              const score=perfScore(m);
+              const sc=score>=70?C.green:score>=40?C.amber:C.red;
+              const effectivePrice=theme.priceMult!==1?+(m.price*theme.priceMult).toFixed(2):m.price;
+
+              return(
+                <div key={m.id} style={{
+                  background:!enabled?C.bg:m.isSpecial?C.purpleP:C.card,
+                  border:`1.5px solid ${!enabled?C.border:criticalStock?C.red+"55":m.isSpecial?C.purple+"66":cc+"44"}`,
+                  borderRadius:14,padding:14,opacity:enabled?1:0.6,
+                  boxShadow:criticalStock&&enabled?`0 0 0 2px ${C.red}22`:"0 1px 4px rgba(0,0,0,0.05)",
+                  transition:"all 0.2s",position:"relative"}}>
+
+                  {isTop&&enabled&&(
+                    <div style={{position:"absolute",top:-8,right:10,
+                      background:"linear-gradient(135deg,#f5a623,#e07a45)",
+                      color:"#fff",fontSize:9,fontWeight:800,borderRadius:20,
+                      padding:"2px 8px",boxShadow:"0 2px 6px rgba(0,0,0,0.2)"}}>
+                      🔥 Top
+                    </div>
+                  )}
+
+                  {/* Nom + prix */}
+                  <div style={{display:"flex",justifyContent:"space-between",
+                    alignItems:"flex-start",marginBottom:6}}>
+                    <div style={{fontSize:13,fontWeight:600,
+                      color:enabled?C.ink:C.muted,fontFamily:F.title,
+                      flex:1,lineHeight:1.3,paddingRight:6,
+                      textDecoration:enabled?"none":"line-through"}}>
+                      {m.name}
+                    </div>
+                    <div style={{flexShrink:0,textAlign:"right"}}>
+                      <div style={{fontSize:16,fontWeight:700,
+                        color:isPriceModified?C.purple:theme.priceMult!==1?theme.color:C.terra,
+                        fontFamily:F.title}}>
+                        {effectivePrice}€
+                      </div>
+                      {(isPriceModified||theme.priceMult!==1)&&(
+                        <div style={{fontSize:9,color:C.muted,textDecoration:"line-through",fontFamily:F.body}}>
+                          {m.basePrice||m.price}€
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Badges */}
+                  <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
+                    <Badge color={cc} sm>{m.cat}</Badge>
+                    {m.prepTime&&<span style={{fontSize:9,background:C.amberP,color:C.amber,borderRadius:5,padding:"1px 5px",fontFamily:F.body,fontWeight:600}}>⏱{m.prepTime>=60?`${Math.floor(m.prepTime/60)}m`:m.prepTime+"s"}</span>}
+                    {(m.ingredients||[]).length>0&&<span style={{fontSize:9,borderRadius:5,padding:"1px 5px",fontFamily:F.body,fontWeight:600,background:criticalStock?C.redP:portions<5?C.amberP:C.greenP,color:criticalStock?C.red:portions<5?C.amber:C.green}}>{criticalStock?"⚠":"🍽"}{portions>=99?"∞":portions}p</span>}
+                    {(m.orderCount||0)>0&&<span style={{fontSize:9,background:C.navyP,color:C.navy,borderRadius:5,padding:"1px 5px",fontFamily:F.body,fontWeight:600}}>📊{m.orderCount}</span>}
+                    <span style={{fontSize:9,background:sc+"18",color:sc,border:`1px solid ${sc}33`,borderRadius:5,padding:"1px 5px",fontFamily:F.body,fontWeight:700}}>★{score}</span>
+                  </div>
+
+                  {/* Marge */}
+                  {mg!==null&&(
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,
+                      background:marginBg(mg),border:`1px solid ${marginColor(mg)}22`,
+                      borderRadius:7,padding:"5px 8px"}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>Coût</div>
+                        <div style={{fontSize:11,fontWeight:700,color:C.ink,fontFamily:F.title}}>{cost.toFixed(2)}€</div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>Marge</div>
+                        <div style={{fontSize:15,fontWeight:800,color:marginColor(mg),fontFamily:F.title}}>{mg}%</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Ingrédients */}
+                  {(m.ingredients||[]).length>0&&(
+                    <div style={{borderTop:`1px solid ${C.border}`,paddingTop:6,marginBottom:8}}>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+                        {m.ingredients.map(ing=>{
+                          const s=stock.find(x=>x.id===ing.stockId);
+                          const ok=s&&s.qty>=ing.qty;
+                          return <span key={ing.stockId} style={{fontSize:9,fontFamily:F.body,background:ok?C.greenP:C.redP,color:ok?C.green:C.red,border:`1px solid ${ok?C.green:C.red}22`,borderRadius:4,padding:"1px 5px"}}>{s?.name||"?"} ×{ing.qty}</span>;
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8,display:"flex",flexDirection:"column",gap:5}}>
+                    <div style={{display:"flex",gap:3,alignItems:"center"}}>
+                      <span style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0}}>Prix :</span>
+                      {[{l:"−10%",f:0.90,c:C.red},{l:"−5%",f:0.95,c:C.terra},{l:"+5%",f:1.05,c:C.green},{l:"+10%",f:1.10,c:C.green},{l:"+20%",f:1.20,c:C.purple}].map(({l,f,c})=>(
+                        <button key={l} onClick={e=>{e.stopPropagation();adjustPrice(m.id,f);}} style={{flex:1,padding:"2px 0",fontSize:9,fontWeight:700,borderRadius:4,background:c+"14",color:c,border:`1px solid ${c}33`,cursor:"pointer",fontFamily:F.body}}>{l}</button>
+                      ))}
+                      {isPriceModified&&<button onClick={e=>{e.stopPropagation();resetPrice(m.id);}} style={{padding:"2px 5px",fontSize:9,fontWeight:700,borderRadius:4,background:C.navyP,color:C.navy,border:`1px solid ${C.navy}33`,cursor:"pointer",fontFamily:F.body}}>↺</button>}
+                    </div>
+                    <button onClick={e=>{e.stopPropagation();toggleEnabled(m.id);}} style={{width:"100%",padding:"4px",fontSize:10,fontWeight:700,borderRadius:6,background:enabled?C.amberP:C.greenP,color:enabled?C.amber:C.green,border:`1.5px solid ${enabled?C.amber:C.green}44`,cursor:"pointer",fontFamily:F.body}}>
+                      {enabled?"⏸ Désactiver":"▶ Activer"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* ══ FORMULES ══ */}
+      {mainTab==="formules"&&(
+        <div>
+          <div style={{fontSize:12,color:C.muted,fontFamily:F.body,marginBottom:16,lineHeight:1.6}}>
+            Les formules combinent plusieurs plats à prix réduit. Une fois configurées et activées, les clients les commandent automatiquement en priorité.
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:14}}>
+            {FORMULA_PRESETS.map(preset=>{
+              const existing=(formulas||[]).find(f=>f.presetId===preset.id);
+              return(
+                <div key={preset.id} style={{background:C.card,
+                  border:`1.5px solid ${existing?.active?C.green+"55":C.border}`,
+                  borderRadius:14,padding:16,
+                  boxShadow:existing?.active?`0 2px 12px ${C.green}18`:"0 1px 4px rgba(0,0,0,0.06)"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <span style={{fontSize:26}}>{preset.icon}</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:14,fontWeight:700,color:C.ink,fontFamily:F.title}}>{preset.name}</div>
+                      <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:1}}>{preset.desc}</div>
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{fontSize:13,fontWeight:800,color:C.green,fontFamily:F.title}}>−{Math.round(preset.discount*100)}%</div>
+                      <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>réduction</div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}}>
+                    {preset.cats.map(cat=>(
+                      <span key={cat} style={{fontSize:10,background:(catC[cat]||C.navy)+"14",color:catC[cat]||C.navy,border:`1px solid ${catC[cat]||C.navy}22`,borderRadius:5,padding:"2px 7px",fontFamily:F.body,fontWeight:600}}>{cat}</span>
+                    ))}
+                  </div>
+                  {existing&&(
+                    <div style={{background:C.greenP,border:`1px solid ${C.green}33`,borderRadius:8,padding:"8px 10px",marginBottom:10}}>
+                      <div style={{fontSize:11,fontWeight:700,color:C.green,fontFamily:F.body,marginBottom:3}}>✓ {existing.price.toFixed(2)}€</div>
+                      {existing.items.map(item=>{
+                        const d=menu.find(m=>m.id===item.menuId);
+                        return d?<div key={item.menuId} style={{fontSize:10,color:C.muted,fontFamily:F.body}}>· {d.name} ({d.price}€)</div>:null;
+                      })}
+                    </div>
+                  )}
+                  <div style={{display:"flex",gap:6}}>
+                    <Btn sm v="primary" onClick={()=>openFormula(preset)}>{existing?"✏️ Modifier":"➕ Créer"}</Btn>
+                    {existing&&<Btn sm v={existing.active?"terra":"primary"} onClick={()=>setFormulas(p=>p.map(f=>f.id!==existing.id?f:{...f,active:!f.active}))}>{existing.active?"⏸ Pause":"▶ Activer"}</Btn>}
+                    {existing&&<Btn sm v="ghost" onClick={()=>setFormulas(p=>p.filter(f=>f.id!==existing.id))}>🗑</Btn>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {formulaModal&&(
+            <Modal title={`Configurer — ${formulaModal.name}`} onClose={()=>setFormulaModal(null)}>
+              <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>
+                  Sélectionnez un plat par catégorie. Réduction : <strong style={{color:C.green}}>−{Math.round(formulaModal.discount*100)}%</strong>
+                </div>
+                {formulaModal.cats.map(cat=>(
+                  <div key={cat}>
+                    <Lbl>{cat}</Lbl>
+                    <Sel value={fSelections[cat]||""} onChange={e=>setFSelections(p=>({...p,[cat]:e.target.value}))}>
+                      <option value="">Choisir…</option>
+                      {menu.filter(m=>m.cat===cat&&m.enabled!==false).map(m=>(
+                        <option key={m.id} value={String(m.id)}>{m.name} — {m.price}€</option>
+                      ))}
+                    </Sel>
+                  </div>
+                ))}
+                {formulaModal.cats.every(cat=>fSelections[cat])&&(()=>{
+                  const total=formulaModal.cats.reduce((s,cat)=>{
+                    const d=menu.find(m=>m.id===parseInt(fSelections[cat]));
+                    return s+(d?.price||0);
+                  },0);
+                  const fp=+(total*(1-formulaModal.discount)).toFixed(2);
+                  return(
+                    <div style={{background:C.greenP,border:`1px solid ${C.green}33`,borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div>
+                        <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>À la carte : <s>{total.toFixed(2)}€</s></div>
+                        <div style={{fontSize:16,fontWeight:800,color:C.green,fontFamily:F.title}}>Formule : {fp}€</div>
+                      </div>
+                      <div style={{fontSize:22,fontWeight:800,color:C.green,fontFamily:F.title}}>−{Math.round(formulaModal.discount*100)}%</div>
+                    </div>
+                  );
+                })()}
+                <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+                  <Btn v="ghost" onClick={()=>setFormulaModal(null)}>Annuler</Btn>
+                  <Btn v="primary" disabled={!formulaModal.cats.every(cat=>fSelections[cat])} onClick={saveFormula}>Enregistrer</Btn>
                 </div>
               </div>
-              <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:10,flexWrap:"wrap"}}>
-                <Badge color={cc} sm>{m.cat}</Badge>
-                {m.prepTime&&(
-                  <span style={{fontSize:10,fontFamily:F.body,fontWeight:600,
-                    background:C.amberP,color:C.amber,borderRadius:5,padding:"2px 7px"}}>
-                    ⏱ {m.prepTime>=60?`${Math.floor(m.prepTime/60)}m${m.prepTime%60?""+m.prepTime%60+"s":""}`:`${m.prepTime}s`}
-                  </span>
-                )}
-                {!ok&&<span style={{fontSize:10,color:C.red,fontFamily:F.body,fontWeight:600}}>⚠ Stock</span>}
-              </div>
-              {/* Recipe */}
-              <div style={{borderTop:`1px solid ${C.border}`,paddingTop:9}}>
-                <div style={{fontSize:10,color:C.muted,fontWeight:600,textTransform:"uppercase",
-                  letterSpacing:"0.06em",marginBottom:6,fontFamily:F.body}}>Recette</div>
-                {(m.ingredients||[]).length===0
-                  ?<div style={{fontSize:11,color:C.muted,fontStyle:"italic",fontFamily:F.body}}>Aucun ingrédient</div>
-                  :<div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                    {m.ingredients.map(ing=>{
-                      const s=stock.find(x=>x.id===ing.stockId);
-                      const enough=s&&s.qty>=ing.qty;
-                      return(
-                        <span key={ing.stockId} style={{
-                          fontSize:10,fontFamily:F.body,
-                          background:enough?C.greenP:C.redP,
-                          color:enough?C.green:C.red,
-                          border:`1px solid ${enough?C.green:C.red}22`,
-                          borderRadius:5,padding:"2px 7px"}}>
-                          {s?.name||"?"} ×{ing.qty}{s?.unit||""}
-                        </span>
-                      );
-                    })}
-                  </div>
-                }
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            </Modal>
+          )}
+        </div>
+      )}
 
-      {/* Modal */}
+      {/* ══ THÈMES ══ */}
+      {mainTab==="themes"&&(
+        <div>
+          <div style={{fontSize:12,color:C.muted,fontFamily:F.body,marginBottom:16,lineHeight:1.6}}>
+            Le thème modifie visuellement la carte et applique un multiplicateur de prix global + bonus de réputation sur chaque service.
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:14}}>
+            {MENU_THEMES.map(t=>{
+              const isActive=(activeTheme||"none")===t.id;
+              return(
+                <div key={t.id} onClick={()=>setActiveTheme(t.id)} style={{
+                  background:isActive?t.color+"14":C.card,
+                  border:`2px solid ${isActive?t.color:C.border}`,
+                  borderRadius:14,padding:16,cursor:"pointer",
+                  boxShadow:isActive?`0 4px 16px ${t.color}33`:"0 1px 4px rgba(0,0,0,0.06)",
+                  transition:"all 0.2s"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+                    <div style={{width:44,height:44,background:t.color+"18",border:`2px solid ${t.color}44`,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{t.icon}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:14,fontWeight:700,color:t.color,fontFamily:F.title}}>
+                        {t.name}
+                        {isActive&&<span style={{marginLeft:6,fontSize:9,background:t.color,color:"#fff",borderRadius:20,padding:"1px 7px",fontFamily:F.body,fontWeight:700}}>Actif</span>}
+                      </div>
+                      <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>{t.desc}</div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {[`💰 ×${t.priceMult}`,`⭐ +${t.repBonus} rép.`,`🎯 ×${t.xpMult} XP`].map(tag=>(
+                      <span key={tag} style={{fontSize:10,background:t.color+"14",color:t.color,border:`1px solid ${t.color}33`,borderRadius:6,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ══ PERFORMANCE ══ */}
+      {mainTab==="perf"&&(
+        <div>
+          {/* KPIs */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:10,marginBottom:20}}>
+            {[
+              {l:"Plats actifs",   v:menu.filter(m=>m.enabled!==false).length,      i:"✅",c:C.green, bg:C.greenP},
+              {l:"Désactivés",     v:menu.filter(m=>m.enabled===false).length,       i:"⏸", c:C.amber, bg:C.amberP},
+              {l:"CA généré",      v:menu.reduce((s,m)=>s+(m.price*(m.orderCount||0)),0).toFixed(0)+"€",i:"💶",c:C.terra, bg:C.terraP},
+              {l:"Commandes total",v:menu.reduce((s,m)=>s+(m.orderCount||0),0),     i:"📊",c:C.navy,  bg:C.navyP},
+            ].map(s=>(
+              <div key={s.l} style={{background:s.bg,border:`1px solid ${s.c}22`,borderRadius:12,padding:"12px",textAlign:"center"}}>
+                <div style={{fontSize:18,marginBottom:3}}>{s.i}</div>
+                <div style={{fontSize:18,fontWeight:800,color:s.c,fontFamily:F.title,lineHeight:1}}>{s.v}</div>
+                <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:3}}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tableau */}
+          <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:14}}>📊</span>
+              <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>Tableau de performance — {menu.length} plats</span>
+            </div>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:560}}>
+                <thead>
+                  <tr style={{background:C.bg}}>
+                    {["Plat","Cat.","Prix","Coût","Marge","Cmdes","CA","Stock","Score"].map(h=>(
+                      <th key={h} style={{padding:"7px 10px",fontSize:9,fontWeight:700,color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...menu].sort((a,b)=>perfScore(b)-perfScore(a)).map((m,i)=>{
+                    const mg=dishMargin(m)||0;
+                    const cost=dishCost(m);
+                    const portions=portionsLeft(m);
+                    const ca=+(m.price*(m.orderCount||0)).toFixed(2);
+                    const score=perfScore(m);
+                    const sc=score>=70?C.green:score>=40?C.amber:C.red;
+                    const cc=catC[m.cat]||C.navy;
+                    return(
+                      <tr key={m.id} style={{background:i%2===0?C.card:C.bg,opacity:m.enabled===false?0.5:1}}>
+                        <td style={{padding:"8px 10px",borderBottom:`1px solid ${C.border}11`}}>
+                          <div style={{fontSize:11,fontWeight:600,color:C.ink,whiteSpace:"nowrap"}}>{m.name}</div>
+                          {m.enabled===false&&<span style={{fontSize:8,color:C.amber,fontWeight:700}}>⏸ off</span>}
+                        </td>
+                        <td style={{padding:"8px 10px",borderBottom:`1px solid ${C.border}11`}}>
+                          <span style={{fontSize:9,background:cc+"14",color:cc,border:`1px solid ${cc}22`,borderRadius:4,padding:"1px 5px",fontWeight:600}}>{m.cat}</span>
+                        </td>
+                        <td style={{padding:"8px 10px",fontSize:11,fontWeight:700,color:C.terra,borderBottom:`1px solid ${C.border}11`,whiteSpace:"nowrap"}}>{m.price}€</td>
+                        <td style={{padding:"8px 10px",fontSize:10,color:C.muted,borderBottom:`1px solid ${C.border}11`,whiteSpace:"nowrap"}}>{cost.toFixed(2)}€</td>
+                        <td style={{padding:"8px 10px",borderBottom:`1px solid ${C.border}11`}}>
+                          <div style={{display:"flex",alignItems:"center",gap:5}}>
+                            <div style={{width:36,height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:`${Math.min(100,mg)}%`,background:marginColor(mg),borderRadius:99}}/>
+                            </div>
+                            <span style={{fontSize:10,fontWeight:700,color:marginColor(mg)}}>{mg}%</span>
+                          </div>
+                        </td>
+                        <td style={{padding:"8px 10px",fontSize:11,fontWeight:700,color:C.navy,borderBottom:`1px solid ${C.border}11`}}>{m.orderCount||0}</td>
+                        <td style={{padding:"8px 10px",fontSize:11,fontWeight:700,color:C.amber,borderBottom:`1px solid ${C.border}11`,whiteSpace:"nowrap"}}>{ca}€</td>
+                        <td style={{padding:"8px 10px",borderBottom:`1px solid ${C.border}11`}}>
+                          <span style={{fontSize:10,fontWeight:600,color:portions<2?C.red:portions<5?C.amber:C.green}}>{portions>=99?"∞":portions}</span>
+                        </td>
+                        <td style={{padding:"8px 10px",borderBottom:`1px solid ${C.border}11`}}>
+                          <div style={{width:30,height:30,borderRadius:"50%",background:sc+"18",border:`2px solid ${sc}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:sc}}>{score}</div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal édition */}
       {modal&&(
         <Modal title={editId?"Modifier le plat":"Nouveau plat"} onClose={()=>setModal(false)}>
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
-            {/* Basic info */}
             <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"end"}}>
               <div><Lbl>Nom du plat</Lbl><Inp value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/></div>
-              <div style={{width:90}}>
-                <Lbl>Prix (€)</Lbl>
-                <Inp type="number" value={form.price} onChange={e=>setForm(p=>({...p,price:e.target.value}))}/>
-              </div>
-              <div style={{width:100}}>
-                <Lbl>Prép. (sec)</Lbl>
-                <Inp type="number" value={form.prepTime} placeholder="60" onChange={e=>setForm(p=>({...p,prepTime:e.target.value}))}/>
-              </div>
+              <div style={{width:90}}><Lbl>Prix (€)</Lbl><Inp type="number" value={form.price} onChange={e=>setForm(p=>({...p,price:e.target.value}))}/></div>
+              <div style={{width:100}}><Lbl>Prép. (sec)</Lbl><Inp type="number" value={form.prepTime} placeholder="60" onChange={e=>setForm(p=>({...p,prepTime:e.target.value}))}/></div>
             </div>
-            <div>
-              <Lbl>Catégorie</Lbl>
+            <div><Lbl>Catégorie</Lbl>
               <Sel value={form.cat} onChange={e=>setForm(p=>({...p,cat:e.target.value}))}>
                 {["Entrées","Plats","Desserts","Boissons"].map(c=><option key={c}>{c}</option>)}
               </Sel>
             </div>
-
-            {/* Recipe editor */}
             <div style={{background:C.terraP,border:`1.5px solid ${C.terra}22`,borderRadius:12,padding:14}}>
-              <div style={{fontSize:12,fontWeight:600,color:C.terra,marginBottom:12,fontFamily:F.body}}>
-                🧂 Recette — éléments primaires
-              </div>
-
-              {/* Current ingredients */}
+              <div style={{fontSize:12,fontWeight:600,color:C.terra,marginBottom:12,fontFamily:F.body}}>🧂 Recette</div>
               {ingLines.length===0
-                ?<div style={{fontSize:12,color:C.muted,fontStyle:"italic",fontFamily:F.body,marginBottom:12}}>
-                  Aucun ingrédient défini
-                </div>
+                ?<div style={{fontSize:12,color:C.muted,fontStyle:"italic",fontFamily:F.body,marginBottom:12}}>Aucun ingrédient défini</div>
                 :<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>
                   {ingLines.map(ing=>{
                     const s=stock.find(x=>x.id===ing.stockId);
                     const enough=s&&s.qty>=ing.qty;
                     return(
-                      <div key={ing.stockId} style={{
-                        display:"flex",alignItems:"center",gap:8,
-                        background:C.surface,border:`1px solid ${enough?C.border:C.red+"44"}`,
-                        borderRadius:8,padding:"7px 10px"}}>
-                        <span style={{flex:1,fontSize:12,fontWeight:600,color:C.ink,fontFamily:F.body}}>
-                          {s?.name||"?"} <span style={{color:C.muted,fontWeight:400}}>({s?.unit})</span>
-                        </span>
-                        <input type="number" value={ing.qty} step="0.01" min="0.01"
-                          onChange={e=>updateIngQty(ing.stockId,e.target.value)}
-                          style={{width:70,background:C.bg,border:`1px solid ${C.border}`,
-                            borderRadius:6,padding:"4px 7px",fontSize:12,fontFamily:F.body,color:C.ink,
-                            textAlign:"right"}}/>
+                      <div key={ing.stockId} style={{display:"flex",alignItems:"center",gap:8,background:C.surface,border:`1px solid ${enough?C.border:C.red+"44"}`,borderRadius:8,padding:"7px 10px"}}>
+                        <span style={{flex:1,fontSize:12,fontWeight:600,color:C.ink,fontFamily:F.body}}>{s?.name||"?"} <span style={{color:C.muted,fontWeight:400}}>({s?.unit})</span></span>
+                        <input type="number" value={ing.qty} step="0.01" min="0.01" onChange={e=>updateIngQty(ing.stockId,e.target.value)}
+                          style={{width:70,background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,padding:"4px 7px",fontSize:12,fontFamily:F.body,color:C.ink,textAlign:"right"}}/>
                         <span style={{fontSize:11,color:C.muted,fontFamily:F.body,minWidth:24}}>{s?.unit}</span>
-                        {!enough&&<span style={{fontSize:10,color:C.red,fontFamily:F.body}}>⚠</span>}
-                        <button onClick={()=>removeIng(ing.stockId)} style={{
-                          background:C.redP,border:`1px solid ${C.red}22`,borderRadius:6,
-                          color:C.red,cursor:"pointer",width:24,height:24,fontSize:13,
-                          display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+                        {!enough&&<span style={{fontSize:10,color:C.red}}>⚠</span>}
+                        <button onClick={()=>removeIng(ing.stockId)} style={{background:C.redP,border:`1px solid ${C.red}22`,borderRadius:6,color:C.red,cursor:"pointer",width:24,height:24,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
                       </div>
                     );
                   })}
                 </div>
               }
-
-              {/* Add ingredient line */}
               <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
-                <div style={{flex:1}}>
-                  <Lbl>Élément primaire</Lbl>
+                <div style={{flex:1}}><Lbl>Élément primaire</Lbl>
                   <Sel value={newIngS} onChange={e=>setNewIngS(e.target.value)}>
                     <option value="">Choisir…</option>
                     {stock.filter(s=>!ingLines.find(i=>i.stockId===s.id)).map(s=>(
@@ -2287,17 +3802,10 @@ function MenuView({menu,setMenu,stock}){
                     ))}
                   </Sel>
                 </div>
-                <div style={{width:80}}>
-                  <Lbl>Qté</Lbl>
-                  <Inp type="number" value={newIngQ} placeholder="0.0"
-                    onChange={e=>setNewIngQ(e.target.value)}/>
-                </div>
-                <Btn v="terra" onClick={addIngLine} disabled={!newIngS||!newIngQ} icon="+">
-                  Ajouter
-                </Btn>
+                <div style={{width:80}}><Lbl>Qté</Lbl><Inp type="number" value={newIngQ} placeholder="0.0" onChange={e=>setNewIngQ(e.target.value)}/></div>
+                <Btn v="terra" onClick={addIngLine} disabled={!newIngS||!newIngQ} icon="+">Ajouter</Btn>
               </div>
             </div>
-
             <div style={{display:"flex",gap:10,justifyContent:"space-between",marginTop:4}}>
               <div>{editId&&<Btn v="danger" onClick={del}>Supprimer</Btn>}</div>
               <div style={{display:"flex",gap:10}}>
@@ -2311,6 +3819,7 @@ function MenuView({menu,setMenu,stock}){
     </div>
   );
 }
+
 
 /* ═══════════════════════════════════════════════════════
    STOCK VIEW
@@ -2955,12 +4464,509 @@ function HelpModal({onClose}){
   );
 }
 /* ═══════════════════════════════════════════════════════
-   STATS VIEW
+   DAILY SUMMARY MODAL — Résumé de fin de journée (A)
 ═══════════════════════════════════════════════════════ */
+function DailySummaryModal({onClose,dailyStats,objStats,servers,menu,transactions,prevRecord,isRecord}){
+  const today=dailyStats[dailyStats.length-1]||{served:0,lost:0,revenue:0,date:""};
+  const totalClients=today.served+today.lost;
+  const rate=totalClients>0?Math.round((today.served/totalClients)*100):0;
+  const rateColor=rate>=80?C.green:rate>=50?C.amber:C.red;
+
+  // Meilleur serveur (plus de XP total)
+  const bestSrv=[...servers].sort((a,b)=>b.totalXp-a.totalXp)[0];
+
+  // Plat le plus commandé (depuis les transactions du jour)
+  const dishCount={};
+  transactions.filter(t=>t.type==="revenu"&&t.label.includes("×")).forEach(t=>{
+    const m=t.label.match(/(\d+)× ([^,)]+)/g);
+    if(m) m.forEach(s=>{
+      const [,q,n]=s.match(/(\d+)× (.+)/);
+      dishCount[n]=(dishCount[n]||0)+parseInt(q);
+    });
+  });
+  const topDish=Object.entries(dishCount).sort((a,b)=>b[1]-a[1])[0];
+
+  // Objectif du lendemain
+  const nextRevTarget=[500,1000,2000,5000,10000].find(t=>t>objStats.totalRevenue)||10000;
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:10050,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{background:C.surface,borderRadius:22,width:"100%",maxWidth:460,
+        boxShadow:"0 32px 80px rgba(0,0,0,0.35)",overflow:"hidden",
+        animation:"popIn 0.4s ease"}}>
+
+        {/* Header */}
+        <div style={{background:`linear-gradient(135deg,${C.green},${C.greenL})`,
+          padding:"24px 28px 20px",textAlign:"center",position:"relative"}}>
+          {isRecord&&(
+            <div style={{position:"absolute",top:12,right:16,
+              background:"#f5d878",color:"#7a5a00",borderRadius:20,
+              padding:"3px 10px",fontSize:10,fontWeight:800,letterSpacing:"0.06em"}}>
+              🏆 RECORD !
+            </div>
+          )}
+          <div style={{fontSize:40,marginBottom:8}}>📊</div>
+          <div style={{fontSize:22,fontWeight:800,color:"#fff",fontFamily:F.title}}>
+            Bilan de la journée
+          </div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.75)",fontFamily:F.body,marginTop:4}}>
+            {today.date}
+          </div>
+        </div>
+
+        {/* Stats principales */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:0,
+          borderBottom:`1px solid ${C.border}`}}>
+          {[
+            {icon:"✅",val:today.served,label:"Servis",color:C.green,bg:C.greenP},
+            {icon:"😤",val:today.lost,label:"Perdus",color:C.red,bg:C.redP},
+            {icon:"💶",val:today.revenue.toFixed(0)+"€",label:"Revenus",color:C.amber,bg:C.amberP},
+          ].map(s=>(
+            <div key={s.label} style={{background:s.bg,padding:"16px 10px",textAlign:"center",
+              borderRight:`1px solid ${C.border}`}}>
+              <div style={{fontSize:20,marginBottom:4}}>{s.icon}</div>
+              <div style={{fontSize:22,fontWeight:800,color:s.color,fontFamily:F.title,lineHeight:1}}>{s.val}</div>
+              <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:3}}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{padding:"20px 24px",display:"flex",flexDirection:"column",gap:14}}>
+
+          {/* Taux de service */}
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",
+              fontSize:11,fontFamily:F.body,marginBottom:6}}>
+              <span style={{color:C.muted}}>Taux de service</span>
+              <span style={{fontWeight:700,color:rateColor}}>{rate}%</span>
+            </div>
+            <div style={{height:8,background:C.border,borderRadius:99,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${rate}%`,background:rateColor,
+                borderRadius:99,transition:"width 1s ease"}}/>
+            </div>
+          </div>
+
+          {/* Meilleur serveur + plat */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            {bestSrv&&(
+              <div style={{background:C.navyP,border:`1px solid ${C.navy}22`,
+                borderRadius:12,padding:"12px 14px"}}>
+                <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:4}}>⭐ Meilleur serveur</div>
+                <div style={{fontSize:13,fontWeight:700,color:C.navy,fontFamily:F.title}}>{bestSrv.name}</div>
+                <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>{bestSrv.totalXp} XP</div>
+              </div>
+            )}
+            {topDish&&(
+              <div style={{background:C.terraP,border:`1px solid ${C.terra}22`,
+                borderRadius:12,padding:"12px 14px"}}>
+                <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:4}}>🍽 Plat n°1</div>
+                <div style={{fontSize:13,fontWeight:700,color:C.terra,fontFamily:F.title,
+                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{topDish[0]}</div>
+                <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>{topDish[1]}× commandé</div>
+              </div>
+            )}
+          </div>
+
+          {/* Objectif demain */}
+          <div style={{background:C.purpleP,border:`1px solid ${C.purple}22`,
+            borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",gap:12}}>
+            <span style={{fontSize:22}}>🎯</span>
+            <div>
+              <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:2}}>Objectif demain</div>
+              <div style={{fontSize:13,fontWeight:700,color:C.purple,fontFamily:F.title}}>
+                Atteindre {nextRevTarget.toLocaleString("fr-FR")} € de CA total
+              </div>
+              <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>
+                {(nextRevTarget-objStats.totalRevenue).toLocaleString("fr-FR")} € restants
+              </div>
+            </div>
+          </div>
+
+          <button onClick={onClose} style={{
+            padding:"12px",borderRadius:12,border:"none",
+            background:C.green,color:"#fff",cursor:"pointer",
+            fontSize:14,fontWeight:700,fontFamily:F.body,
+            boxShadow:`0 4px 16px ${C.green}44`}}>
+            Continuer →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════
-   BANK MODAL
+   STATS VIEW — Dashboard redesigné (B)
 ═══════════════════════════════════════════════════════ */
+function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=50}){
+  const days=[...dailyStats].reverse();
+  const maxRevenue=Math.max(...days.map(d=>d.revenue),1);
+  const maxClients=Math.max(...days.map(d=>d.served+d.lost),1);
+  const rl=restoLv(restoXp||0);
+  const rlD=rl.d;
+  const nextRl=rl.next;
+  const cl=chefLv(kitchen?.chef?.totalXp||0);
+  const clD=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
+  const repTier=getRepTier(reputation);
+  const nextRepTier=REP_THRESHOLDS.find(t=>t.min>reputation);
+  const prevRepTier=[...REP_THRESHOLDS].reverse().find(t=>t.min<(repTier.min));
+
+  const nextObj=OBJECTIVES_DEF.find(o=>!(objStats?.completedIds||[]).includes(o.id)&&!o.condition(objStats||{}));
+
+  return(
+    <div style={{maxWidth:900,margin:"0 auto",padding:"10px 0"}}>
+
+      {/* ── Réputation Hero ─────────────────────────────── */}
+      <div style={{background:`linear-gradient(135deg,${repTier.color}14,${repTier.color}06)`,
+        border:`2px solid ${repTier.color}33`,borderRadius:18,padding:"20px 24px",marginBottom:20}}>
+        <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+          {/* Gauge circulaire */}
+          <div style={{position:"relative",width:80,height:80,flexShrink:0}}>
+            <svg width={80} height={80} style={{transform:"rotate(-90deg)"}}>
+              <circle cx={40} cy={40} r={32} fill="none" stroke={C.border} strokeWidth={8}/>
+              <circle cx={40} cy={40} r={32} fill="none" stroke={repTier.color} strokeWidth={8}
+                strokeDasharray={`${2*Math.PI*32}`}
+                strokeDashoffset={`${2*Math.PI*32*(1-reputation/100)}`}
+                strokeLinecap="round"
+                style={{transition:"stroke-dashoffset 0.8s ease"}}/>
+            </svg>
+            <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",
+              alignItems:"center",justifyContent:"center"}}>
+              <span style={{fontSize:22,lineHeight:1}}>{repTier.icon}</span>
+              <span style={{fontSize:10,fontWeight:800,color:repTier.color,
+                fontFamily:F.title,lineHeight:1}}>{Math.round(reputation)}</span>
+            </div>
+          </div>
+
+          {/* Texte */}
+          <div style={{flex:1,minWidth:180}}>
+            <div style={{fontSize:20,fontWeight:800,color:repTier.color,
+              fontFamily:F.title,marginBottom:4}}>{repTier.label}</div>
+            <div style={{fontSize:12,color:C.muted,fontFamily:F.body,
+              lineHeight:1.5,marginBottom:10}}>{repTier.desc}</div>
+            {/* Effets actifs */}
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <span style={{fontSize:11,background:repTier.tipMult>=1?C.greenP:C.redP,
+                color:repTier.tipMult>=1?C.green:C.red,
+                border:`1px solid ${repTier.tipMult>=1?C.green:C.red}33`,
+                borderRadius:6,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>
+                💸 Pourboires ×{repTier.tipMult}
+              </span>
+              <span style={{fontSize:11,background:repTier.spawnMult>=1?C.greenP:C.redP,
+                color:repTier.spawnMult>=1?C.green:C.red,
+                border:`1px solid ${repTier.spawnMult>=1?C.green:C.red}33`,
+                borderRadius:6,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>
+                🚶 Clients ×{repTier.spawnMult}
+              </span>
+            </div>
+          </div>
+
+          {/* Paliers */}
+          <div style={{flexShrink:0,minWidth:160}}>
+            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:8,fontWeight:600,
+              textTransform:"uppercase",letterSpacing:"0.06em"}}>Paliers</div>
+            {REP_THRESHOLDS.slice().reverse().map(t=>(
+              <div key={t.min} style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
+                <div style={{width:8,height:8,borderRadius:"50%",
+                  background:reputation>=t.min?t.color:C.border,
+                  border:`1.5px solid ${t.color}`,
+                  boxShadow:reputation>=t.min&&repTier.min===t.min?`0 0 0 3px ${t.color}33`:"none",
+                  flexShrink:0,transition:"all 0.3s"}}/>
+                <span style={{fontSize:10,fontFamily:F.body,
+                  fontWeight:repTier.min===t.min?700:400,
+                  color:repTier.min===t.min?t.color:C.muted}}>
+                  {t.icon} {t.label} ({t.min}+)
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Barre de progression vers palier suivant */}
+        {nextRepTier&&(
+          <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${repTier.color}22`}}>
+            <div style={{display:"flex",justifyContent:"space-between",
+              fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:5}}>
+              <span>Vers <strong style={{color:nextRepTier.color}}>{nextRepTier.icon} {nextRepTier.label}</strong></span>
+              <span style={{color:repTier.color,fontWeight:700}}>
+                {Math.round(nextRepTier.min-reputation)} pts restants
+              </span>
+            </div>
+            <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden"}}>
+              <div style={{height:"100%",borderRadius:99,background:repTier.color,
+                width:`${Math.round(((reputation-(repTier.min))/(nextRepTier.min-repTier.min))*100)}%`,
+                transition:"width 0.8s ease"}}/>
+            </div>
+          </div>
+        )}
+        {!nextRepTier&&(
+          <div style={{marginTop:10,textAlign:"center",fontSize:12,color:repTier.color,
+            fontWeight:700,fontFamily:F.body}}>
+            {repTier.icon} Réputation maximale atteinte !
+          </div>
+        )}
+      </div>
+
+      {/* ── Progression Hero ────────────────────────────── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:24}}>
+
+        {/* Restaurant XP */}
+        <div style={{background:`linear-gradient(135deg,${rlD.color}18,${C.surface})`,
+          border:`2px solid ${rlD.color}33`,borderRadius:18,padding:"18px 20px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+            <div style={{width:48,height:48,background:rlD.color+"22",border:`2px solid ${rlD.color}44`,
+              borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>
+              {rlD.icon}
+            </div>
+            <div>
+              <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginBottom:2}}>Restaurant</div>
+              <div style={{fontSize:17,fontWeight:800,color:rlD.color,fontFamily:F.title}}>{rlD.name}</div>
+            </div>
+            <div style={{marginLeft:"auto",textAlign:"right"}}>
+              <div style={{fontSize:24,fontWeight:800,color:rlD.color,fontFamily:F.title,lineHeight:1}}>N{rlD.l}</div>
+              <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>/{RESTO_LVL.length-1}</div>
+            </div>
+          </div>
+          <div style={{marginBottom:6}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:10,
+              color:C.muted,fontFamily:F.body,marginBottom:5}}>
+              <span style={{color:rlD.color,fontWeight:600}}>{restoXp||0} XP</span>
+              <span>{rl.l<RESTO_LVL.length-1?`${nextRl.xpNeeded} XP pour ${nextRl.name}`:"✦ Niveau max"}</span>
+            </div>
+            <div style={{height:10,background:C.border,borderRadius:99,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${rl.pct||0}%`,background:rlD.color,
+                borderRadius:99,transition:"width 0.8s ease"}}/>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:10}}>
+            {RESTO_LVL.map((r,i)=>(
+              <div key={i} style={{width:20,height:20,borderRadius:6,
+                background:i<=rl.l?r.color:"#e0d8cc",
+                display:"flex",alignItems:"center",justifyContent:"center",
+                fontSize:10,title:r.name,
+                boxShadow:i===rl.l?`0 0 0 2px ${r.color}66`:"none",
+                transition:"all 0.3s"}}>
+                {i<=rl.l?r.icon:""}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Chef XP */}
+        <div style={{background:`linear-gradient(135deg,${clD.color}18,${C.surface})`,
+          border:`2px solid ${clD.color}33`,borderRadius:18,padding:"18px 20px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+            <div style={{width:48,height:48,background:clD.color+"22",border:`2px solid ${clD.color}44`,
+              borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>
+              {clD.icon}
+            </div>
+            <div>
+              <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginBottom:2}}>{kitchen?.chef?.name||"Chef"}</div>
+              <div style={{fontSize:17,fontWeight:800,color:clD.color,fontFamily:F.title}}>{clD.name}</div>
+            </div>
+            <div style={{marginLeft:"auto",textAlign:"right"}}>
+              <div style={{fontSize:24,fontWeight:800,color:clD.color,fontFamily:F.title,lineHeight:1}}>N{cl.l}</div>
+              <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>/{CHEF_LVL.length-1}</div>
+            </div>
+          </div>
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:10,
+              color:C.muted,fontFamily:F.body,marginBottom:5}}>
+              <span style={{color:clD.color,fontWeight:600}}>{cl.r} XP</span>
+              <span>{cl.l<CHEF_LVL.length-1?`${cl.n} XP pour niveau suivant`:"✦ Niveau max"}</span>
+            </div>
+            <div style={{height:10,background:C.border,borderRadius:99,overflow:"hidden"}}>
+              <div style={{height:"100%",
+                width:`${cl.l<CHEF_LVL.length-1?Math.min(100,Math.round(cl.r/cl.n*100)):100}%`,
+                background:clD.color,borderRadius:99,transition:"width 0.8s ease"}}/>
+            </div>
+          </div>
+          <div style={{marginTop:12,display:"flex",gap:8,flexWrap:"wrap"}}>
+            <span style={{fontSize:10,background:clD.color+"18",color:clD.color,
+              border:`1px solid ${clD.color}33`,borderRadius:6,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>
+              ⚡ ×{clD.speed} vitesse
+            </span>
+            <span style={{fontSize:10,background:C.navyP,color:C.navy,
+              border:`1px solid ${C.navy}22`,borderRadius:6,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>
+              🧑‍🍳 {clD.commis} commis
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Prochain objectif ────────────────────────────── */}
+      {nextObj&&(
+        <div style={{background:C.purpleP,border:`1.5px solid ${C.purple}33`,
+          borderRadius:14,padding:"14px 18px",marginBottom:20,
+          display:"flex",alignItems:"center",gap:14}}>
+          <span style={{fontSize:28,flexShrink:0}}>{nextObj.icon}</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginBottom:2}}>🎯 Prochain objectif</div>
+            <div style={{fontSize:14,fontWeight:700,color:C.purple,fontFamily:F.title}}>{nextObj.title}</div>
+            <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>{nextObj.desc}</div>
+          </div>
+          <div style={{textAlign:"right",flexShrink:0}}>
+            <div style={{fontSize:12,color:C.amber,fontWeight:700,fontFamily:F.body}}>💶 +{nextObj.reward.cash}€</div>
+            <div style={{fontSize:11,color:C.green,fontWeight:700,fontFamily:F.body}}>⭐ +{nextObj.reward.xp} XP</div>
+          </div>
+        </div>
+      )}
+
+      {/* ── KPI Cards ────────────────────────────────────── */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12,marginBottom:24}}>
+        {[
+          {label:"Clients servis",val:days.reduce((s,d)=>s+d.served,0),icon:"✅",c:C.green,bg:C.greenP},
+          {label:"Clients perdus",val:days.reduce((s,d)=>s+d.lost,0),icon:"😤",c:C.red,bg:C.redP},
+          {label:"CA total",val:objStats?.totalRevenue?.toFixed(0)+"€"||"0€",icon:"💶",c:C.amber,bg:C.amberP},
+          {label:"Note moyenne",val:objStats?.ratingCount>0?(objStats.totalRating/objStats.ratingCount).toFixed(1)+" ★":"—",icon:"⭐",c:C.purple,bg:C.purpleP},
+        ].map(s=>(
+          <div key={s.label} style={{background:s.bg,border:`1.5px solid ${s.c}22`,
+            borderRadius:14,padding:"14px 16px",textAlign:"center"}}>
+            <div style={{fontSize:24,marginBottom:4}}>{s.icon}</div>
+            <div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:F.title,lineHeight:1}}>{s.val}</div>
+            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:4}}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Prêt bancaire ────────────────────────────────── */}
+      {loan&&(
+        <div style={{background:C.amberP,border:`1.5px solid ${C.amber}44`,borderRadius:14,
+          padding:"14px 20px",marginBottom:20,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+          <span style={{fontSize:22}}>🏦</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:12,fontWeight:700,color:C.amber,fontFamily:F.title}}>
+              Prêt en cours — {loan.label}
+            </div>
+            <div style={{fontSize:11,color:C.ink,fontFamily:F.body,marginTop:2}}>
+              Restant dû : <strong>{loan.remaining.toFixed(2)} €</strong>&nbsp;·&nbsp;{loan.repayPerHour} €/h
+            </div>
+          </div>
+          <div style={{height:8,width:180,background:C.border,borderRadius:99,overflow:"hidden"}}>
+            <div style={{height:"100%",borderRadius:99,background:C.amber,
+              width:`${Math.max(2,100-loan.remaining/(loan.amount*(1+loan.rate))*100)}%`}}/>
+          </div>
+        </div>
+      )}
+
+      {/* ── Graphiques ───────────────────────────────────── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:24}}>
+        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:16,padding:"18px 20px"}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:16}}>💶 Revenus / jour</div>
+          <div style={{display:"flex",gap:8,alignItems:"flex-end",height:110}}>
+            {[...dailyStats].slice(-5).map((d,i)=>{
+              const h=maxRevenue>0?Math.round((d.revenue/maxRevenue)*100):2;
+              const isToday=i===dailyStats.slice(-5).length-1;
+              return(
+                <div key={d.date} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                  <div style={{fontSize:9,color:C.amber,fontWeight:700,fontFamily:F.body,textAlign:"center"}}>
+                    {d.revenue>0?`${Math.round(d.revenue)}€`:""}
+                  </div>
+                  <div style={{width:"100%",height:`${Math.max(h,3)}px`,
+                    background:isToday?C.amber:`${C.amber}88`,
+                    borderRadius:"5px 5px 0 0",transition:"height 0.6s ease",
+                    border:isToday?`1px solid ${C.amber}`:"none"}}/>
+                  <div style={{fontSize:8,color:isToday?C.amber:C.muted,fontFamily:F.body,
+                    fontWeight:isToday?700:400,textAlign:"center"}}>
+                    {d.date.slice(0,5)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:16,padding:"18px 20px"}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:16}}>👥 Clients / jour</div>
+          <div style={{display:"flex",gap:8,alignItems:"flex-end",height:110}}>
+            {[...dailyStats].slice(-5).map((d,i)=>{
+              const isToday=i===dailyStats.slice(-5).length-1;
+              const hs=maxClients>0?Math.round((d.served/maxClients)*100):0;
+              const hl=maxClients>0?Math.round((d.lost/maxClients)*100):0;
+              return(
+                <div key={d.date} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                  <div style={{width:"100%",display:"flex",flexDirection:"column",alignItems:"stretch",gap:1}}>
+                    {hl>0&&<div style={{height:`${hl}px`,background:`${C.red}${isToday?"":"88"}`,borderRadius:"4px 4px 0 0"}}/>}
+                    {hs>0&&<div style={{height:`${hs}px`,background:`${C.green}${isToday?"":"88"}`,borderRadius:hl===0?"4px 4px 0 0":"0"}}/>}
+                    {hs===0&&hl===0&&<div style={{height:3,background:C.border}}/>}
+                  </div>
+                  <div style={{fontSize:8,color:isToday?C.ink:C.muted,fontFamily:F.body,fontWeight:isToday?700:400,textAlign:"center"}}>
+                    {d.date.slice(0,5)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{display:"flex",gap:12,marginTop:10}}>
+            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:C.muted,fontFamily:F.body}}>
+              <div style={{width:10,height:10,background:C.green,borderRadius:2}}/>Servis
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:C.muted,fontFamily:F.body}}>
+              <div style={{width:10,height:10,background:C.red,borderRadius:2}}/>Perdus
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tableau journalier ───────────────────────────── */}
+      <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:16,overflow:"hidden"}}>
+        <div style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`,
+          display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:15}}>📅</span>
+          <span style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>5 derniers jours</span>
+        </div>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:400}}>
+            <thead>
+              <tr style={{background:C.bg}}>
+                {["Date","✅ Servis","😤 Perdus","Taux","💶 Revenus"].map(h=>(
+                  <th key={h} style={{padding:"10px 16px",fontSize:11,fontWeight:700,
+                    color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {days.map((d,i)=>{
+                const total=d.served+d.lost;
+                const rate=total>0?Math.round((d.served/total)*100):0;
+                const rc=rate>=80?C.green:rate>=50?C.amber:C.red;
+                return(
+                  <tr key={d.date} style={{background:i===0?C.greenP:i%2===0?C.card:C.bg}}>
+                    <td style={{padding:"11px 16px",fontSize:12,fontWeight:i===0?700:500,
+                      color:C.ink,borderBottom:`1px solid ${C.border}11`}}>
+                      {d.date}{i===0&&<span style={{marginLeft:6,fontSize:9,background:C.green,
+                        color:"#fff",borderRadius:4,padding:"1px 6px",fontWeight:700}}>Auj.</span>}
+                    </td>
+                    <td style={{padding:"11px 16px",borderBottom:`1px solid ${C.border}11`}}>
+                      <span style={{fontSize:13,fontWeight:700,color:C.green}}>{d.served}</span>
+                    </td>
+                    <td style={{padding:"11px 16px",borderBottom:`1px solid ${C.border}11`}}>
+                      <span style={{fontSize:13,fontWeight:700,color:d.lost>0?C.red:C.muted}}>{d.lost}</span>
+                    </td>
+                    <td style={{padding:"11px 16px",borderBottom:`1px solid ${C.border}11`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{width:60,height:7,background:C.border,borderRadius:4,overflow:"hidden"}}>
+                          <div style={{height:"100%",width:`${rate}%`,background:rc,borderRadius:4}}/>
+                        </div>
+                        <span style={{fontSize:11,fontWeight:700,color:rc}}>{total>0?`${rate}%`:"—"}</span>
+                      </div>
+                    </td>
+                    <td style={{padding:"11px 16px",borderBottom:`1px solid ${C.border}11`}}>
+                      <span style={{fontSize:13,fontWeight:700,color:C.amber}}>
+                        {d.revenue.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
 function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
   const takeLoan=(opt)=>{
     if(loan){addToast({icon:"🏦",title:"Prêt en cours",msg:"Remboursez d'abord votre emprunt actuel.",color:C.red});return;}
@@ -3057,249 +5063,8 @@ function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
     </Modal>
   );
 }
-
-function StatsView({dailyStats,loan,objStats}){
-  const days=[...dailyStats].reverse(); // most recent first
-  const maxRevenue=Math.max(...days.map(d=>d.revenue),1);
-  const maxClients=Math.max(...days.map(d=>d.served+d.lost),1);
-
-  return(
-    <div style={{maxWidth:800,margin:"0 auto",padding:"10px 0"}}>
-      {/* Summary cards */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:14,marginBottom:28}}>
-        {[
-          {label:"Clients servis (total)",val:days.reduce((s,d)=>s+d.served,0),icon:"✅",c:C.green,bg:C.greenP},
-          {label:"Clients perdus (total)",val:days.reduce((s,d)=>s+d.lost,0),icon:"😤",c:C.red,bg:C.redP},
-          {label:"Revenus (total)",val:days.reduce((s,d)=>s+d.revenue,0).toFixed(2)+" €",icon:"💶",c:C.amber,bg:C.amberP},
-          {label:"Note moyenne",
-            val:objStats?.ratingCount>0?(objStats.totalRating/objStats.ratingCount).toFixed(1)+" ★":"—",
-            icon:"⭐",c:C.purple,bg:C.purpleP},
-        ].map(s=>(
-          <div key={s.label} style={{background:s.bg,border:`1.5px solid ${s.c}22`,
-            borderRadius:14,padding:"16px 18px",textAlign:"center"}}>
-            <div style={{fontSize:26,marginBottom:6}}>{s.icon}</div>
-            <div style={{fontSize:22,fontWeight:800,color:s.c,fontFamily:F.title}}>{s.val}</div>
-            <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:4}}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Loan status */}
-      {loan&&(
-        <div style={{background:C.amberP,border:`1.5px solid ${C.amber}44`,borderRadius:14,
-          padding:"14px 20px",marginBottom:20,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-          <span style={{fontSize:22}}>🏦</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.amber,fontFamily:F.title}}>
-              Prêt en cours — {loan.label}
-            </div>
-            <div style={{fontSize:11,color:C.ink,fontFamily:F.body,marginTop:2}}>
-              Restant dû : <strong>{loan.remaining.toFixed(2)} €</strong>
-              &nbsp;·&nbsp;{loan.repayPerHour} €/h
-            </div>
-          </div>
-          <div style={{height:8,width:180,background:C.border,borderRadius:99,overflow:"hidden"}}>
-            <div style={{height:"100%",borderRadius:99,background:C.amber,
-              width:`${Math.max(2,100-loan.remaining/(loan.amount*(1+loan.rate))*100)}%`}}/>
-          </div>
-        </div>
-      )}
-
-      {/* Day-by-day table */}
-      <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:16,overflow:"hidden",marginBottom:28}}>
-        <div style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`,
-          display:"flex",alignItems:"center",gap:8}}>
-          <span style={{fontSize:15}}>📅</span>
-          <span style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>Données journalières — 5 derniers jours</span>
-        </div>
-        <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body}}>
-          <thead>
-            <tr style={{background:C.bg}}>
-              {["Date","✅ Servis","😤 Perdus","Taux service","💶 Revenus"].map(h=>(
-                <th key={h} style={{padding:"10px 18px",fontSize:11,fontWeight:700,
-                  color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`}}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {days.map((d,i)=>{
-              const total=d.served+d.lost;
-              const rate=total>0?Math.round((d.served/total)*100):0;
-              return(
-                <tr key={d.date} style={{background:i%2===0?C.card:C.bg}}>
-                  <td style={{padding:"12px 18px",fontSize:13,fontWeight:600,color:C.ink,
-                    borderBottom:`1px solid ${C.border}11`}}>{d.date}</td>
-                  <td style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}11`}}>
-                    <span style={{fontSize:13,fontWeight:700,color:C.green}}>{d.served}</span>
-                    <span style={{fontSize:10,color:C.muted,marginLeft:4}}>client{d.served!==1?"s":""}</span>
-                  </td>
-                  <td style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}11`}}>
-                    <span style={{fontSize:13,fontWeight:700,color:d.lost>0?C.red:C.muted}}>{d.lost}</span>
-                    <span style={{fontSize:10,color:C.muted,marginLeft:4}}>client{d.lost!==1?"s":""}</span>
-                  </td>
-                  <td style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}11`}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{flex:1,height:8,background:C.bg,borderRadius:4,overflow:"hidden",
-                        border:`1px solid ${C.border}`,minWidth:60}}>
-                        <div style={{height:"100%",width:`${rate}%`,
-                          background:rate>=80?C.green:rate>=50?C.amber:C.red,
-                          borderRadius:4,transition:"width 0.4s"}}/>
-                      </div>
-                      <span style={{fontSize:12,fontWeight:700,
-                        color:rate>=80?C.green:rate>=50?C.amber:C.red,minWidth:34}}>
-                        {total>0?`${rate}%`:"—"}
-                      </span>
-                    </div>
-                  </td>
-                  <td style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}11`}}>
-                    <span style={{fontSize:13,fontWeight:700,color:C.amber}}>
-                      {d.revenue.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Bar charts */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-        {/* Revenue bars */}
-        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}>
-          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:14}}>
-            💶 Revenus par jour
-          </div>
-          <div style={{display:"flex",gap:8,alignItems:"flex-end",height:100}}>
-            {[...dailyStats].slice(-5).map(d=>{
-              const h=maxRevenue>0?Math.round((d.revenue/maxRevenue)*90):0;
-              return(
-                <div key={d.date} style={{flex:1,display:"flex",flexDirection:"column",
-                  alignItems:"center",gap:4}}>
-                  <div style={{fontSize:9,color:C.amber,fontWeight:700,fontFamily:F.body}}>
-                    {d.revenue>0?`${Math.round(d.revenue)}€`:""}
-                  </div>
-                  <div style={{width:"100%",height:`${h}px`,minHeight:2,
-                    background:C.amber,borderRadius:"4px 4px 0 0",transition:"height 0.4s"}}/>
-                  <div style={{fontSize:8,color:C.muted,fontFamily:F.body,textAlign:"center",
-                    transform:"rotate(-20deg)",transformOrigin:"center",whiteSpace:"nowrap"}}>
-                    {d.date.slice(0,5)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        {/* Clients bars */}
-        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}>
-          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:14}}>
-            👥 Clients par jour
-          </div>
-          <div style={{display:"flex",gap:8,alignItems:"flex-end",height:100}}>
-            {[...dailyStats].slice(-5).map(d=>{
-              const hs=maxClients>0?Math.round((d.served/maxClients)*90):0;
-              const hl=maxClients>0?Math.round((d.lost/maxClients)*90):0;
-              return(
-                <div key={d.date} style={{flex:1,display:"flex",flexDirection:"column",
-                  alignItems:"center",gap:4}}>
-                  <div style={{width:"100%",display:"flex",flexDirection:"column",
-                    alignItems:"stretch",gap:1}}>
-                    {hl>0&&<div style={{height:`${hl}px`,background:C.red,
-                      borderRadius:"4px 4px 0 0"}}/>}
-                    {hs>0&&<div style={{height:`${hs}px`,background:C.green,
-                      borderRadius:hl===0?"4px 4px 0 0":"0"}}/>}
-                    {hs===0&&hl===0&&<div style={{height:2,background:C.border}}/>}
-                  </div>
-                  <div style={{fontSize:8,color:C.muted,fontFamily:F.body,textAlign:"center",
-                    transform:"rotate(-20deg)",transformOrigin:"center",whiteSpace:"nowrap"}}>
-                    {d.date.slice(0,5)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{display:"flex",gap:12,marginTop:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:C.muted,fontFamily:F.body}}>
-              <div style={{width:10,height:10,background:C.green,borderRadius:2}}/>Servis
-            </div>
-            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:C.muted,fontFamily:F.body}}>
-              <div style={{width:10,height:10,background:C.red,borderRadius:2}}/>Perdus
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-/* ═══════════════════════════════════════════════════════
-   OBJECTIVES SYSTEM
-═══════════════════════════════════════════════════════ */
-
-/* ─── Progression: Daily challenges ──────────────────── */
-const CHALLENGES_POOL=[
-  {id:"c_5_clients",  icon:"👥", title:"5 clients servis",      desc:"Servez 5 clients aujourd'hui",            key:"served",   target:5,   reward:{cash:150,xp:40}},
-  {id:"c_10_clients", icon:"🔟", title:"10 clients servis",     desc:"Servez 10 clients aujourd'hui",           key:"served",   target:10,  reward:{cash:300,xp:80}},
-  {id:"c_200_rev",    icon:"💶", title:"200 € de recettes",     desc:"Encaissez 200 € dans la journée",         key:"revenue",  target:200, reward:{cash:100,xp:30}},
-  {id:"c_500_rev",    icon:"💰", title:"500 € de recettes",     desc:"Encaissez 500 € dans la journée",         key:"revenue",  target:500, reward:{cash:250,xp:60}},
-  {id:"c_1000_rev",   icon:"🏆", title:"1 000 € de recettes",   desc:"Encaissez 1 000 € dans la journée",       key:"revenue",  target:1000,reward:{cash:500,xp:120}},
-  {id:"c_no_loss",    icon:"✨", title:"Zéro client perdu",      desc:"Ne perdez aucun client de la journée",    key:"noLoss",   target:1,   reward:{cash:200,xp:60}},
-  {id:"c_3_stars",    icon:"⭐", title:"3 notes ★★★★+",         desc:"Obtenez 3 notes de 4 étoiles ou plus",    key:"highRating",target:3,  reward:{cash:180,xp:50}},
-  {id:"c_5_stars",    icon:"🌟", title:"5 notes ★★★★+",         desc:"Obtenez 5 notes de 4 étoiles ou plus",    key:"highRating",target:5,  reward:{cash:350,xp:100}},
-  {id:"c_rush",       icon:"⚡", title:"Rush express",           desc:"Placez 3 groupes en moins de 5 minutes",  key:"fastPlace", target:3,  reward:{cash:200,xp:70}},
-  {id:"c_vip",        icon:"🎩", title:"Service VIP",            desc:"Servez un client VIP",                    key:"vip",       target:1,  reward:{cash:300,xp:80}},
-  {id:"c_full_house", icon:"🍽", title:"Salle comble",           desc:"Ayez 5 tables occupées simultanément",    key:"fullHouse", target:1,  reward:{cash:250,xp:70}},
-  {id:"c_tip_master", icon:"💸", title:"Maître du pourboire",    desc:"Cumulez 50 € de pourboires dans la journée",key:"tips",   target:50,  reward:{cash:150,xp:40}},
-];
-
-// Pick 3 daily challenges seeded by date string
-const pickDailyChallenges=(dateStr)=>{
-  let seed=dateStr.split("").reduce((a,c)=>a+c.charCodeAt(0),0);
-  const rng=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
-  const pool=[...CHALLENGES_POOL];
-  const result=[];
-  while(result.length<3&&pool.length){
-    const i=Math.floor(rng()*pool.length);
-    result.push(pool.splice(i,1)[0]);
-  }
-  return result;
-};
-
-/* ─── Progression: Server slot unlock by level ────────── */
-// Extra server slots unlocked at resto level
-const SERVER_SLOTS_BY_LEVEL={0:2,1:3,2:4,3:5,4:6,5:8};
-
-const OBJECTIVES_DEF=[
-  // Série 1 — Premiers pas
-  {id:"first_service",  series:1, title:"Premier service",    desc:"Servez votre premier client",             icon:"🍽", reward:{cash:200,  xp:50 }, condition:(s)=>s.totalServed>=1},
-  {id:"five_tables",    series:1, title:"En rythme",          desc:"Servez 5 tables",                         icon:"⊞", reward:{cash:500,  xp:100}, condition:(s)=>s.totalServed>=5},
-  {id:"first_k",        series:1, title:"Premier millier",    desc:"Atteignez 1 000 € de chiffre d'affaires", icon:"💶", reward:{cash:300,  xp:80 }, condition:(s)=>s.totalRevenue>=1000},
-  {id:"no_loss_day",    series:1, title:"Service impeccable", desc:"Terminez une journée sans perdre un client",icon:"✨",reward:{cash:400,  xp:120}, condition:(s)=>s.perfectDays>=1},
-
-  // Série 2 — Croissance
-  {id:"twenty_tables",  series:2, title:"Rush du midi",       desc:"Servez 20 tables",                        icon:"🔥", reward:{cash:800,  xp:200}, condition:(s)=>s.totalServed>=20},
-  {id:"five_k",         series:2, title:"Brasserie rentable", desc:"Atteignez 5 000 € de chiffre d'affaires", icon:"📈", reward:{cash:600,  xp:150}, condition:(s)=>s.totalRevenue>=5000},
-  {id:"upgrade_table",  series:2, title:"Confort amélioré",   desc:"Agrandissez une table",                   icon:"🪑", reward:{cash:400,  xp:100}, condition:(s)=>s.tablesUpgraded>=1},
-  {id:"bistrot",        series:2, title:"Bistrot",            desc:"Atteignez le niveau Bistrot",             icon:"🍺", reward:{cash:700,  xp:200}, condition:(s)=>s.restoLevel>=1},
-
-  // Série 3 — Excellence
-  {id:"fifty_tables",   series:3, title:"Service non-stop",   desc:"Servez 50 tables",                        icon:"🏃", reward:{cash:1500, xp:400}, condition:(s)=>s.totalServed>=50},
-  {id:"twenty_k",       series:3, title:"Grand Compte",       desc:"Atteignez 20 000 € de chiffre d'affaires",icon:"💰", reward:{cash:2000, xp:500}, condition:(s)=>s.totalRevenue>=20000},
-  {id:"three_upgrades", series:3, title:"Salle de prestige",  desc:"Agrandissez 3 tables",                    icon:"✨", reward:{cash:1200, xp:300}, condition:(s)=>s.tablesUpgraded>=3},
-  {id:"brasserie",      series:3, title:"Brasserie",          desc:"Atteignez le niveau Brasserie",           icon:"🍽", reward:{cash:1500, xp:400}, condition:(s)=>s.restoLevel>=2},
-
-  // Série 4 — Légende
-  {id:"hundred_tables", series:4, title:"Centenaire",         desc:"Servez 100 tables",                       icon:"🏆", reward:{cash:3000, xp:800}, condition:(s)=>s.totalServed>=100},
-  {id:"fifty_k",        series:4, title:"Empire",             desc:"Atteignez 50 000 € de chiffre d'affaires",icon:"👑", reward:{cash:5000, xp:1000},condition:(s)=>s.totalRevenue>=50000},
-  {id:"palace",         series:4, title:"Le Palace",          desc:"Atteignez le niveau Palace",              icon:"👑", reward:{cash:5000, xp:1200},condition:(s)=>s.restoLevel>=5},
-];
-
-const SERIES_LABELS={1:"Premiers pas",2:"Croissance",3:"Excellence",4:"Légende"};
-const SERIES_COLORS={1:C.green,2:C.navy,3:C.terra,4:C.amber};
-
 function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,todayChallenges,challengeProgress,challengeClaimed,setChallengeClaimed,challengeLostToday,setCash,addTx,addRestoXp,addToast,restoXp,restoLvN}){
-  const series=[1,2,3,4];
+  const series=["Revenus","Clients","Niveau","Salle"];
 
   const claimChallenge=(ch)=>{
     if(challengeClaimed[ch.id])return;
@@ -3555,6 +5320,51 @@ const TABS=[
   {id:"stats",      label:"Statistiques",icon:"📊"},
 ];
 
+/* ── Objectifs de progression ── */
+const OBJECTIVES_DEF=[
+  // Série : Revenus
+  {id:"rev1",  series:"Revenus",    icon:"💶", title:"Premiers euros",      desc:"Encaisser 500€",          reward:{cash:50,  xp:100}, condition:s=>(s.totalRevenue||0)>=500  },
+  {id:"rev2",  series:"Revenus",    icon:"💶", title:"Bistrot rentable",     desc:"Encaisser 2 000€",        reward:{cash:150, xp:250}, condition:s=>(s.totalRevenue||0)>=2000 },
+  {id:"rev3",  series:"Revenus",    icon:"💶", title:"Restaurant prospère",  desc:"Encaisser 10 000€",       reward:{cash:500, xp:600}, condition:s=>(s.totalRevenue||0)>=10000},
+  {id:"rev4",  series:"Revenus",    icon:"💶", title:"Empire culinaire",     desc:"Encaisser 50 000€",       reward:{cash:2000,xp:1500},condition:s=>(s.totalRevenue||0)>=50000},
+  // Série : Clients
+  {id:"srv1",  series:"Clients",    icon:"🍽", title:"Premier service",      desc:"Servir 10 clients",       reward:{cash:30,  xp:80 }, condition:s=>(s.totalServed||0)>=10   },
+  {id:"srv2",  series:"Clients",    icon:"🍽", title:"Service régulier",     desc:"Servir 50 clients",       reward:{cash:80,  xp:200}, condition:s=>(s.totalServed||0)>=50   },
+  {id:"srv3",  series:"Clients",    icon:"🍽", title:"Grande salle comble",  desc:"Servir 200 clients",      reward:{cash:300, xp:500}, condition:s=>(s.totalServed||0)>=200  },
+  {id:"srv4",  series:"Clients",    icon:"🍽", title:"Institution locale",   desc:"Servir 1 000 clients",    reward:{cash:1000,xp:1200},condition:s=>(s.totalServed||0)>=1000 },
+  // Série : Niveau resto
+  {id:"lvl1",  series:"Niveau",     icon:"⭐", title:"Bistrot étoilé",       desc:"Atteindre le niveau 2",   reward:{cash:200, xp:300}, condition:s=>(s.restoLevel||0)>=2     },
+  {id:"lvl2",  series:"Niveau",     icon:"⭐", title:"Brasserie reconnue",   desc:"Atteindre le niveau 3",   reward:{cash:500, xp:600}, condition:s=>(s.restoLevel||0)>=3     },
+  {id:"lvl3",  series:"Niveau",     icon:"⭐", title:"Grand restaurant",     desc:"Atteindre le niveau 4",   reward:{cash:1200,xp:1000},condition:s=>(s.restoLevel||0)>=4     },
+  {id:"lvl4",  series:"Niveau",     icon:"👑", title:"Palace gastronomique", desc:"Atteindre le niveau 5",   reward:{cash:3000,xp:2000},condition:s=>(s.restoLevel||0)>=5     },
+  // Série : Tables
+  {id:"tbl1",  series:"Salle",      icon:"🪑", title:"Première extension",   desc:"Agrandir 1 table",        reward:{cash:50,  xp:80 }, condition:s=>(s.tablesUpgraded||0)>=1 },
+  {id:"tbl2",  series:"Salle",      icon:"🪑", title:"Salle réaménagée",     desc:"Agrandir 3 tables",       reward:{cash:120, xp:200}, condition:s=>(s.tablesUpgraded||0)>=3 },
+];
+
+/* ── Défis quotidiens ── */
+const ALL_CHALLENGES=[
+  {id:"ch_served",   key:"served",   icon:"🍽", title:"Service express",      desc:"Servir 10 clients aujourd'hui",            target:10,  reward:{cash:80, xp:120}},
+  {id:"ch_revenue",  key:"revenue",  icon:"💶", title:"Journée dorée",        desc:"Encaisser 500€ dans la journée",           target:500, reward:{cash:100,xp:150}},
+  {id:"ch_rating",   key:"highRating",icon:"⭐",title:"Service 5 étoiles",    desc:"Obtenir 5 notes ≥ 4★",                    target:5,   reward:{cash:60, xp:100}},
+  {id:"ch_noloss",   key:"noLoss",   icon:"😊", title:"Zéro abandon",         desc:"Aucun client ne repart sans être servi",   target:1,   reward:{cash:70, xp:90 }},
+  {id:"ch_fast",     key:"fastPlace",icon:"⚡", title:"Placement rapide",     desc:"Placer 8 groupes en un clic",              target:8,   reward:{cash:50, xp:80 }},
+  {id:"ch_vip",      key:"vip",      icon:"🎩", title:"Service VIP",          desc:"Servir un client VIP",                     target:1,   reward:{cash:150,xp:200}},
+  {id:"ch_tips",     key:"tips",     icon:"💰", title:"Maître du pourboire",  desc:"Encaisser 50€ de pourboires",              target:50,  reward:{cash:60, xp:100}},
+  {id:"ch_fullhouse",key:"fullHouse",icon:"🏠", title:"Salle comble",         desc:"Avoir 5 tables occupées simultanément",    target:1,   reward:{cash:90, xp:130}},
+];
+
+const pickDailyChallenges=(dateStr)=>{
+  // Seed déterministe à partir de la date → même défis pour toute la journée
+  const seed=dateStr.split("/").reduce((acc,n,i)=>acc+parseInt(n)*(i+1),0);
+  const shuffled=[...ALL_CHALLENGES].sort((a,b)=>{
+    const ha=(seed*17+a.id.charCodeAt(3))%100;
+    const hb=(seed*17+b.id.charCodeAt(3))%100;
+    return ha-hb;
+  });
+  return shuffled.slice(0,3);
+};
+
 export default function App(){
   const _today = new Date().toLocaleDateString("fr-FR");
 
@@ -3568,8 +5378,11 @@ export default function App(){
     const mood=rMood();
     return [{id:1,name:rName(),size:Math.min(rSize(),2),mood,expiresAt:Date.now()+mood.p*1000,patMax:mood.p}];
   });
+  const [waitlist,setWaitlist]=useState([]); // groupes partis mais rappelables 2 min
   const [menu,setMenu]=useState(MENU0);
   const [stock,setStock]=useState(STOCK0);
+  const [formulas,setFormulas]=useState([]); // [{id, presetId, name, items:[{menuId,cat}], active}]
+  const [activeTheme,setActiveTheme]=useState("none");
   const [complaints,setComplaints]=useState(COMPLAINTS0);
   const [kitchen,setKitchen]=useState(KITCHEN0);
   const [toasts,setToasts]=useState([]);
@@ -3598,11 +5411,30 @@ export default function App(){
   const [pendingClaim,setPendingClaim]=useState([]);
   const [objStats,setObjStats]=useState({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
   const [dailyStats,setDailyStats]=useState([{date:_today,served:0,lost:0,revenue:0}]);
+  const [reputation,setReputation]=useState(50); // 0–100
 
   /* ── Indicateur de sauvegarde ──────────────────────── */
   const [saveStatus,setSaveStatus]=useState("idle");
   const saveTimerRef=useRef(null);
   const [showResetModal,setShowResetModal]=useState(false);
+  const [showSummary,setShowSummary]=useState(false);
+  const [summaryIsRecord,setSummaryIsRecord]=useState(false);
+  const prevRevenueRef=useRef(0);
+  // Résumé de fin de journée : s'affiche après 10 min de jeu réel
+  const summaryShownRef=useRef(false);
+  useEffect(()=>{
+    if(!isLoaded) return;
+    const t=setTimeout(()=>{
+      if(summaryShownRef.current) return;
+      summaryShownRef.current=true;
+      const today=dailyStats[dailyStats.length-1];
+      const isRecord=today&&today.revenue>prevRevenueRef.current&&today.revenue>0;
+      setSummaryIsRecord(isRecord);
+      setShowSummary(true);
+    },600000); // 10 minutes
+    return()=>clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[isLoaded]);
 
   /* ── Réinitialisation complète (sans reload) ────────── */
   const doReset = useCallback(() => {
@@ -3634,6 +5466,10 @@ export default function App(){
     setPendingClaim([]);
     setObjStats({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
     setDailyStats([{date:today,served:0,lost:0,revenue:0}]);
+    setReputation(50);
+    setWaitlist([]);
+    setFormulas([]);
+    setActiveTheme("none");
     setTab("tables");
     setShowResetModal(false);
   },[]);
@@ -3665,6 +5501,9 @@ export default function App(){
         if(sv.pendingClaim)  setPendingClaim(sv.pendingClaim);
         if(sv.objStats)      setObjStats(sv.objStats);
         if(sv.dailyStats)    setDailyStats(sv.dailyStats);
+        if(sv.reputation!=null) setReputation(sv.reputation);
+        if(sv.formulas)      setFormulas(sv.formulas);
+        if(sv.activeTheme)   setActiveTheme(sv.activeTheme);
         setQueue(sv.queue||[]);
       }
       setIsLoaded(true);
@@ -3691,11 +5530,44 @@ export default function App(){
       setObjStats(s=>({...s,_hadLoss:true}));
       setChallengeLostToday(true);
       setChallengeProgress(p=>({...p,noLoss:0}));
+      updateReputation(REP_DELTA.lostClient,"client perdu");
     }
   },[]);
   const addTx=useCallback((type,label,amount)=>{
     setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now()},...p].slice(0,200));
   },[]);
+
+  const [showHelp,setShowHelp]=useState(false);
+  const dismissToast=useCallback(id=>setToasts(p=>p.filter(x=>x.id!==id)),[]);
+  const addToast=useCallback(t=>{
+    const id=Date.now()+Math.random();
+    setToasts(p=>[...p.slice(-4),{...t,id}]);
+    setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),4000);
+  },[]);
+
+  /* ── Réputation ────────────────────────────────────── */
+  const repRef = useRef(50);
+  useEffect(()=>{ repRef.current=reputation; },[reputation]);
+
+  const updateReputation = useCallback((delta, reason="")=>{
+    setReputation(prev=>{
+      const before = getRepTier(prev);
+      const next   = Math.min(100, Math.max(0, prev + delta));
+      const after  = getRepTier(next);
+      if(before.label !== after.label){
+        const up = delta > 0;
+        setTimeout(()=>addToast({
+          icon: after.icon,
+          title: up ? `Réputation en hausse !` : `Réputation en baisse !`,
+          msg: `${after.label} (${Math.round(next)}/100)${reason?" · "+reason:""}`,
+          color: after.color,
+          tab: "stats",
+        }),50);
+      }
+      repRef.current = next;
+      return next;
+    });
+  },[addToast]);
 
   /* ── Sauvegarde automatique debounced (2s) ─────────── */
   useEffect(()=>{
@@ -3710,7 +5582,7 @@ export default function App(){
         pendingDeliveries,dailySpecials,completedIds,
         challengeDate,todayChallenges,challengeProgress,
         challengeClaimed,challengeLostToday,pendingClaim,
-        objStats,dailyStats,
+        objStats,dailyStats,reputation,formulas,activeTheme,
       });
       setSaveStatus("saved");
       setTimeout(()=>setSaveStatus("idle"),2000);
@@ -3719,16 +5591,55 @@ export default function App(){
   },[isLoaded,tables,servers,menu,stock,complaints,kitchen,
      restoXp,cash,loan,supplierMode,pendingDeliveries,
      completedIds,challengeProgress,challengeClaimed,
-     challengeLostToday,pendingClaim,objStats,dailyStats]);
+     challengeLostToday,pendingClaim,objStats,dailyStats,reputation]);
 
-  const [showHelp,setShowHelp]=useState(false);
+  /* ── GDevelop : écoute du message d'initialisation ─── */
+  useEffect(()=>{
+    const handler = (event) => {
+      // Accepter uniquement les messages venant de GDevelop
+      if (!event.data || event.data.source !== "gdevelop") return;
+      const { type, payload } = event.data;
 
-  const dismissToast=useCallback(id=>setToasts(p=>p.filter(x=>x.id!==id)),[]);
-  const addToast=useCallback(t=>{
-    const id=Date.now()+Math.random();
-    setToasts(p=>[...p.slice(-4),{...t,id}]);
-    setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),4000);
-  },[]);
+      if (type === "INIT" && payload) {
+        // Charger les données envoyées par GDevelop en priorité sur localStorage
+        if (payload.argent        != null) setCash(payload.argent);
+        if (payload.restoXp       != null) setRestoXp(payload.restoXp);
+        if (payload.stock)                 setStock(payload.stock);
+        if (payload.servers)               setServers(payload.servers);
+        if (payload.tables)                setTables(payload.tables);
+        if (payload.kitchen)               setKitchen(payload.kitchen);
+        if (payload.objStats)              setObjStats(payload.objStats);
+        if (payload.dailyStats)            setDailyStats(payload.dailyStats);
+        if (payload.completedIds)          setCompletedIds(payload.completedIds);
+        if (payload.challengeProgress)     setChallengeProgress(payload.challengeProgress);
+        if (payload.loan         != null)  setLoan(payload.loan);
+        console.info("[GDevelop Bridge] Init reçu ✓", payload);
+        // Confirmer la réception à GDevelop
+        sendToGDevelop({ type: "INIT_ACK", ok: true });
+      }
+
+      if (type === "PING") {
+        sendToGDevelop({ type: "PONG", ready: isLoaded });
+      }
+    };
+    window.addEventListener("message", handler);
+    // Signaler à GDevelop que l'iframe est prête
+    sendToGDevelop({ type: "READY" });
+    return () => window.removeEventListener("message", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* ── GDevelop : sync debounced (1s) sur les états clés ── */
+  const gdSyncTimerRef = useRef(null);
+  useEffect(()=>{
+    if (!isLoaded) return;
+    if (gdSyncTimerRef.current) clearTimeout(gdSyncTimerRef.current);
+    gdSyncTimerRef.current = setTimeout(()=>{
+      const payload = buildGDevelopPayload({ cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats });
+      sendToGDevelop({ type: "SYNC", ...payload });
+    }, 1000);
+    return () => { if (gdSyncTimerRef.current) clearTimeout(gdSyncTimerRef.current); };
+  },[isLoaded, cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats]);
 
   // Salary — deducted every hour (real time). Only active staff.
   useEffect(()=>{
@@ -3777,7 +5688,52 @@ export default function App(){
     return()=>clearInterval(iv);
   },[addToast]);
 
-  // Pending deliveries check — every 5s
+  // Moral drain/gain — every 5 min real time
+  useEffect(()=>{
+    const iv=setInterval(()=>{
+      setServers(prev=>prev.map(s=>{
+        if(s.status==="actif"||s.status==="service"){
+          // Drain en travaillant
+          const newMoral=Math.max(0,(s.moral??100)-1);
+          // Alerte burnout
+          if(newMoral===10){
+            setTimeout(()=>addToast({icon:"😓",title:`${s.name} épuisé·e !`,
+              msg:"Moral critique — mettez-le/la en pause ou offrez une prime.",
+              color:C.red,tab:"servers"}),50);
+          }
+          return {...s,moral:newMoral};
+        }
+        if(s.status==="pause"){
+          return {...s,moral:Math.min(100,(s.moral??100)+MORAL_PAUSE_GAIN)};
+        }
+        return s;
+      }));
+    },MORAL_DRAIN_INTERVAL);
+    return()=>clearInterval(iv);
+  },[addToast]);
+
+  // Specialty unlock — check on every XP gain (level 2 & 4)
+  useEffect(()=>{
+    setServers(prev=>prev.map(s=>{
+      const sl=srvLv(s.totalXp);
+      // Unlock specialty at level 2 if not already set
+      if(sl.l>=2&&!s.specialty){
+        const sp=pickSpecialty();
+        setTimeout(()=>addToast({icon:sp.icon,
+          title:`${s.name} — Spécialité débloquée !`,
+          msg:`${sp.name} : ${sp.desc}`,color:sp.color,tab:"servers"}),100);
+        return {...s,specialty:sp};
+      }
+      // Upgrade specialty at level 4 (mark as upgraded)
+      if(sl.l>=4&&s.specialty&&!s.specialtyUpgraded){
+        setTimeout(()=>addToast({icon:"⬆️",
+          title:`${s.name} — Spécialité améliorée !`,
+          msg:`${s.specialty.name} niveau 2`,color:s.specialty.color,tab:"servers"}),100);
+        return {...s,specialtyUpgraded:true};
+      }
+      return s;
+    }));
+  },[servers.map(s=>srvLv(s.totalXp).l).join(",")]);
   useEffect(()=>{
     const iv=setInterval(()=>{
       const now=Date.now();
@@ -3814,7 +5770,7 @@ export default function App(){
         evt.apply(
           stockRef.current,cashRef.current,complaintsRef.current,
           addToast,setCash,addTx,setComplaints,
-          setQueue,rMood,rName,rSize,tablesRef.current,setStock
+          setQueue,rMood,rName,rSize,tablesRef.current,setStock,updateReputation
         );
       }
     },240000);
@@ -3844,7 +5800,9 @@ export default function App(){
   useEffect(()=>{
     const iv=setInterval(()=>{
       const now=Date.now();
-      if(now-lastSpawnRef.current>=30000){
+      const tier = getRepTier(repRef.current);
+      const interval = Math.round(30000 / (tier.spawnMult || 1));
+      if(now-lastSpawnRef.current>=interval){
         lastSpawnRef.current=now;
         const mood=rMood();
         const maxCap=Math.max(...tablesRef.current.filter(t=>t.status==="libre").map(t=>t.capacity),2);
@@ -3890,11 +5848,27 @@ export default function App(){
         expired=q.filter(c=>t>=c.expiresAt);
         return expired.length>0?q.filter(c=>t<c.expiresAt):q;
       });
-      // Side effects outside the state updater
-      expired.forEach(c=>{
-        addToast({icon:"😤",title:"Partis !",msg:`${c.name} n'a plus patience.`,color:C.red,tab:"tables"});
-        addDayStat("lost");
+      // Groupes expirés → liste d'attente rappelable 2 minutes
+      if(expired.length>0){
+        setWaitlist(w=>[
+          ...w,
+          ...expired.map(c=>({...c,leftAt:t,recallUntil:t+120000}))
+        ]);
+        expired.forEach(c=>{
+          addToast({
+            icon:"😤",title:"Groupe parti !",
+            msg:`${c.name} n'a plus patience — rappelable 2 min`,
+            color:C.terra,tab:"tables"
+          });
+        });
+      }
+      // Waitlist : groupes non rappelés → perdus définitivement
+      let reallyLost=[];
+      setWaitlist(w=>{
+        reallyLost=w.filter(c=>t>=c.recallUntil);
+        return reallyLost.length>0?w.filter(c=>t<c.recallUntil):w;
       });
+      reallyLost.forEach(()=>addDayStat("lost"));
       // Cleaning completion
       setTables(prev=>{
         const done=prev.filter(tb=>tb.status==="nettoyage"&&tb.cleanUntil&&t>=tb.cleanUntil);
@@ -4001,6 +5975,18 @@ export default function App(){
         @keyframes ledPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         @keyframes shimmer  { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
         @keyframes saveFlash{ 0%{opacity:0;transform:scale(0.8)} 20%{opacity:1;transform:scale(1.1)} 80%{opacity:1;transform:scale(1)} 100%{opacity:0;transform:scale(0.95)} }
+        /* ── Mobile ── */
+        @media (max-width: 640px) {
+          .desktop-nav { display: none !important; }
+          .mobile-nav  { display: flex !important; }
+          .content-area { padding: 14px 12px 90px !important; }
+          .badge-alert { font-size: 8px !important; width: 14px !important; height: 14px !important; }
+        }
+        @media (min-width: 641px) {
+          .desktop-nav { display: flex !important; }
+          .mobile-nav  { display: none !important; }
+          .content-area { padding: 20px 22px !important; }
+        }
       `}</style>
 
       {/* Header — 2 lignes */}
@@ -4038,6 +6024,13 @@ export default function App(){
               }} style={{background:C.terraP,border:`1px solid ${C.terra}33`,borderRadius:6,
                 padding:"3px 7px",fontSize:10,color:C.terra,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
                 💬{nCompl}
+              </div>
+            )}
+            {queue.length>=5&&(
+              <div style={{background:C.redP,border:`1px solid ${C.red}33`,borderRadius:6,
+                padding:"3px 7px",fontSize:10,color:C.red,fontWeight:700,whiteSpace:"nowrap",
+                animation:"pulse 1.2s ease-in-out infinite"}}>
+                🚨 Salle saturée
               </div>
             )}
             <div style={{textAlign:"right",flexShrink:0}}>
@@ -4093,6 +6086,32 @@ export default function App(){
               : `${restoXp}/${rl.next.xpNeeded} XP`
             }
           </div>
+
+          {/* ── Réputation ── */}
+          {(()=>{
+            const tier=getRepTier(reputation);
+            return(
+              <div title={`${tier.label} — ${tier.desc}`}
+                style={{display:"flex",alignItems:"center",gap:5,flexShrink:0,
+                  background:tier.color+"14",border:`1px solid ${tier.color}33`,
+                  borderRadius:7,padding:"3px 8px",cursor:"default"}}>
+                <span style={{fontSize:13}}>{tier.icon}</span>
+                <div style={{display:"flex",flexDirection:"column",gap:2,minWidth:50}}>
+                  <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                    <div style={{height:"100%",
+                      width:`${reputation}%`,
+                      background:tier.color,
+                      borderRadius:99,transition:"width 0.6s ease"}}/>
+                  </div>
+                  <div style={{fontSize:8,color:tier.color,fontWeight:700,
+                    fontFamily:F.body,whiteSpace:"nowrap",lineHeight:1}}>
+                    {tier.icon} {Math.round(reputation)}/100
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Cash */}
           <div onClick={()=>setShowLedger(true)} style={{flexShrink:0,display:"flex",alignItems:"center",gap:5,
             background:cash<200?C.redP:C.greenP,
@@ -4136,7 +6155,7 @@ export default function App(){
                 pendingDeliveries,dailySpecials,completedIds,
                 challengeDate,todayChallenges,challengeProgress,
                 challengeClaimed,challengeLostToday,pendingClaim,
-                objStats,dailyStats,
+                objStats,dailyStats,reputation,
               });
               setSaveStatus("saved");
               setTimeout(()=>setSaveStatus("idle"),2000);
@@ -4159,9 +6178,9 @@ export default function App(){
         </div>
       </div>
 
-      {/* Nav */}
-      <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,
-        display:"flex",padding:"0 20px",overflowX:"auto"}}>
+      {/* Nav Desktop (C) */}
+      <div className="desktop-nav" style={{background:C.surface,borderBottom:`1px solid ${C.border}`,
+        padding:"0 20px",overflowX:"auto"}}>
         {TABS.map(t=>{
           const readyChallenges=(todayChallenges||[]).filter(ch=>{
             const val=ch.key==="noLoss"?(challengeLostToday?0:1):
@@ -4187,7 +6206,7 @@ export default function App(){
               <span style={{fontSize:15}}>{t.icon}</span>
               <span style={{fontSize:12}}>{t.label}</span>
               {badge>0&&(
-                <span style={{background:C.red,color:"#fff",borderRadius:"50%",
+                <span className="badge-alert" style={{background:C.red,color:"#fff",borderRadius:"50%",
                   width:17,height:17,fontSize:9,fontWeight:700,
                   display:"inline-flex",alignItems:"center",justifyContent:"center"}}>
                   {badge}
@@ -4199,15 +6218,59 @@ export default function App(){
       </div>
 
       {/* Content */}
-      <div style={{padding:"20px 22px",maxWidth:1300,margin:"0 auto"}}>
-        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress}/>}
+      <div className="content-area" style={{maxWidth:1300,margin:"0 auto"}}>
+        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation}/>}
         {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast}/>}
         {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx}/>}
-        {tab==="menu"       &&<MenuView       menu={menu}           setMenu={setMenu}        stock={stock}/>}
+        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats}/>}
         {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries}/>}
         {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l}/>}
         {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
-        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats}/>}
+        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation}/>}
+      </div>
+
+      {/* Nav Mobile fixe en bas (C) */}
+      <div className="mobile-nav" style={{
+        position:"fixed",bottom:0,left:0,right:0,zIndex:900,
+        background:C.surface,borderTop:`1px solid ${C.border}`,
+        boxShadow:"0 -4px 20px rgba(0,0,0,0.1)",
+        justifyContent:"space-around",alignItems:"stretch",
+        paddingBottom:"env(safe-area-inset-bottom,8px)"}}>
+        {TABS.map(t=>{
+          const readyChallenges=(todayChallenges||[]).filter(ch=>{
+            const val=ch.key==="noLoss"?(challengeLostToday?0:1):(challengeProgress[ch.key]||0);
+            return val>=ch.target&&!(challengeClaimed||{})[ch.id];
+          }).length;
+          const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:0;
+          const active=tab===t.id;
+          return(
+            <button key={t.id} onClick={()=>{
+              setTab(t.id);
+              if(t.id==="complaints")
+                setSeenIds(p=>new Set([...p,...complaints.filter(c=>c.status==="nouveau").map(c=>c.id)]));
+            }} style={{
+              flex:1,background:"transparent",border:"none",
+              display:"flex",flexDirection:"column",alignItems:"center",
+              justifyContent:"center",padding:"8px 2px 6px",
+              cursor:"pointer",position:"relative",
+              borderTop:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
+              gap:3}}>
+              <span style={{fontSize:20,lineHeight:1,filter:active?"none":"grayscale(0.4) opacity(0.6)"}}>{t.icon}</span>
+              <span style={{fontSize:8,fontWeight:active?700:400,fontFamily:F.body,
+                color:active?C.green:C.muted,whiteSpace:"nowrap",letterSpacing:"0.02em"}}>
+                {t.label}
+              </span>
+              {badge>0&&(
+                <span style={{position:"absolute",top:4,right:"calc(50% - 14px)",
+                  background:C.red,color:"#fff",borderRadius:"50%",
+                  width:14,height:14,fontSize:8,fontWeight:700,
+                  display:"inline-flex",alignItems:"center",justifyContent:"center"}}>
+                  {badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
@@ -4332,6 +6395,17 @@ export default function App(){
             </div>
           </div>
         </div>
+      )}
+
+      {showSummary&&(
+        <DailySummaryModal
+          onClose={()=>setShowSummary(false)}
+          dailyStats={dailyStats}
+          objStats={objStats}
+          servers={servers}
+          menu={menu}
+          transactions={transactions}
+          isRecord={summaryIsRecord}/>
       )}
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
