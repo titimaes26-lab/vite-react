@@ -968,15 +968,23 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
     const table=ft[0];
     const srv=activeSrv[0];
     const orderLines=generateOrderWithSpecials(g,menu);
-    const tickets=orderLines.flatMap((o,li)=>
-      Array.from({length:o.qty},(_,i)=>({
-        id:Date.now()+li*100+i+Math.random(),
-        name:o.item,cat:o.cat,ingredients:o.ingredients,
-        prepTime:o.prepTime||60,
-        tableId:table.id,tableName:table.name,
-        oid:o.oid,addedAt:Date.now(),
-      }))
-    );
+    // Boissons : servies immédiatement (pas de cuisson)
+    const kitchenTickets=[];
+    const drinkTickets=[];
+    orderLines.forEach((o,li)=>{
+      Array.from({length:o.qty},(_,i)=>{
+        const ticket={
+          id:Date.now()+li*100+i+Math.random(),
+          name:o.item,cat:o.cat,ingredients:o.ingredients,
+          prepTime:o.prepTime||60,
+          tableId:table.id,tableName:table.name,
+          oid:o.oid,addedAt:Date.now(),
+        };
+        if(o.cat==="Boissons") drinkTickets.push({...ticket,completedAt:Date.now(),timerMax:0,startedAt:Date.now()});
+        else kitchenTickets.push(ticket);
+      });
+    });
+    const tickets=[...kitchenTickets,...drinkTickets];
     // Service duration based on group size: 30s (2p), 60s (4p), 90s (6p)
     // Reduced by speed specialty
     const speedMult=srv.specialty?.id==="speed"?(srv.specialty.speedMult||1.0):1.0;
@@ -993,15 +1001,21 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
     addToast({icon:"🛎️",title:"Prise de commande…",
       msg:`${srv.name} prend la commande à ${table.name} · envoi cuisine dans ${svcLabel}`,color:C.navy,tab:"tables"});
     setTimeout(()=>{
-      setKitchen(k=>({...k,queue:[...k.queue,...tickets]}));
+      setKitchen(k=>({
+        ...k,
+        queue:[...k.queue,...kitchenTickets],
+        done:[...k.done,...drinkTickets],
+      }));
       setServers(p=>p.map(s=>s.id!==srv.id?s:{...s,status:"actif",serviceUntil:null}));
       setTables(p=>p.map(t=>t.id!==table.id?t:{...t,svcUntil:null,server:null}));
       // Incrémenter orderCount dans le menu
       const counts={};
       orderLines.forEach(o=>{if(o.menuId)counts[o.menuId]=(counts[o.menuId]||0)+o.qty;});
       setMenu(m=>m.map(d=>counts[d.id]?{...d,orderCount:(d.orderCount||0)+counts[d.id]}:d));
-      addToast({icon:"📋",title:"Commande en cuisine !",
-        msg:`${table.name} · ${tickets.length} plat${tickets.length>1?"s":""}`,color:C.terra,tab:"cuisine"});
+      const kitchenMsg=kitchenTickets.length>0?`${kitchenTickets.length} plat${kitchenTickets.length>1?"s":""} → cuisine`:"";
+      const drinkMsg=drinkTickets.length>0?`${drinkTickets.length} boisson${drinkTickets.length>1?"s":""} servie${drinkTickets.length>1?"s":""}`:""
+      addToast({icon:"📋",title:"Commande envoyée !",
+        msg:`${table.name} · ${[kitchenMsg,drinkMsg].filter(Boolean).join(" · ")}`,color:C.terra,tab:"cuisine"});
     },svcDur);
   };
   // Confirm assignment: generate order, send tickets to kitchen
@@ -1009,18 +1023,28 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
     if(!modal||!tgtT||!tgtS||preview.length===0)return;
     const tid=parseInt(tgtT);
     const tn=tables.find(t=>t.id===tid);
-    const orderLines=preview.map(o=>{const d=menu.find(m=>m.id===o.menuId);return d?.isSpecial?{...o,price:d.price,isSpecial:true}:o;}); // apply live specials
-    // Build kitchen tickets (one per portion)
-    const tickets=orderLines.flatMap((o,li)=>
-      Array.from({length:o.qty},(_,i)=>({
-        id:Date.now()+li*100+i+Math.random(),
-        name:o.item, cat:o.cat, ingredients:o.ingredients,
-        prepTime:o.prepTime||60,
-        tableId:tid, tableName:tn?.name,
-        oid:o.oid, addedAt:Date.now(),
-      }))
-    );
-    setKitchen(k=>({...k,queue:[...k.queue,...tickets]}));
+    const orderLines=preview.map(o=>{const d=menu.find(m=>m.id===o.menuId);return d?.isSpecial?{...o,price:d.price,isSpecial:true}:o;});
+    // Boissons : servies immédiatement (pas de cuisson)
+    const kitchenTickets=[];
+    const drinkTickets=[];
+    orderLines.forEach((o,li)=>{
+      Array.from({length:o.qty},(_,i)=>{
+        const ticket={
+          id:Date.now()+li*100+i+Math.random(),
+          name:o.item,cat:o.cat,ingredients:o.ingredients,
+          prepTime:o.prepTime||60,
+          tableId:tid,tableName:tn?.name,
+          oid:o.oid,addedAt:Date.now(),
+        };
+        if(o.cat==="Boissons") drinkTickets.push({...ticket,completedAt:Date.now(),timerMax:0,startedAt:Date.now()});
+        else kitchenTickets.push(ticket);
+      });
+    });
+    setKitchen(k=>({
+      ...k,
+      queue:[...k.queue,...kitchenTickets],
+      done:[...k.done,...drinkTickets],
+    }));
     setTables(p=>p.map(t=>t.id!==tid?t:
       {...t,status:"occupée",server:tgtS,group:modal,order:orderLines,svcTimer:0,svcMax:0,
         placedAt:Date.now(),patienceLeftRatio:Math.max(0,(modal.expiresAt-Date.now())/(modal.patMax*1000))}));
@@ -1030,7 +1054,8 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
     orderLines.forEach(o=>{if(o.menuId)counts[o.menuId]=(counts[o.menuId]||0)+o.qty;});
     setMenu(m=>m.map(d=>counts[d.id]?{...d,orderCount:(d.orderCount||0)+counts[d.id]}:d));
     addToast({icon:"📋",title:"Commande envoyée !",
-      msg:`${tn?.name} · ${tickets.length} plat${tickets.length>1?"s":""} → cuisine`,color:C.terra,tab:"cuisine"});
+      msg:`${tn?.name} · ${kitchenTickets.length>0?`${kitchenTickets.length} plat${kitchenTickets.length>1?"s":""} → cuisine`:""}${drinkTickets.length>0?` · ${drinkTickets.length} boisson${drinkTickets.length>1?"s":""} servie${drinkTickets.length>1?"s":""}`:""}`
+        .trim().replace(/^·\s*/,""),color:C.terra,tab:"cuisine"});
     setModal(null);
   };
 
