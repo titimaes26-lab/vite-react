@@ -125,20 +125,25 @@ const sanitizeSave = (save) => {
 
 /* ─── Palette ─────────────────────────────────────────── */
 const C = {
-  bg:"#f4f0e8", surface:"#ffffff", card:"#fdfbf6", border:"#ddd4c0",
-  green:"#2a5c3f", greenL:"#3d7a57", greenP:"#eaf3ed",
-  terra:"#c4622d", terraP:"#fdf0e8", terraL:"#e07a45",
-  navy:"#1c3352",  navyP:"#e8edf4",
-  ink:"#1a1612",   muted:"#8a7d6a",
-  red:"#c0392b",   redP:"#fdecea",
-  amber:"#b87d10", amberP:"#fdf5e0",
-  purple:"#6b3fa0",purpleP:"#f0eaf8",
+  bg:"#f2ede3", surface:"#ffffff", surface2:"#faf7f2", card:"#fdfaf5", border:"#ddd0b8",
+  green:"#236b47", greenL:"#2e8a5a", greenP:"#e6f4ed",
+  terra:"#b85a25", terraP:"#fdeee5", terraL:"#d4713a",
+  navy:"#18304f",  navyP:"#e4eaf4",
+  ink:"#18130e",   ink2:"#2e2419",  muted:"#8a7a65",
+  red:"#b83025",   redP:"#fce9e8",
+  amber:"#a86e08", amberP:"#fdf3dc",
+  purple:"#5e3492",purpleP:"#ece5f8",
   white:"#ffffff",
+  shadow1:"rgba(24,19,14,0.06)",
+  shadow2:"rgba(24,19,14,0.12)",
+  shadow3:"rgba(24,19,14,0.20)",
 };
 
 const F = {
-  title:"Georgia,'Times New Roman',serif",
-  body:"'Segoe UI',system-ui,-apple-system,sans-serif",
+  title:"'Playfair Display',Georgia,'Times New Roman',serif",
+  display:"'Playfair Display',Georgia,serif",
+  body:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif",
+  mono:"'SF Mono','Fira Code',monospace",
 };
 
 /* ─── XP / Level system ───────────────────────────────── */
@@ -675,99 +680,226 @@ const KITCHEN0 = {
   upgrades: {fourneau:0, four:0, stockage:0, plonge:0},
 };
 
+/* ─── Menu themes & formulas ───────────────────────────── */
+const MENU_THEMES=[
+  {id:"none",    icon:"📋", name:"Standard",      color:"#8a7d6a", desc:"Menu classique sans modificateur.",
+   priceMult:1.00, repBonus:0,  xpMult:1.0, accent:"#f4f0e8"},
+  {id:"bistrot", icon:"🍺", name:"Bistrot",       color:"#2a5c3f", desc:"Cuisine généreuse et abordable.",
+   priceMult:0.90, repBonus:0,  xpMult:1.0, accent:"#eaf3ed"},
+  {id:"gastro",  icon:"⭐", name:"Gastronomique", color:"#6b3fa0", desc:"Plats élaborés, prix premium +15%.",
+   priceMult:1.15, repBonus:5,  xpMult:1.2, accent:"#f0eaf8"},
+  {id:"saison",  icon:"🌿", name:"Saisonnier",    color:"#c4622d", desc:"Produits frais du marché, réputation +8.",
+   priceMult:1.00, repBonus:8,  xpMult:1.1, accent:"#fdf0e8"},
+];
+
+const FORMULA_PRESETS=[
+  {id:"decouverte", name:"Menu Découverte", icon:"🌟", discount:0.12,
+   cats:["Entrées","Plats","Desserts"], desc:"3 services — −12%"},
+  {id:"express",    name:"Menu Express",    icon:"⚡", discount:0.08,
+   cats:["Plats","Boissons"],          desc:"2 services — −8%"},
+  {id:"prestige",   name:"Menu Prestige",   icon:"👑", discount:0.15,
+   cats:["Entrées","Plats","Desserts","Boissons"], desc:"4 services — −15%"},
+];
+
 /* ─── UI atoms (NO hooks here) ────────────────────────── */
 const s = (obj) => obj; // passthrough for style objects
 
-const Badge = ({color,bg,children,sm=false})=>(
-  <span style={{background:bg||color+"1a",color,border:`1px solid ${color}33`,
-    borderRadius:5,padding:sm?"2px 8px":"3px 11px",
-    fontSize:sm?10:11,fontWeight:600,letterSpacing:"0.03em",whiteSpace:"nowrap",fontFamily:F.body}}>
+const Badge = ({color,bg,children,sm=false,pill=false,dot=false})=>(
+  <span style={{
+    background:bg||color+"18",
+    color,
+    border:`1px solid ${color}38`,
+    borderRadius:pill?99:(sm?7:10),
+    padding:sm?"2px 9px":"4px 12px",
+    fontSize:sm?9:11,
+    fontWeight:700,
+    letterSpacing:"0.04em",
+    whiteSpace:"nowrap",
+    fontFamily:F.body,
+    boxShadow:`0 1px 4px ${color}18`,
+    display:"inline-flex",
+    alignItems:"center",
+    gap:4,
+  }}>
+    {dot&&<span style={{width:5,height:5,borderRadius:"50%",background:color,opacity:0.7,flexShrink:0}}/>}
     {children}
   </span>
 );
 
-const Card = ({children,style={},onClick,accent})=>(
+const Card = ({children,style={},onClick,accent,strip,elevated=false})=>(
   <div onClick={onClick} className={onClick?"hovcard":""} style={{
-    background:C.card,border:`1.5px solid ${accent||C.border}`,
-    borderRadius:14,padding:18,cursor:onClick?"pointer":"default",
-    boxShadow:accent?`0 2px 10px ${accent}18`:`0 1px 5px rgba(0,0,0,0.06)`,
+    background:C.card,
+    border:`1.5px solid ${accent||C.border}`,
+    borderRadius:16,
+    padding:18,
+    cursor:onClick?"pointer":"default",
+    boxShadow: elevated
+      ? `0 6px 24px rgba(23,18,14,0.11), 0 2px 6px rgba(23,18,14,0.06)`
+      : accent
+        ? `0 2px 8px ${accent}18, 0 4px 14px rgba(23,18,14,0.07)`
+        : `0 1px 3px rgba(23,18,14,0.06), 0 4px 12px rgba(23,18,14,0.04)`,
+    position:"relative",
+    overflow:"hidden",
+    transition:"box-shadow 0.22s cubic-bezier(.4,0,.2,1), transform 0.18s cubic-bezier(.4,0,.2,1)",
     ...style}}>
+    {(strip||accent)&&(
+      <div style={{
+        position:"absolute",top:0,left:0,right:0,height:3,
+        background:`linear-gradient(90deg,${strip||accent},${strip||accent}99,transparent 85%)`,
+        borderRadius:"16px 16px 0 0",
+      }}/>
+    )}
     {children}
   </div>
 );
 
 const Btn = ({children,onClick,v="primary",sm=false,disabled=false,full=false,icon})=>{
   const variants={
-    primary: {bg:C.green,    fg:"#fff",  bdr:C.green  },
-    secondary:{bg:"transparent",fg:C.green,bdr:C.green },
-    terra:   {bg:C.terra,    fg:"#fff",  bdr:C.terra  },
-    ghost:   {bg:"transparent",fg:C.muted,bdr:C.border },
-    danger:  {bg:C.red,      fg:"#fff",  bdr:C.red    },
-    navy:    {bg:C.navy,     fg:"#fff",  bdr:C.navy   },
-    disabled: {bg:C.border,    fg:C.muted,  bdr:C.border },
+    primary:  {bg:`linear-gradient(135deg,${C.green},${C.greenL||C.green})`, fg:"#fff", bdr:C.green,  sh:`0 2px 8px ${C.green}30`},
+    secondary:{bg:"transparent",fg:C.green,bdr:C.green,  sh:"none"},
+    terra:    {bg:`linear-gradient(135deg,${C.terra},${C.terraL||C.terra})`, fg:"#fff", bdr:C.terra,  sh:`0 2px 8px ${C.terra}30`},
+    ghost:    {bg:"transparent",fg:C.muted,bdr:C.border,  sh:"none"},
+    danger:   {bg:`linear-gradient(135deg,${C.red},#d04030)`,        fg:"#fff", bdr:C.red,   sh:`0 2px 8px ${C.red}28`},
+    navy:     {bg:`linear-gradient(135deg,${C.navy},#1e3a60)`,       fg:"#fff", bdr:C.navy,  sh:`0 2px 8px ${C.navy}28`},
+    amber:    {bg:`linear-gradient(135deg,${C.amber},#c08010)`,      fg:"#fff", bdr:C.amber, sh:`0 2px 8px ${C.amber}28`},
+    disabled: {bg:C.border,fg:C.muted,bdr:C.border,sh:"none"},
   };
   const vv=variants[v]||variants.primary;
   return(
     <button onClick={onClick} disabled={disabled} style={{
-      background:vv.bg,color:vv.fg,border:`1.5px solid ${vv.bdr}`,
-      borderRadius:9,padding:sm?"5px 13px":"9px 20px",
-      fontSize:sm?11:13,fontWeight:600,cursor:disabled?"not-allowed":"pointer",
-      opacity:disabled?0.45:1,fontFamily:F.body,
+      background:disabled?C.border:vv.bg,
+      color:vv.fg,
+      border:`1.5px solid ${vv.bdr}`,
+      borderRadius:10,
+      padding:sm?"5px 14px":"9px 22px",
+      fontSize:sm?11:13,
+      fontWeight:700,
+      letterSpacing:"0.02em",
+      cursor:disabled?"not-allowed":"pointer",
+      opacity:disabled?0.42:1,
+      fontFamily:F.body,
       width:full?"100%":undefined,
       display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,
-      transition:"opacity 0.15s",
+      boxShadow:disabled?"none":vv.sh,
+      transition:"filter 0.14s, transform 0.14s, box-shadow 0.14s",
     }}>
-      {icon&&<span>{icon}</span>}{children}
+      {icon&&<span style={{fontSize:sm?11:14,lineHeight:1}}>{icon}</span>}{children}
     </button>
   );
 };
 
 const Inp = ({value,onChange,placeholder,style={},type="text"})=>(
   <input value={value} onChange={onChange} placeholder={placeholder} type={type}
-    style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:9,
-      padding:"9px 13px",color:C.ink,fontSize:13,fontFamily:F.body,
-      outline:"none",width:"100%",boxSizing:"border-box",...style}}/>
+    style={{
+      background:C.white,
+      border:`1.5px solid ${C.border}`,
+      borderRadius:10,
+      padding:"9px 14px",
+      color:C.ink,
+      fontSize:13,
+      fontFamily:F.body,
+      outline:"none",
+      width:"100%",
+      boxSizing:"border-box",
+      transition:"border-color 0.15s, box-shadow 0.15s",
+      ...style
+    }}/>
 );
 
 const Sel = ({value,onChange,children,style={}})=>(
   <select value={value} onChange={onChange}
-    style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:9,
-      padding:"9px 13px",color:C.ink,fontSize:13,fontFamily:F.body,
-      outline:"none",cursor:"pointer",width:"100%",...style}}>
+    style={{
+      background:C.white,
+      border:`1.5px solid ${C.border}`,
+      borderRadius:10,
+      padding:"9px 14px",
+      color:C.ink,
+      fontSize:13,
+      fontFamily:F.body,
+      outline:"none",
+      cursor:"pointer",
+      width:"100%",
+      transition:"border-color 0.15s, box-shadow 0.15s",
+      ...style
+    }}>
     {children}
   </select>
 );
 
 const Lbl = ({children})=>(
-  <div style={{fontSize:11,color:C.muted,fontWeight:600,letterSpacing:"0.06em",
-    textTransform:"uppercase",marginBottom:7,fontFamily:F.body}}>
+  <div style={{
+    fontSize:10,
+    color:C.muted,
+    fontWeight:700,
+    letterSpacing:"0.08em",
+    textTransform:"uppercase",
+    marginBottom:7,
+    fontFamily:F.body,
+  }}>
     {children}
   </div>
 );
 
-const XpBar = ({xp,needed,color=C.green,h=6})=>(
-  <div style={{background:C.border,borderRadius:99,overflow:"hidden",height:h}}>
-    <div style={{height:"100%",
-      width:`${Math.min(100,(xp/Math.max(1,needed))*100)}%`,
-      background:color,borderRadius:99,transition:"width 0.5s ease"}}/>
-  </div>
-);
+const XpBar = ({xp,needed,color=C.green,h=6})=>{
+  const pct=Math.min(100,(xp/Math.max(1,needed))*100);
+  return(
+    <div style={{background:C.border,borderRadius:99,overflow:"hidden",height:h,position:"relative"}}>
+      <div style={{
+        height:"100%",
+        width:`${pct}%`,
+        background:`linear-gradient(90deg,${color}cc,${color})`,
+        borderRadius:99,
+        transition:"width 0.55s cubic-bezier(.4,0,.2,1)",
+        position:"relative",overflow:"hidden",
+      }}>
+        <div style={{
+          position:"absolute",inset:0,
+          background:"linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.28) 50%,transparent 100%)",
+          backgroundSize:"200% 100%",
+          animation:"shimmerBar 2.4s ease-in-out infinite",
+          borderRadius:99,
+        }}/>
+      </div>
+    </div>
+  );
+};
 
 const Modal = ({title,onClose,children})=>(
-  <div style={{position:"fixed",inset:0,background:"rgba(26,22,18,0.5)",
-    zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-    <div style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:18,
-      padding:28,width:"100%",maxWidth:540,maxHeight:"88vh",overflowY:"auto",
-      boxShadow:"0 20px 60px rgba(0,0,0,0.18)"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-        <h3 style={{color:C.ink,margin:0,fontSize:20,fontFamily:F.title,fontWeight:600}}>{title}</h3>
-        <button onClick={onClose} style={{background:C.bg,border:`1px solid ${C.border}`,
-          borderRadius:8,color:C.muted,fontSize:20,cursor:"pointer",
-          width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          ×
-        </button>
+  <div style={{
+    position:"fixed",inset:0,
+    background:"rgba(23,18,14,0.55)",
+    zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,
+    backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)",
+    animation:"fadeIn 0.18s ease",
+  }}>
+    <div style={{
+      background:C.surface,
+      border:`1.5px solid ${C.border}`,
+      borderRadius:20,
+      width:"100%",maxWidth:540,maxHeight:"88vh",
+      display:"flex",flexDirection:"column",
+      boxShadow:"0 24px 64px rgba(23,18,14,0.22), 0 8px 24px rgba(23,18,14,0.10)",
+      animation:"popIn 0.22s cubic-bezier(.34,1.56,.64,1)",
+    }}>
+      <div style={{
+        padding:"20px 24px 16px",
+        borderBottom:`1px solid ${C.border}`,
+        background:`linear-gradient(180deg,${C.bg}60,transparent)`,
+        display:"flex",justifyContent:"space-between",alignItems:"center",
+        borderRadius:"20px 20px 0 0",
+        flexShrink:0,
+      }}>
+        <h3 style={{color:C.ink,margin:0,fontSize:19,fontFamily:F.title,fontWeight:700,letterSpacing:"-0.01em"}}>{title}</h3>
+        <button onClick={onClose} style={{
+          background:C.bg,border:`1.5px solid ${C.border}`,borderRadius:10,
+          color:C.muted,fontSize:18,cursor:"pointer",
+          width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",
+          fontWeight:700,
+        }}>×</button>
       </div>
-      {children}
+      <div style={{padding:"20px 24px 24px",overflowY:"auto",flex:1}}>
+        {children}
+      </div>
     </div>
   </div>
 );
@@ -808,7 +940,8 @@ function Toasts({list,onDismiss,onNavigate}){
 /* ═══════════════════════════════════════════════════════
    TABLES VIEW
 ═══════════════════════════════════════════════════════ */
-function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation}){
+function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,activeTheme,bp={}}){
+  const menuTheme=(MENU_THEMES||[]).find(t=>t.id===(activeTheme||"none"))||{priceMult:1,repBonus:0,xpMult:1};
   const [modal,setModal]=useState(null);
   const [tgtT,setTgtT]=useState("");
   const [tgtS,setTgtS]=useState("");
@@ -906,15 +1039,16 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
     const t=tables.find(x=>x.id===tid);
     if(!t?.group)return;
     const bill=t.order.reduce((s,o)=>s+o.price*o.qty,0);
+    const themedBill=+(bill*menuTheme.priceMult).toFixed(2);
     const rating=calcRating(t.patienceLeftRatio??0.5, t.group.mood.b);
     const repTier=getRepTier(reputation);
     // Apply server specialty tip multiplier
     const serverObj=servers.find(s=>s.name===t.server);
     const specTipMult=serverObj?.specialty?.tipMult||1.0;
-    const tip=+(bill*(rating-1)*0.04*repTier.tipMult*specTipMult).toFixed(2);
+    const tip=+(themedBill*(rating-1)*0.04*repTier.tipMult*specTipMult).toFixed(2);
     const isVIP=t.group.isVIP||false;
-    const totalReceipt=+(bill+tip+(isVIP?200:0)).toFixed(2);
-    const xpG=Math.round((20+t.group.size*8)*t.group.mood.b*(isVIP?3:1));
+    const totalReceipt=+(themedBill+tip+(isVIP?200:0)).toFixed(2);
+    const xpG=Math.round((20+t.group.size*8)*t.group.mood.b*(isVIP?3:1)*menuTheme.xpMult);
 
     // Boost server moral on good tip
     if(tip>0&&t.server){
@@ -922,9 +1056,10 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
         {...s,moral:Math.min(100,(s.moral??100)+Math.min(5,Math.round(tip/2)))}));
     }
 
-    // Réputation : delta selon note
+    // Réputation : delta selon note + bonus thème menu
     const repDeltaKey=["","rating1","rating2","rating3","rating4","rating5"][rating];
-    updateReputation(REP_DELTA[repDeltaKey]||(rating>=4?2:rating<=2?-4:0), `note ${rating}★`);
+    const repDelta=(REP_DELTA[repDeltaKey]||(rating>=4?2:rating<=2?-4:0))+(menuTheme.repBonus||0);
+    updateReputation(repDelta, `note ${rating}★${menuTheme.repBonus>0?` +${menuTheme.repBonus} thème`:""}`);
     if(isVIP) updateReputation(REP_DELTA.vip,"client VIP servi");
 
     // Low rating → auto complaint + réputation
@@ -958,8 +1093,9 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
         {...s,status:"service",serviceUntil:cleanUntil}));
 
     const repLabel=repTier.tipMult>1?` · Rep×${repTier.tipMult}`:repTier.tipMult<1?` · Rep×${repTier.tipMult}`:"";
+    const themeLabel=menuTheme.priceMult!==1?` · Thème×${menuTheme.priceMult}`:"";
     addToast({icon:"✨",title:`${ratingStars(rating)} +${totalReceipt.toFixed(2)}€`,
-      msg:`${t.name} · ${t.group.mood.e}${tip>0?" · pourboire +"+tip.toFixed(2)+"€":""}${repLabel}`,
+      msg:`${t.name} · ${t.group.mood.e}${tip>0?" · pourboire +"+tip.toFixed(2)+"€":""}${repLabel}${themeLabel}`,
       color:rating>=4?C.green:rating<=2?C.red:C.amber,tab:"tables"});
     addRestoXp(xpG);
     setCash(c=>+(c+totalReceipt).toFixed(2));
@@ -1046,7 +1182,7 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
       })()}
 
       {/* Stats row */}
-      <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap",alignItems:"stretch"}}>
+      <div style={{display:"flex",gap:bp.isMobile?8:12,marginBottom:bp.isMobile?14:20,flexWrap:"wrap",alignItems:"stretch"}}>
 
         {/* Tables libres */}
         <div style={{flex:"0 0 auto",minWidth:110,background:C.greenP,
@@ -1431,10 +1567,36 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
                     const th=t.capacity<=2?32:t.capacity<=4?38:44;
 
                     const bill=isMange?t.order.reduce((s,o)=>s+o.price*o.qty,0):0;
+                    const themedBill=+(bill*menuTheme.priceMult).toFixed(2);
                     const isEating=isMange&&t.eatUntil&&now<t.eatUntil;
                     const eatPct=isEating?
                       Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):
                       isMange?100:0;
+
+                    // Cuisine : plat le plus long en cuisson pour cette table
+                    const isCooking=t.status==="occupée"&&!isOrdering;
+                    const cookingForT=kitchen.cooking.filter(d=>d.tableId===t.id);
+                    const slowestT=cookingForT.length>0
+                      ?cookingForT.reduce((a,b)=>(b.startedAt+b.timerMax*1000)>(a.startedAt+a.timerMax*1000)?b:a)
+                      :null;
+                    const cookPctSvg=slowestT
+                      ?Math.min(100,Math.round(((now-slowestT.startedAt)/(slowestT.timerMax*1000))*100))
+                      :0;
+                    const isActive=t.status==="occupée"||isMange||isNettoyage;
+                    // Phase courante : 0=commande 1=cuisine 2=repas 3=nettoyage
+                    const svgPhase=isOrdering?0:isCooking?1:isMange?2:isNettoyage?3:-1;
+                    // Pct de la phase active
+                    const svgPhasePct=
+                      svgPhase===0?Math.min(100,Math.round((1-(Math.max(0,(t.svcUntil-now))/((t.svcUntil-t.placedAt)||1)))*100)):
+                      svgPhase===1?cookPctSvg:
+                      svgPhase===2?eatPct:
+                      svgPhase===3?(t.cleanUntil?Math.min(100,Math.round(((t.cleanDur*1000-(t.cleanUntil-now))/(t.cleanDur*1000))*100)):0):
+                      0;
+                    const svgPhaseColor=
+                      svgPhase===0?"#3a5f8a":
+                      svgPhase===1?"#e07a45":
+                      svgPhase===2?"#4a9e78":
+                      svgPhase===3?"#f5a623":"#888";
 
                     return(
                       <g key={t.id} onClick={()=>setSelectedTable(t)} style={{cursor:"pointer"}}>
@@ -1475,14 +1637,36 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
                           fill={fill} stroke={stroke} strokeWidth={strokeW}
                           opacity={isLibre&&myQ.length===0?0.85:1}/>
 
-                        {/* Barre de progression (repas / nettoyage) */}
-                        {(isMange||isNettoyage)&&(
+                        {/* Barre de progression — 4 phases */}
+                        {isActive&&(
                           <g>
-                            <rect x={pos.cx-tw/2+4} y={pos.cy+th/2-7}
-                              width={tw-8} height={4} rx="2" fill="rgba(0,0,0,0.18)"/>
-                            <rect x={pos.cx-tw/2+4} y={pos.cy+th/2-7}
-                              width={Math.max(0,(tw-8)*eatPct/100)} height={4} rx="2"
-                              fill="rgba(255,255,255,0.75)"/>
+                            {/* Fond gris */}
+                            <rect x={pos.cx-tw/2+3} y={pos.cy+th/2-8}
+                              width={tw-6} height={5} rx="2.5" fill="rgba(0,0,0,0.25)"/>
+                            {/* 4 segments (commande / cuisine / repas / nettoyage) */}
+                            {[
+                              {col:"#6ab0e0", w:svgPhase>0?1:svgPhasePct/100, done:svgPhase>0},
+                              {col:"#f5a060", w:svgPhase>1?1:svgPhase===1?svgPhasePct/100:0, done:svgPhase>1},
+                              {col:"#70c990", w:svgPhase>2?1:svgPhase===2?svgPhasePct/100:0, done:svgPhase>2},
+                              {col:"#f5c842", w:svgPhase===3?svgPhasePct/100:0, done:false},
+                            ].map((seg,si)=>{
+                              const segW=(tw-6)/4;
+                              const fillW=Math.max(0,segW*seg.w);
+                              return fillW>0?(
+                                <rect key={si}
+                                  x={pos.cx-tw/2+3+si*segW} y={pos.cy+th/2-8}
+                                  width={fillW} height={5}
+                                  rx={si===0?"2.5 0 0 2.5":si===3?"0 2.5 2.5 0":"0"}
+                                  fill={seg.col} opacity="0.95"/>
+                              ):null;
+                            })}
+                            {/* Séparateurs entre segments */}
+                            {[1,2,3].map(si=>(
+                              <rect key={si}
+                                x={pos.cx-tw/2+3+si*(tw-6)/4} y={pos.cy+th/2-9}
+                                width={1} height={7} fill="rgba(0,0,0,0.3)"
+                                opacity={svgPhase>=si?0.5:0.2}/>
+                            ))}
                           </g>
                         )}
 
@@ -1514,7 +1698,7 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
                             <text x={pos.cx} y={pos.cy-th/2-6}
                               textAnchor="middle" fontSize="8" fontWeight="800"
                               fill="white" fontFamily="sans-serif">
-                              💰{bill.toFixed(0)}€
+                              💰{themedBill.toFixed(0)}€
                             </text>
                           </g>
                         )}
@@ -1553,6 +1737,7 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
               const isNettoyage=tLive.status==="nettoyage";
               const isOrdering=tLive.status==="occupée"&&tLive.svcUntil&&now<tLive.svcUntil;
               const bill=isMange?tLive.order.reduce((s,o)=>s+o.price*o.qty,0):0;
+              const themedBill=+(bill*menuTheme.priceMult).toFixed(2);
               const isEating=isMange&&tLive.eatUntil&&now<tLive.eatUntil;
               const eatSecsLeft=isEating?Math.ceil((tLive.eatUntil-now)/1000):0;
               const cleanSecsLeft=isNettoyage&&tLive.cleanUntil?Math.max(0,Math.ceil((tLive.cleanUntil-now)/1000)):0;
@@ -1626,52 +1811,87 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
                       </div>
                     )}
 
-                    {/* Progressions */}
-                    {isEating&&(
-                      <div>
-                        <div style={{display:"flex",justifyContent:"space-between",
-                          fontSize:11,fontFamily:F.body,marginBottom:4}}>
-                          <span style={{color:C.green,fontWeight:600}}>🍴 Repas</span>
-                          <span style={{color:C.muted}}>
-                            {Math.floor(eatSecsLeft/60)}:{String(eatSecsLeft%60).padStart(2,"0")}
-                          </span>
+                    {/* ── Phase timeline — panneau détail ── */}
+                    {(tLive.status==="occupée"||isMange||isNettoyage)&&(()=>{
+                      const isCooking=tLive.status==="occupée"&&!isOrdering;
+                      const panelCooking=kitchen.cooking.filter(d=>d.tableId===tLive.id);
+                      const panelSlowest=panelCooking.length>0
+                        ?panelCooking.reduce((a,b)=>(b.startedAt+b.timerMax*1000)>(a.startedAt+a.timerMax*1000)?b:a)
+                        :null;
+                      const panelCookPct=panelSlowest
+                        ?Math.min(100,Math.round(((now-panelSlowest.startedAt)/(panelSlowest.timerMax*1000))*100))
+                        :isCooking?null:isMange||isNettoyage?100:0;
+                      const panelCookRemaining=panelSlowest
+                        ?Math.max(0,Math.ceil((panelSlowest.startedAt+panelSlowest.timerMax*1000-now)/1000))
+                        :null;
+                      const panelPhases=[
+                        {id:"commande",icon:"🛎",label:"Commande",color:C.navy,
+                          done:!isOrdering&&(isCooking||isMange||isNettoyage),
+                          active:isOrdering,
+                          pct:isOrdering?Math.min(100,Math.round((1-secsLeft/((tLive.svcUntil-tLive.placedAt)/1000||30))*100)):100,
+                          timer:isOrdering?secsLeft:null},
+                        {id:"cuisine",icon:"🔥",label:"Cuisine",color:C.terra,
+                          done:isMange||isNettoyage,active:isCooking,
+                          pct:panelCookPct,timer:panelCookRemaining},
+                        {id:"repas",icon:"🍴",label:"Repas",color:C.green,
+                          done:isNettoyage,active:isMange,
+                          pct:isMange?(isEating?eatPct:100):isNettoyage?100:0,
+                          timer:isEating?eatSecsLeft:null},
+                        {id:"nettoyage",icon:"🧹",label:"Nettoyage",color:C.amber,
+                          done:false,active:isNettoyage,
+                          pct:isNettoyage?cleanPct:0,timer:isNettoyage?cleanSecsLeft:null},
+                      ];
+                      const activeP=panelPhases.find(p=>p.active);
+                      return(
+                        <div>
+                          {/* Steps */}
+                          <div style={{display:"flex",alignItems:"center",marginBottom:8}}>
+                            {panelPhases.map((ph,pi)=>(
+                              <div key={ph.id} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",position:"relative"}}>
+                                {pi>0&&<div style={{position:"absolute",left:0,top:11,width:"50%",height:2,background:panelPhases[pi-1].done||panelPhases[pi-1].active?ph.color+"55":C.border}}/>}
+                                {pi<panelPhases.length-1&&<div style={{position:"absolute",right:0,top:11,width:"50%",height:2,background:ph.done?ph.color+"55":C.border}}/>}
+                                <div style={{
+                                  width:24,height:24,borderRadius:"50%",zIndex:1,position:"relative",
+                                  background:ph.done?"#fff":ph.active?ph.color:C.bg,
+                                  border:`2px solid ${ph.done||ph.active?ph.color:C.border}`,
+                                  display:"flex",alignItems:"center",justifyContent:"center",
+                                  fontSize:11,
+                                  boxShadow:ph.active?`0 0 0 4px ${ph.color}22`:"none",
+                                  transition:"all 0.3s",
+                                }}>
+                                  {ph.done?<span style={{color:ph.color,fontWeight:800,fontSize:11}}>✓</span>
+                                    :ph.active?<span style={{animation:ph.pct===null?"pulse 1s infinite":undefined}}>{ph.icon}</span>
+                                    :<span style={{fontSize:8,color:C.muted,fontWeight:700}}>{pi+1}</span>}
+                                </div>
+                                <div style={{fontSize:8,color:ph.active?ph.color:ph.done?ph.color+"88":C.muted,
+                                  fontWeight:ph.active?700:400,marginTop:4,fontFamily:F.body,whiteSpace:"nowrap"}}>
+                                  {ph.label}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {/* Active phase bar */}
+                          {activeP&&(
+                            <div style={{marginBottom:10}}>
+                              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,fontSize:10,fontFamily:F.body}}>
+                                <span style={{color:activeP.color,fontWeight:700}}>{activeP.icon} {activeP.label} en cours</span>
+                                {activeP.timer!==null&&<span style={{color:C.muted,fontWeight:600}}>
+                                  {Math.floor(activeP.timer/60)}:{String(activeP.timer%60).padStart(2,"0")}
+                                </span>}
+                              </div>
+                              <div style={{height:8,background:C.border,borderRadius:99,overflow:"hidden",position:"relative"}}>
+                                {activeP.pct===null
+                                  ?<div style={{position:"absolute",inset:0,background:`linear-gradient(90deg,transparent,${activeP.color}77,transparent)`,backgroundSize:"200% 100%",animation:"shimmerBar 1.6s ease-in-out infinite"}}/>
+                                  :<div style={{width:`${activeP.pct}%`,height:"100%",background:`linear-gradient(90deg,${activeP.color}cc,${activeP.color})`,borderRadius:99,transition:"width 0.5s linear",position:"relative",overflow:"hidden"}}>
+                                    <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.28),transparent)",backgroundSize:"200% 100%",animation:"shimmerBar 2s ease-in-out infinite"}}/>
+                                  </div>
+                                }
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                          <div style={{height:"100%",width:`${eatPct}%`,
-                            background:`linear-gradient(90deg,${C.green},${C.amber})`,
-                            borderRadius:99,transition:"width 0.5s"}}/>
-                        </div>
-                      </div>
-                    )}
-
-                    {isNettoyage&&(
-                      <div>
-                        <div style={{display:"flex",justifyContent:"space-between",
-                          fontSize:11,fontFamily:F.body,marginBottom:4}}>
-                          <span style={{color:C.amber,fontWeight:600}}>🧹 Nettoyage</span>
-                          <span style={{color:C.muted}}>
-                            {Math.floor(cleanSecsLeft/60)}:{String(cleanSecsLeft%60).padStart(2,"0")}
-                          </span>
-                        </div>
-                        <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                          <div style={{height:"100%",width:`${cleanPct}%`,
-                            background:`linear-gradient(90deg,${C.amber},${C.green})`,
-                            borderRadius:99,transition:"width 0.5s"}}/>
-                        </div>
-                      </div>
-                    )}
-
-                    {isOrdering&&(
-                      <div style={{background:C.navyP,borderRadius:8,padding:"8px 12px",
-                        textAlign:"center"}}>
-                        <div style={{fontSize:12,fontWeight:800,color:C.navy,fontFamily:F.title}}>
-                          🛎 Prise de commande
-                        </div>
-                        <div style={{fontSize:10,color:C.navy,opacity:0.7,fontFamily:F.body,marginTop:2}}>
-                          Envoi cuisine dans {secsLeft}s
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Note prévisionnelle */}
                     {isMange&&tLive.group&&(()=>{
@@ -1679,11 +1899,11 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
                       const rc=ratingColor(r);
                       return(
                         <div style={{background:rc+"11",border:`1px solid ${rc}33`,
-                          borderRadius:8,padding:"7px 10px",
+                          borderRadius:8,padding:"7px 10px",marginBottom:6,
                           display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                           <span style={{fontSize:14,color:rc,letterSpacing:"2px"}}>{ratingStars(r)}</span>
                           <span style={{fontSize:11,color:rc,fontWeight:700,fontFamily:F.body}}>
-                            {bill.toFixed(2)}€
+                            {themedBill.toFixed(2)}€
                           </span>
                         </div>
                       );
@@ -1697,7 +1917,7 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
                         <Btn full v={isEating?"disabled":"primary"}
                           onClick={isEating?null:()=>{checkout(tLive.id);setSelectedTable(null);}}
                           icon={isEating?"⏳":"💰"}>
-                          {isEating?"Patienter…":`Encaisser ${bill.toFixed(2)}€`}
+                          {isEating?"Patienter…":`Encaisser ${themedBill.toFixed(2)}€`}
                         </Btn>
                       )}
 
@@ -1766,12 +1986,13 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
         /* ══════════════════════════════════════════════════
            VUE GRILLE (ancienne vue conservée)
         ══════════════════════════════════════════════════ */
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":bp.isTablet?"repeat(auto-fill,minmax(200px,1fr))":"repeat(auto-fill,minmax(220px,1fr))",gap:bp.isMobile?8:12}}>
           {tables.map(t=>{
 
             const isMange=t.status==="mange";
             const isNettoyage=t.status==="nettoyage";
             const bill=isMange?t.order.reduce((s,o)=>s+o.price*o.qty,0):0;
+            const themedBill=+(bill*menuTheme.priceMult).toFixed(2);
             const isEating=isMange&&t.eatUntil&&now<t.eatUntil;
             const eatPct=isEating?Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):100;
             const eatSecsLeft=isEating?Math.ceil((t.eatUntil-now)/1000):0;
@@ -1845,104 +2066,194 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
                     </div>
                   )}
                 </div>
-                {t.status==="occupée"&&(
-                  <div style={{borderTop:`1px solid ${isOrdering?C.navy:C.terra}22`,paddingTop:10,marginTop:6}}>
-                    <div style={{fontSize:11,color:C.muted,marginBottom:8,fontFamily:F.body,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span>{t.group?.mood.e} {t.group?.name} · {t.group?.size}p</span>
-                      {t.server&&<span>👔 {t.server}</span>}
-                    </div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
-                      {t.order.map((o,i)=>(
-                        <span key={i} style={{fontSize:10,
-                          background:o.isSpecial?C.purpleP:C.terraP,
-                          color:o.isSpecial?C.purple:C.terra,
-                          borderRadius:5,padding:"2px 7px",fontFamily:F.body}}>
-                          {o.isSpecial?"✨ ":""}{o.qty}× {o.item}
-                        </span>
-                      ))}
-                    </div>
-                    {isOrdering?(
-                      <div style={{background:C.navyP,border:`1.5px solid ${C.navy}33`,
-                        borderRadius:10,padding:"10px 14px",textAlign:"center"}}>
-                        <div style={{fontSize:14,fontWeight:800,color:C.navy,fontFamily:F.title,marginBottom:4}}>
-                          🛎 PRISE DE COMMANDE
+                {/* ── Phase timeline — toutes phases d'une table occupée ── */}
+                {(t.status==="occupée"||isMange||isNettoyage)&&(()=>{
+                  // Phases : commande → cuisine → repas → nettoyage
+                  const orderPct=isOrdering?Math.min(100,Math.round(((t.svcUntil-(now))/(t.svcUntil-t.placedAt||1))*100*-1+100)):100;
+                  const orderDoneTime=t.svcUntil&&!isOrdering?t.svcUntil:null;
+                  const isCooking=t.status==="occupée"&&!isOrdering;
+                  // Cuisine : plat le plus long encore en cuisson pour cette table
+                  const cookingForTable=kitchen.cooking.filter(d=>d.tableId===t.id);
+                  const slowestDish=cookingForTable.length>0
+                    ?cookingForTable.reduce((a,b)=>(b.startedAt+b.timerMax*1000)>(a.startedAt+a.timerMax*1000)?b:a)
+                    :null;
+                  const cookPct=slowestDish
+                    ?Math.min(100,Math.round(((now-slowestDish.startedAt)/(slowestDish.timerMax*1000))*100))
+                    :isCooking?null:isMange||isNettoyage?100:0;
+                  const cookRemaining=slowestDish
+                    ?Math.max(0,Math.ceil((slowestDish.startedAt+slowestDish.timerMax*1000-now)/1000))
+                    :null;
+                  const phases=[
+                    {
+                      id:"commande",icon:"🛎",label:"Commande",
+                      color:C.navy,
+                      done:!isOrdering&&(isCooking||isMange||isNettoyage),
+                      active:isOrdering,
+                      pct:isOrdering?Math.min(100,Math.round((1-(secsLeft/((t.svcUntil-t.placedAt)/1000||1)))*100)):100,
+                      timer:isOrdering?secsLeft:null,
+                    },
+                    {
+                      id:"cuisine",icon:"🔥",label:"Cuisine",
+                      color:C.terra,
+                      done:isMange||isNettoyage,
+                      active:isCooking,
+                      pct:cookPct,
+                      timer:cookRemaining,
+                    },
+                    {
+                      id:"repas",icon:"🍴",label:"Repas",
+                      color:C.green,
+                      done:isNettoyage,
+                      active:isMange,
+                      pct:isMange?(isEating?eatPct:100):isNettoyage?100:0,
+                      timer:isEating?eatSecsLeft:null,
+                    },
+                    {
+                      id:"nettoyage",icon:"🧹",label:"Nettoyage",
+                      color:C.amber,
+                      done:false,
+                      active:isNettoyage,
+                      pct:isNettoyage?cleanPct:0,
+                      timer:isNettoyage?cleanSecsLeft:null,
+                    },
+                  ];
+                  const activePhase=phases.find(p=>p.active);
+
+                  return(
+                    <div style={{borderTop:`1px solid ${accentColor}22`,paddingTop:10,marginTop:8}}>
+
+                      {/* Groupe info */}
+                      {t.group&&(
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                          marginBottom:8,fontSize:10,fontFamily:F.body,color:C.muted}}>
+                          <span>{t.group.mood.e} <strong style={{color:C.ink}}>{t.group.name}</strong> · {t.group.size}p</span>
+                          {t.server&&<span>👔 {t.server}</span>}
                         </div>
-                        <div style={{fontSize:12,color:C.navy,fontFamily:F.body,opacity:0.8}}>
-                          Envoi cuisine dans <strong>{secsLeft}s</strong>
+                      )}
+
+                      {/* ── Phase timeline ── */}
+                      <div style={{marginBottom:10}}>
+                        {/* Steps row */}
+                        <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:6}}>
+                          {phases.map((ph,pi)=>(
+                            <div key={ph.id} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",position:"relative"}}>
+                              {/* Connector line before */}
+                              {pi>0&&(
+                                <div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-8px)",
+                                  width:"50%",height:2,
+                                  background:phases[pi-1].done||phases[pi-1].active?accentColor+"66":C.border}}/>
+                              )}
+                              {/* Connector line after */}
+                              {pi<phases.length-1&&(
+                                <div style={{position:"absolute",right:0,top:"50%",transform:"translateY(-8px)",
+                                  width:"50%",height:2,
+                                  background:ph.done?ph.color+"66":C.border}}/>
+                              )}
+                              {/* Step circle */}
+                              <div style={{
+                                width:22,height:22,borderRadius:"50%",
+                                background:ph.done?"#fff":ph.active?ph.color:C.bg,
+                                border:`2px solid ${ph.done?ph.color:ph.active?ph.color:C.border}`,
+                                display:"flex",alignItems:"center",justifyContent:"center",
+                                fontSize:ph.active?11:10,
+                                zIndex:1,position:"relative",
+                                boxShadow:ph.active?`0 0 0 3px ${ph.color}22`:"none",
+                                transition:"all 0.3s",
+                              }}>
+                                {ph.done
+                                  ?<span style={{color:ph.color,fontWeight:800,fontSize:10}}>✓</span>
+                                  :ph.active
+                                    ?<span style={{animation:ph.pct===null?"pulse 1s infinite":undefined}}>{ph.icon}</span>
+                                    :<span style={{fontSize:8,color:C.muted,fontWeight:600}}>{pi+1}</span>
+                                }
+                              </div>
+                              {/* Label */}
+                              <div style={{
+                                fontSize:8,fontFamily:F.body,marginTop:3,
+                                color:ph.active?ph.color:ph.done?ph.color+"99":C.muted,
+                                fontWeight:ph.active?700:400,
+                                whiteSpace:"nowrap",textAlign:"center",
+                              }}>{ph.label}</div>
+                            </div>
+                          ))}
                         </div>
+
+                        {/* Active phase progress bar */}
+                        {activePhase&&(
+                          <div>
+                            <div style={{display:"flex",justifyContent:"space-between",
+                              alignItems:"center",marginBottom:4}}>
+                              <span style={{fontSize:10,color:activePhase.color,fontWeight:700,fontFamily:F.body}}>
+                                {activePhase.icon} {activePhase.label} en cours
+                              </span>
+                              {activePhase.timer!==null&&(
+                                <span style={{fontSize:10,color:C.muted,fontFamily:F.body,fontWeight:600}}>
+                                  {Math.floor(activePhase.timer/60)}:{String(activePhase.timer%60).padStart(2,"0")}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{background:C.border,borderRadius:99,height:7,overflow:"hidden",position:"relative"}}>
+                              {activePhase.pct===null?(
+                                /* Indeterminate shimmer bar for "en cuisine" */
+                                <div style={{
+                                  position:"absolute",inset:0,
+                                  background:`linear-gradient(90deg,transparent,${activePhase.color}88,transparent)`,
+                                  backgroundSize:"200% 100%",
+                                  animation:"shimmerBar 1.6s ease-in-out infinite",
+                                }}/>
+                              ):(
+                                <div style={{
+                                  width:`${activePhase.pct}%`,height:"100%",
+                                  background:`linear-gradient(90deg,${activePhase.color}cc,${activePhase.color})`,
+                                  borderRadius:99,transition:"width 0.5s linear",
+                                  position:"relative",overflow:"hidden",
+                                }}>
+                                  <div style={{
+                                    position:"absolute",inset:0,
+                                    background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent)",
+                                    backgroundSize:"200% 100%",
+                                    animation:"shimmerBar 2s ease-in-out infinite",
+                                  }}/>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    ):(
-                      <div style={{fontSize:12,color:C.terra,fontWeight:600,fontFamily:F.body}}>
-                        🔥 Commande en cuisine…
-                      </div>
-                    )}
-                  </div>
-                )}
-                {isMange&&(
-                  <div style={{borderTop:`1px solid ${C.green}33`,paddingTop:10,marginTop:6}}>
-                    <div style={{fontSize:11,color:C.muted,marginBottom:4,fontFamily:F.body}}>
-                      {t.group?.mood.e} {t.group?.name} · 👔 {t.server}
-                    </div>
-                    <div style={{fontSize:11,color:C.muted,marginBottom:10,fontFamily:F.body}}>
-                      {t.order.map(o=>`${o.qty}× ${o.item}`).join(", ")}
-                    </div>
-                    {isEating&&(
-                      <div style={{marginBottom:12}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-                          <span style={{fontSize:11,color:C.green,fontWeight:600,fontFamily:F.body}}>🍴 En train de manger…</span>
-                          <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
-                            {Math.floor(eatSecsLeft/60)}:{String(eatSecsLeft%60).padStart(2,"0")}
-                          </span>
+
+                      {/* Commandes chips quand occupée */}
+                      {t.status==="occupée"&&t.order.length>0&&(
+                        <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:8}}>
+                          {t.order.map((o,i)=>(
+                            <span key={i} style={{fontSize:9,
+                              background:o.isSpecial?C.purpleP:C.terraP,
+                              color:o.isSpecial?C.purple:C.terra,
+                              borderRadius:4,padding:"1px 6px",fontFamily:F.body}}>
+                              {o.qty}× {o.item.length>12?o.item.slice(0,11)+"…":o.item}
+                            </span>
+                          ))}
                         </div>
-                        <div style={{background:C.border,borderRadius:99,height:6,overflow:"hidden"}}>
-                          <div style={{width:`${eatPct}%`,height:"100%",
-                            background:`linear-gradient(90deg,${C.green},${C.amber})`,
-                            borderRadius:99,transition:"width 0.5s linear"}}/>
-                        </div>
-                      </div>
-                    )}
-                    {(()=>{
-                      const r=calcRating(t.patienceLeftRatio??0.5,t.group.mood.b);
-                      const tip=+(bill*(r-1)*0.04).toFixed(2);
-                      const rc=ratingColor(r);
-                      return(
-                        <div style={{background:rc+"11",border:`1px solid ${rc}33`,
-                          borderRadius:8,padding:"6px 10px",marginBottom:10,
-                          display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                          <span style={{fontSize:13,color:rc,letterSpacing:"1px"}}>{ratingStars(r)}</span>
-                          <span style={{fontSize:11,color:rc,fontWeight:600,fontFamily:F.body}}>
-                            {tip>0?`+${tip.toFixed(2)}€ pourboire`:"Pas de pourboire"}
-                          </span>
-                        </div>
-                      );
-                    })()}
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                      <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Addition</span>
-                      <span style={{fontSize:22,fontWeight:700,color:C.terra,fontFamily:F.title}}>{bill.toFixed(2)}€</span>
+                      )}
+
+                      {/* Encaisser section (phase repas terminé) */}
+                      {isMange&&!isEating&&(()=>{
+                        const r=calcRating(t.patienceLeftRatio??0.5,t.group.mood.b);
+                        const tip=+(themedBill*(r-1)*0.04).toFixed(2);
+                        const rc=ratingColor(r);
+                        return(
+                          <>
+                            <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
+                              <span style={{fontSize:14,color:rc,letterSpacing:"1px"}}>{ratingStars(r)}</span>
+                              {tip>0&&<span style={{fontSize:10,color:rc,fontWeight:700,fontFamily:F.body}}>+{tip.toFixed(2)}€</span>}
+                              <span style={{marginLeft:"auto",fontSize:18,fontWeight:800,color:C.terra,fontFamily:F.title}}>{themedBill.toFixed(2)}€</span>
+                            </div>
+                            <Btn full v="primary" onClick={()=>checkout(t.id)} icon="💰">Encaisser</Btn>
+                          </>
+                        );
+                      })()}
                     </div>
-                    <Btn full v={isEating?"disabled":"primary"} onClick={isEating?null:()=>checkout(t.id)} icon={isEating?"⏳":"💰"}>
-                      {isEating?"Patienter…":"Encaisser"}
-                    </Btn>
-                  </div>
-                )}
-                {isNettoyage&&(
-                  <div style={{borderTop:`1px solid ${C.amber}33`,paddingTop:10,marginTop:6}}>
-                    <div style={{fontSize:11,color:C.muted,marginBottom:8,fontFamily:F.body}}>
-                      🧹 {t.server||"Serveur"} nettoie la table…
-                    </div>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-                      <span style={{fontSize:11,color:C.amber,fontWeight:600,fontFamily:F.body}}>Nettoyage en cours</span>
-                      <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
-                        {Math.floor(cleanSecsLeft/60)}:{String(cleanSecsLeft%60).padStart(2,"0")}
-                      </span>
-                    </div>
-                    <div style={{background:C.border,borderRadius:99,height:6,overflow:"hidden"}}>
-                      <div style={{width:`${cleanPct}%`,height:"100%",
-                        background:`linear-gradient(90deg,${C.amber},${C.green})`,
-                        borderRadius:99,transition:"width 0.5s linear"}}/>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
                 {t.status==="libre"&&myQ.length>0&&(
                   <div style={{marginTop:10}}>
                     <Sel value="" style={{fontSize:11,padding:"6px 10px"}}
@@ -2098,7 +2409,7 @@ function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen
 /* ═══════════════════════════════════════════════════════
    SERVERS VIEW
 ═══════════════════════════════════════════════════════ */
-function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast}){
+function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast,bp={}}){
   const [modal,setModal]=useState(false);   // "add" | "edit" | "fire" | "train" | false
   const [form,setForm]=useState({name:"",status:"actif",salary:"12"});
   const [editId,setEditId]=useState(null);
@@ -2235,7 +2546,7 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,a
       </div>
 
       {/* ── Grille des serveurs ── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:13}}>
+      <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"repeat(auto-fill,minmax(270px,1fr))",gap:bp.isMobile?10:13}}>
         {servers.map(sv=>{
           const sl=srvLv(sv.totalXp);
           const slD=SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
@@ -2675,7 +2986,7 @@ function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,a
 /* ═══════════════════════════════════════════════════════
    KITCHEN VIEW
 ═══════════════════════════════════════════════════════ */
-function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,addToast,cash,setCash,addTx}){
+function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,addToast,cash,setCash,addTx,bp={}}){
   const chf=kitchen.chef;
   const cl=chefLv(chf.totalXp);
   const clD=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
@@ -2855,243 +3166,416 @@ function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,addToas
     );
   };
 
+  // Throughput : plats terminés dans la dernière minute réelle
+  const completedTimestamps = useRef([]);
+  useEffect(()=>{
+    kitchen.done.forEach(d=>{
+      if(d.completedAt && !completedTimestamps.current.find(t=>t.id===d.id)){
+        completedTimestamps.current.push({id:d.id, ts:d.completedAt});
+      }
+    });
+    // Purge > 60s
+    const cutoff=Date.now()-60000;
+    completedTimestamps.current=completedTimestamps.current.filter(t=>t.ts>cutoff);
+  },[kitchen.done.length]);
+
+  const throughput = completedTimestamps.current.filter(t=>t.ts>Date.now()-60000).length;
+
+  // Flash visuel quand un plat finit : id → timestamp fin
+  const flashRef = useRef({});
+  const prevCookingLen = useRef(kitchen.cooking.length);
+  useEffect(()=>{
+    if(kitchen.cooking.length < prevCookingLen.current){
+      // Un plat a fini, on flash tous les feux récemment terminés
+      kitchen.done.slice(-(prevCookingLen.current - kitchen.cooking.length)).forEach(d=>{
+        flashRef.current[d.id]=Date.now();
+        setTimeout(()=>{ delete flashRef.current[d.id]; },1200);
+      });
+    }
+    prevCookingLen.current=kitchen.cooking.length;
+  },[kitchen.cooking.length]);
+
+  // Reorder queue by table ticket
+  const moveTicket=(tableId,dir)=>{
+    setKitchen(k=>{
+      const groups=Object.values(k.queue.reduce((acc,d)=>{
+        const key=d.tableId||"nt";
+        if(!acc[key])acc[key]=[];
+        acc[key].push(d);
+        return acc;
+      },{}));
+      const idx=groups.findIndex(g=>g[0].tableId===tableId);
+      const next=idx+dir;
+      if(next<0||next>=groups.length)return k;
+      [groups[idx],groups[next]]=[groups[next],groups[idx]];
+      return {...k,queue:groups.flat()};
+    });
+  };
+
   return(
     <div>
-      {/* Chef hero */}
+      {/* ── Chef + Commis — barre compacte ── */}
       <div style={{background:`linear-gradient(135deg,${clD.bg},${C.surface})`,
-        border:`2px solid ${clD.color}44`,borderRadius:18,padding:20,marginBottom:18,
-        display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:14}}>
-        <div style={{display:"flex",gap:14,alignItems:"center"}}>
-          <div style={{width:68,height:68,background:clD.color+"22",border:`3px solid ${clD.color}55`,
-            borderRadius:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36}}>
-            {clD.icon}
-          </div>
-          <div>
-            <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
-              <Badge color={clD.color} bg={clD.bg}>{clD.name}</Badge>
-              <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>Niveau {cl.l}</span>
-            </div>
-            <div style={{fontSize:20,fontWeight:700,color:C.ink,fontFamily:F.title}}>{chf.name}</div>
-            <div style={{fontSize:11,color:clD.color,fontWeight:600,marginTop:3,fontFamily:F.body}}>
-              ⚡×{clD.speed} · 🧑‍🍳{clD.commis} commis · 🍽{kitchen.totalDishes} plats · {slotsLeft}/{maxConcurrent} feux libres
-            </div>
-            <div style={{marginTop:5,display:"flex",alignItems:"center",gap:5}}>
-              <span style={{fontSize:12}}>💸</span>
-              <span style={{fontSize:12,color:C.navy,fontWeight:700,fontFamily:F.body}}>{(chf.salary||0).toFixed(0)} €/h</span>
-            </div>
-          </div>
+        border:`1.5px solid ${clD.color}33`,borderRadius:14,
+        padding:bp.isMobile?"9px 12px":"10px 14px",
+        marginBottom:10,display:"flex",alignItems:"center",gap:bp.isMobile?8:12,flexWrap:"wrap"}}>
+        {/* Avatar */}
+        <div style={{width:44,height:44,background:clD.color+"22",border:`2px solid ${clD.color}44`,
+          borderRadius:11,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>
+          {clD.icon}
         </div>
-        <div style={{minWidth:175}}>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.muted,marginBottom:5,fontFamily:F.body}}>
-            <span style={{color:clD.color,fontWeight:600}}>XP Chef</span>
-            <span>{cl.r}/{cl.n}</span>
-          </div>
-          <XpBar xp={cl.r} needed={cl.n} color={clD.color} h={8}/>
-        </div>
-      </div>
-
-      {/* Commis row */}
-      <div style={{display:"flex",gap:10,marginBottom:18,flexWrap:"wrap"}}>
-        {kitchen.commis.map((cm,idx)=>{
-          const locked=idx>=unlockedCommis;
-          const cml=commisLv(cm.totalXp);
-          const cmlD=COMMIS_LVL[Math.min(cml.l,COMMIS_LVL.length-1)];
-          return(
-            <div key={cm.id} style={{background:locked?C.bg:C.card,
-              border:`1.5px solid ${locked?C.border:cmlD.color+"44"}`,
-              borderRadius:11,padding:"10px 13px",opacity:locked?0.4:1,
-              display:"flex",gap:9,alignItems:"center",minWidth:160,flex:"0 0 auto"}}>
-              <div style={{width:32,height:32,background:cmlD.color+"1a",
-                border:`2px solid ${cmlD.color}33`,borderRadius:9,
-                display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>
-                {locked?"🔒":cmlD.icon}
-              </div>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:C.ink,fontFamily:F.body}}>{cm.name}</div>
-                {locked
-                  ?<div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>Débloqué Niv.{idx===1?2:4}</div>
-                  :<><Badge color={cmlD.color} sm>{cmlD.name}</Badge>
-                    <div style={{fontSize:10,color:C.muted,marginTop:3,fontFamily:F.body}}>{cml.r}/{cml.n} XP</div>
-                    <div style={{fontSize:10,color:C.navy,fontWeight:600,marginTop:2,fontFamily:F.body}}>💸 {(cm.salary||0).toFixed(0)} €/h</div>
-                  </>
-                }
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Pipeline */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}}>
-
-        {/* Queue */}
-        <div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <span style={{fontSize:13,fontWeight:600,color:C.amber,fontFamily:F.title}}>
-              ⏳ En attente ({kitchen.queue.length})
+        {/* Chef info */}
+        <div style={{minWidth:0}}>
+          <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+            <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,whiteSpace:"nowrap"}}>{chf.name}</span>
+            <Badge color={clD.color} bg={clD.bg} sm>{clD.name} N{cl.l}</Badge>
+            <span style={{fontSize:10,color:clD.color,fontWeight:600,fontFamily:F.body,whiteSpace:"nowrap"}}>
+              ⚡×{clD.speed} · {slotsLeft}/{maxConcurrent} feux · 🍽{kitchen.totalDishes}
             </span>
-            {kitchen.queue.length>0&&slotsLeft>0&&(
-              <Btn sm v="terra" onClick={startAll} icon="▶">Tout démarrer</Btn>
-            )}
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            {kitchen.queue.length===0&&(
-              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,
-                padding:16,textAlign:"center",color:C.muted,fontSize:12,fontStyle:"italic",fontFamily:F.body}}>
-                Les commandes des tables arriveront ici
-              </div>
-            )}
-            {Object.values(queueByTable).map(tblQ=>{
-              const canStart=kitchen.cooking.length<maxConcurrent;
-              return(
-                <div key={tblQ.tableId||"nt"} style={{background:C.amberP,
-                  border:`1.5px solid ${C.amber}33`,borderRadius:11,overflow:"hidden"}}>
-                  {/* Table sub-header */}
-                  <div style={{background:C.amber+"18",padding:"6px 12px",
-                    display:"flex",justifyContent:"space-between",alignItems:"center",
-                    borderBottom:`1px solid ${C.amber}22`}}>
-                    <span style={{fontSize:11,fontWeight:700,color:C.amber,fontFamily:F.title}}>
-                      📍 {tblQ.tableName}
-                    </span>
-                    <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-                      {tblQ.dishes.length} plat{tblQ.dishes.length>1?"s":""}
-                    </span>
-                  </div>
-                  {/* Dish rows */}
-                  <div style={{display:"flex",flexDirection:"column",gap:0}}>
-                    {tblQ.dishes.map((d,i)=>{
-                      const estSec=upgDishCookTime(d.prepTime||60,clD.speed,unlockedCommis);
-                      const estMin=estSec>=60?`${Math.floor(estSec/60)}m${String(estSec%60).padStart(2,"0")}s`:estSec+"s";
-                      return(
-                        <div key={d.id} style={{padding:"9px 12px",
-                          borderTop:i>0?`1px solid ${C.amber}22`:undefined,
-                          display:"flex",alignItems:"center",gap:8}}>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:12,fontWeight:600,color:C.ink,fontFamily:F.body}}>{d.name}</div>
-                            <div style={{display:"flex",gap:5,marginTop:3}}>
-                              <Badge color={catColors[d.cat]||C.navy} sm>{d.cat}</Badge>
-                              <span style={{fontSize:10,color:C.amber,fontWeight:600,fontFamily:F.body}}>⏱ {estMin}</span>
-                            </div>
-                          </div>
-                          <Btn sm v={canStart?"terra":"ghost"} disabled={!canStart} onClick={()=>startDish(d)}>
-                            {canStart?"▶":"⛔"}
-                          </Btn>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Cooking */}
-        <div>
-          <div style={{fontSize:13,fontWeight:600,color:C.terra,fontFamily:F.title,marginBottom:10}}>
-            🔥 En cuisson ({kitchen.cooking.length}/{maxConcurrent})
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            {kitchen.cooking.length===0&&(
-              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,
-                padding:16,textAlign:"center",color:C.muted,fontSize:12,fontStyle:"italic",fontFamily:F.body}}>
-                Démarrez une cuisson depuis la file
-              </div>
-            )}
-            {kitchen.cooking.map(d=>{
-              const remaining=Math.max(0,Math.ceil((d.startedAt+d.timerMax*1000-now)/1000));
-              const elapsed=d.timerMax-remaining;
-              const pct=d.timerMax>0?Math.min(100,(elapsed/d.timerMax)*100):0;
-              const pc=pct<40?C.amber:pct<80?C.terra:C.green;
-              const fmt=s=>s>=60?`${Math.floor(s/60)}m${String(s%60).padStart(2,"0")}s`:`${s}s`;
-              return(
-                <div key={d.id} style={{background:C.terraP,border:`1.5px solid ${C.terra}33`,borderRadius:10,padding:"11px 12px"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:600,color:C.ink,fontFamily:F.body}}>{d.name}</div>
-                      {d.tableName&&<div style={{fontSize:10,color:C.navy,fontFamily:F.body,marginTop:2}}>📍 {d.tableName}</div>}
-                    </div>
-                    <span style={{fontSize:13,color:pc,fontWeight:700,fontFamily:F.body}}>{fmt(remaining)}</span>
-                  </div>
-                  <XpBar xp={elapsed} needed={d.timerMax} color={pc} h={6}/>
-                  <IngBadges ingredients={d.ingredients}/>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Done — grouped by table */}
-        <div>
-          <div style={{fontSize:13,fontWeight:600,color:C.green,fontFamily:F.title,marginBottom:10}}>
-            ✅ Prêts à servir ({kitchen.done.length})
-          </div>
-          {Object.keys(doneByTable).length===0&&(
-            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,
-              padding:16,textAlign:"center",color:C.muted,fontSize:12,fontStyle:"italic",fontFamily:F.body}}>
-              Les plats terminés apparaîtront ici
+          <div style={{marginTop:4,display:"flex",alignItems:"center",gap:6}}>
+            <div style={{flex:1,minWidth:80}}>
+              <XpBar xp={cl.r} needed={cl.n} color={clD.color} h={5}/>
             </div>
-          )}
-          {Object.values(doneByTable).map(tbl=>{
-            const ready=canServeTable(tbl.tableId);
+            <span style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>{cl.r}/{cl.n} XP</span>
+          </div>
+        </div>
+        {/* Commis inline */}
+        <div style={{display:"flex",gap:5,flexShrink:0,flexWrap:"wrap",marginLeft:"auto",maxWidth:bp.isSmall?"100%":undefined}}>
+          {kitchen.commis.map((cm,idx)=>{
+            const locked=idx>=unlockedCommis;
+            const cml=commisLv(cm.totalXp);
+            const cmlD=COMMIS_LVL[Math.min(cml.l,COMMIS_LVL.length-1)];
             return(
-              <div key={tbl.tableId} style={{marginBottom:10,background:C.greenP,
-                border:`1.5px solid ${ready?C.green:C.amber}44`,borderRadius:12,padding:13}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>{tbl.tableName}</div>
-                    <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
-                      {tbl.dishes.length} plat{tbl.dishes.length>1?"s":""} prêt{tbl.dishes.length>1?"s":""}
-                    </div>
-                  </div>
-                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-                    {ready&&(
-                      <div style={{fontSize:10,fontWeight:800,color:C.green,fontFamily:F.body,
-                        background:C.green+"18",borderRadius:6,padding:"2px 8px",
-                        animation:"popIn 0.4s ease, pulse 2s ease-in-out 0.4s infinite"}}>
-                        ✦ PRÊT !
-                      </div>
-                    )}
-                    {ready
-                      ?<Btn v="primary" sm onClick={()=>serveTable(tbl.tableId,tbl.tableName)} icon="🍽">
-                        Servir
-                      </Btn>
-                      :<span style={{fontSize:11,color:C.amber,fontFamily:F.body}}>⏳ En attente…</span>
-                    }
-                  </div>
-                </div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                  {tbl.dishes.map((d,i)=>(
-                    <span key={i} style={{fontSize:10,background:C.surface,border:`1px solid ${C.green}33`,
-                      borderRadius:5,padding:"2px 8px",fontFamily:F.body,color:C.ink}}>
-                      ✓ {d.name}
-                    </span>
-                  ))}
+              <div key={cm.id} style={{
+                background:locked?C.bg:cmlD.color+"12",
+                border:`1px solid ${locked?C.border:cmlD.color+"33"}`,
+                borderRadius:8,padding:"5px 9px",opacity:locked?0.4:1,
+                display:"flex",gap:5,alignItems:"center"}}>
+                <span style={{fontSize:14}}>{locked?"🔒":cmlD.icon}</span>
+                <div>
+                  <div style={{fontSize:10,fontWeight:600,color:C.ink,fontFamily:F.body,whiteSpace:"nowrap"}}>{cm.name}</div>
+                  {!locked&&<div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{cmlD.name}</div>}
                 </div>
               </div>
             );
           })}
         </div>
       </div>
-      {/* ── Améliorations cuisine ────────────────────── */}
-      <div style={{marginTop:28}}>
-        <div style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title,
-          marginBottom:16,display:"flex",alignItems:"center",gap:8}}>
-          🔧 Améliorations de la cuisine
+
+      {/* ══ PIPELINE responsive ══ */}
+      <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"minmax(200px,1fr) minmax(240px,1.2fr) minmax(200px,1fr)",
+        gap:12,marginBottom:20}}>
+
+        {/* ── COL 1 : Tickets de commande ── */}
+        <div style={{minWidth:0}}>
+          {/* Header avec backlog */}
+          {(()=>{
+            const totalBacklogSec=Object.values(queueByTable).reduce((s,t)=>
+              s+upgDishCookTime((t.dishes[0]?.prepTime||60),clD.speed,unlockedCommis)*t.dishes.length,0);
+            const late=Object.values(queueByTable).filter(t=>
+              t.dishes.some(d=>d.addedAt&&(Date.now()-d.addedAt)>300000)).length;
+            return(
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0}}>
+                  <span style={{fontSize:13}}>🎫</span>
+                  <span style={{fontSize:12,fontWeight:700,color:C.amber,fontFamily:F.title,whiteSpace:"nowrap"}}>
+                    Commandes ({kitchen.queue.length})
+                  </span>
+                  {late>0&&(
+                    <span style={{fontSize:9,background:C.redP,color:C.red,border:`1px solid ${C.red}33`,
+                      borderRadius:20,padding:"1px 6px",fontFamily:F.body,fontWeight:700,
+                      animation:"pulse 1s infinite",whiteSpace:"nowrap"}}>
+                      ⏰{late}
+                    </span>
+                  )}
+                </div>
+                {kitchen.queue.length>0&&slotsLeft>0&&(
+                  <Btn sm v="terra" onClick={startAll}>▶ Tout</Btn>
+                )}
+              </div>
+            );
+          })()}
+
+          <div style={{display:"flex",flexDirection:"column",gap:7,maxHeight:420,overflowY:"auto"}}>
+            {kitchen.queue.length===0&&(
+              <div style={{background:C.card,border:`1px dashed ${C.border}`,borderRadius:9,
+                padding:14,textAlign:"center",color:C.muted,fontSize:11,fontStyle:"italic",fontFamily:F.body}}>
+                🍽 Les commandes arriveront ici
+              </div>
+            )}
+            {Object.values(queueByTable).map((tblQ,tIdx,arr)=>{
+              const canStart=kitchen.cooking.length<maxConcurrent;
+              const firstDish=tblQ.dishes[0];
+              const elapsedMs=firstDish?.addedAt?(Date.now()-firstDish.addedAt):0;
+              const elapsedSec=Math.floor(elapsedMs/1000);
+              const isLate=elapsedMs>300000;
+              const isWarning=elapsedMs>180000;
+              const tc=isLate?C.red:isWarning?C.amber:C.amber;
+              return(
+                <div key={tblQ.tableId||"nt"} style={{
+                  background:isLate?C.redP:C.amberP,
+                  border:`1.5px solid ${tc}44`,borderRadius:10,overflow:"hidden",
+                  boxShadow:isLate?`0 0 0 2px ${C.red}18`:"none"}}>
+                  {/* Ticket header */}
+                  <div style={{background:tc+"20",padding:"5px 9px",borderBottom:`1px solid ${tc}22`,
+                    display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:5}}>
+                      <div style={{display:"flex",flexDirection:"column",gap:1}}>
+                        <button onClick={()=>moveTicket(tblQ.tableId,-1)} disabled={tIdx===0}
+                          style={{width:14,height:12,fontSize:7,border:`1px solid ${tc}33`,borderRadius:2,
+                            background:tIdx===0?"transparent":tc+"14",color:tIdx===0?C.muted:tc,
+                            cursor:tIdx===0?"not-allowed":"pointer",lineHeight:1}}>▲</button>
+                        <button onClick={()=>moveTicket(tblQ.tableId,+1)} disabled={tIdx===arr.length-1}
+                          style={{width:14,height:12,fontSize:7,border:`1px solid ${tc}33`,borderRadius:2,
+                            background:tIdx===arr.length-1?"transparent":tc+"14",color:tIdx===arr.length-1?C.muted:tc,
+                            cursor:tIdx===arr.length-1?"not-allowed":"pointer",lineHeight:1}}>▼</button>
+                      </div>
+                      <div style={{width:17,height:17,borderRadius:"50%",background:tc,color:"#fff",
+                        display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800}}>{tIdx+1}</div>
+                      <span style={{fontSize:10,fontWeight:700,color:isLate?C.red:C.amber,fontFamily:F.body,whiteSpace:"nowrap"}}>
+                        📍{tblQ.tableName}
+                      </span>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:5}}>
+                      {elapsedSec>0&&<span style={{fontSize:8,fontWeight:700,color:tc,fontFamily:F.body}}>
+                        {isLate?"🔴":isWarning?"🟡":"🟢"}{elapsedSec>=60?`${Math.floor(elapsedSec/60)}m`:elapsedSec+"s"}
+                      </span>}
+                      <span style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tblQ.dishes.length}×</span>
+                    </div>
+                  </div>
+                  {/* Dishes */}
+                  {tblQ.dishes.map((d,i)=>{
+                    const estSec=upgDishCookTime(d.prepTime||60,clD.speed,unlockedCommis);
+                    const estFmt=estSec>=60?`${Math.floor(estSec/60)}m${String(estSec%60).padStart(2,"0")}s`:estSec+"s";
+                    return(
+                      <div key={d.id} style={{padding:"5px 9px",borderTop:i>0?`1px dashed ${tc}22`:undefined,
+                        display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:8,color:tc,fontWeight:800,minWidth:12}}>{i+1}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:11,fontWeight:600,color:C.ink,fontFamily:F.body,
+                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.name}</div>
+                          <span style={{fontSize:9,color:C.amber,fontWeight:600,fontFamily:F.body}}>⏱{estFmt}</span>
+                        </div>
+                        <Btn sm v={canStart?"terra":"ghost"} disabled={!canStart} onClick={()=>startDish(d)}>
+                          {canStart?"▶":"⛔"}
+                        </Btn>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}}>
+
+        {/* ── COL 2 : Piano de cuisine SVG compact ── */}
+        <div style={{minWidth:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <span style={{fontSize:13}}>🔥</span>
+              <span style={{fontSize:12,fontWeight:700,color:C.terra,fontFamily:F.title,whiteSpace:"nowrap"}}>
+                Piano ({kitchen.cooking.length}/{maxConcurrent})
+              </span>
+            </div>
+            <span style={{fontSize:9,background:slotsLeft>0?C.greenP:C.redP,
+              color:slotsLeft>0?C.green:C.red,border:`1px solid ${slotsLeft>0?C.green:C.red}33`,
+              borderRadius:20,padding:"2px 7px",fontFamily:F.body,fontWeight:700,whiteSpace:"nowrap"}}>
+              {slotsLeft>0?`${slotsLeft} libres`:"Complet"}
+            </span>
+          </div>
+
+          {(()=>{
+            const cols=maxConcurrent<=4?2:maxConcurrent<=6?3:4;
+            const rows=Math.ceil(maxConcurrent/cols);
+            // Compact cell sizes
+            const CW=76,CH=80,PAD=8;
+            const VW=cols*CW+PAD*2;
+            const VH=rows*CH+PAD*2+16;
+            const getPos=(i)=>({
+              cx:PAD+(i%cols)*CW+CW/2,
+              cy:PAD+12+Math.floor(i/cols)*CH+CH/2,
+            });
+            return(
+              <div style={{background:"#1a1612",borderRadius:14,overflow:"hidden",
+                border:"2px solid #3a2e24",boxShadow:"0 6px 24px rgba(0,0,0,0.35)"}}>
+                <div style={{padding:"5px 10px",borderBottom:"1px solid #3a2e24",
+                  display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:9,color:"#8a7a6a",fontFamily:F.body,fontWeight:600,letterSpacing:"0.08em"}}>
+                    ✦ PIANO
+                  </span>
+                  <span style={{fontSize:9,color:C.terra,fontFamily:F.body,fontWeight:700}}>
+                    {kitchen.totalDishes} plats
+                  </span>
+                </div>
+                <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" style={{display:"block"}}>
+                  <rect width={VW} height={VH} fill="#1a1612"/>
+                  {Array.from({length:Math.ceil(VH/8)},(_,i)=>(
+                    <line key={i} x1="0" y1={i*8} x2={VW} y2={i*8}
+                      stroke="#2a2018" strokeWidth="0.5" opacity="0.4"/>
+                  ))}
+                  {Array.from({length:maxConcurrent},(_,i)=>{
+                    const pos=getPos(i);
+                    const {cx,cy}=pos;
+                    const dish=kitchen.cooking[i]||null;
+                    const r=26;// radius
+                    const remaining=dish?Math.max(0,Math.ceil((dish.startedAt+dish.timerMax*1000-now)/1000)):0;
+                    const pct=dish&&dish.timerMax>0?Math.min(100,((dish.timerMax-remaining)/dish.timerMax)*100):0;
+                    const almostDone=pct>80;
+                    const burnerColor=dish?(almostDone?"#4ade80":"#f97316"):"#3a2e24";
+                    const circumference=2*Math.PI*r;
+                    return(
+                      <g key={i}>
+                        {/* Glow */}
+                        {dish&&(
+                          <circle cx={cx} cy={cy} r={r+8} fill={burnerColor} opacity="0.06">
+                            <animate attributeName="opacity" values="0.06;0.14;0.06"
+                              dur={almostDone?"0.7s":"1.5s"} repeatCount="indefinite"/>
+                          </circle>
+                        )}
+                        {/* Outer ring */}
+                        <circle cx={cx} cy={cy} r={r} fill="#2a2018"
+                          stroke={burnerColor} strokeWidth={dish?1.5:1}/>
+                        {/* Inner rings */}
+                        <circle cx={cx} cy={cy} r={r*0.72} fill="none" stroke="#3a2e24" strokeWidth="1"/>
+                        <circle cx={cx} cy={cy} r={r*0.44} fill="none" stroke="#3a2e24" strokeWidth="1"/>
+                        {/* Flames */}
+                        {dish&&[0,72,144,216,288].map((angle,fi)=>{
+                          const rad=(angle*Math.PI)/180;
+                          return(
+                            <ellipse key={fi}
+                              cx={cx+r*0.62*Math.cos(rad)} cy={cy+r*0.62*Math.sin(rad)}
+                              rx="2" ry="3.5" fill={almostDone?"#4ade80":"#f97316"} opacity="0.8">
+                              <animate attributeName="ry" values="3.5;5;3.5"
+                                dur={`${0.35+fi*0.07}s`} repeatCount="indefinite"/>
+                              <animate attributeName="opacity" values="0.8;0.3;0.8"
+                                dur={`${0.4+fi*0.06}s`} repeatCount="indefinite"/>
+                            </ellipse>
+                          );
+                        })}
+                        {/* Empty indicator */}
+                        {!dish&&<text x={cx} y={cy+4} textAnchor="middle" fontSize="12"
+                          fill="#4a3c2c" fontFamily="sans-serif" opacity="0.4">○</text>}
+                        {/* Progress arc */}
+                        {dish&&(
+                          <circle cx={cx} cy={cy} r={r}
+                            fill="none"
+                            stroke={almostDone?"#4ade80":pct>50?"#fbbf24":"#f97316"}
+                            strokeWidth="3"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={circumference*(1-pct/100)}
+                            strokeLinecap="round"
+                            transform={`rotate(-90 ${cx} ${cy})`}
+                            opacity="0.9"/>
+                        )}
+                        {/* Steam */}
+                        {dish&&almostDone&&[cx-5,cx+5].map((sx,si)=>(
+                          <line key={si} x1={sx} y1={cy-r-4} x2={sx+2} y2={cy-r-11}
+                            stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" opacity="0.5">
+                            <animate attributeName="opacity" values="0.5;0;0.5" dur={`${0.7+si*0.2}s`} repeatCount="indefinite"/>
+                          </line>
+                        ))}
+                        {/* Feu label */}
+                        <text x={cx} y={cy+r+10} textAnchor="middle" fontSize="7"
+                          fill={dish?"#8a7a6a":"#3a3028"} fontFamily="sans-serif">
+                          Feu {i+1}
+                        </text>
+                        {/* Dish name */}
+                        {dish&&<text x={cx} y={cy-3} textAnchor="middle" fontSize="7"
+                          fill={almostDone?"#4ade80":"#fbbf24"} fontFamily="sans-serif" fontWeight="700">
+                          {dish.name.length>10?dish.name.slice(0,9)+"…":dish.name}
+                        </text>}
+                        {/* Timer */}
+                        {dish&&<text x={cx} y={cy+7} textAnchor="middle" fontSize="8"
+                          fill={almostDone?"#4ade80":"#f97316"} fontFamily="sans-serif" fontWeight="800">
+                          {remaining>=60?`${Math.floor(remaining/60)}m${String(remaining%60).padStart(2,"0")}s`:remaining+"s"}
+                        </text>}
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* ── COL 3 : Prêts à servir ── */}
+        <div style={{minWidth:0}}>
+          <div style={{fontSize:12,fontWeight:700,color:C.green,fontFamily:F.title,marginBottom:8,
+            display:"flex",alignItems:"center",gap:6}}>
+            <span>✅</span>
+            <span style={{whiteSpace:"nowrap"}}>Prêts ({kitchen.done.length})</span>
+          </div>
+
+          {Object.keys(doneByTable).length===0&&(
+            <div style={{background:C.card,border:`1px dashed ${C.border}`,borderRadius:9,
+              padding:14,textAlign:"center",color:C.muted,fontSize:11,fontStyle:"italic",fontFamily:F.body}}>
+              🍽 Les plats terminés apparaîtront ici
+            </div>
+          )}
+
+          <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:420,overflowY:"auto"}}>
+            {Object.values(doneByTable).map(tbl=>{
+              const ready=canServeTable(tbl.tableId);
+              return(
+                <div key={tbl.tableId} style={{
+                  background:ready?"linear-gradient(135deg,#f0fdf4,#e8f5e9)":C.amberP,
+                  border:`1.5px solid ${ready?C.green:C.amber}44`,borderRadius:11,overflow:"hidden",
+                  boxShadow:ready?`0 3px 12px ${C.green}18`:"none",
+                  animation:ready?"popIn 0.4s ease":undefined}}>
+                  <div style={{padding:"7px 10px",background:ready?C.green+"14":C.amber+"14",
+                    borderBottom:`1px solid ${ready?C.green:C.amber}22`,
+                    display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <div style={{fontSize:11,fontWeight:700,color:C.ink,fontFamily:F.body,whiteSpace:"nowrap"}}>{tbl.tableName}</div>
+                      <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tbl.dishes.length} plat{tbl.dishes.length>1?"s":""}</div>
+                    </div>
+                    {ready?(
+                      <div style={{display:"flex",flexDirection:"column",gap:3,alignItems:"flex-end"}}>
+                        <span style={{fontSize:8,fontWeight:800,color:C.green,background:C.green+"18",
+                          borderRadius:20,padding:"1px 6px",animation:"pulse 1.5s infinite"}}>
+                          ✦ PRÊT
+                        </span>
+                        <Btn v="primary" sm onClick={()=>serveTable(tbl.tableId,tbl.tableName)} icon="🍽">
+                          Servir
+                        </Btn>
+                      </div>
+                    ):(
+                      <span style={{fontSize:10,color:C.amber,fontFamily:F.body,fontWeight:600}}>⏳</span>
+                    )}
+                  </div>
+                  <div style={{padding:"6px 10px",display:"flex",flexWrap:"wrap",gap:3}}>
+                    {tbl.dishes.map((d,i)=>(
+                      <span key={i} style={{fontSize:9,background:C.surface,border:`1px solid ${C.green}33`,
+                        borderRadius:4,padding:"1px 6px",fontFamily:F.body,color:C.ink}}>
+                        ✓{d.name.length>12?d.name.slice(0,11)+"…":d.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Améliorations cuisine — bande compacte ── */}
+      <div>
+        <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,
+          marginBottom:10,display:"flex",alignItems:"center",gap:7}}>
+          🔧 Améliorations
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(200px,1fr))",gap:bp.isMobile?8:10}}>
           {KITCHEN_UPGRADES.map(upItem=>{
             const curLv=upg[upItem.id]||0;
             const maxLv=upItem.levels.length;
             const nextLv=upItem.levels[curLv]||null;
             const isMax=curLv>=maxLv;
             const canAfford=nextLv&&cash>=nextLv.cost;
-
-            // Summary of active bonuses
             const activeBonuses=upItem.levels.slice(0,curLv).map(l=>{
               if(l.bonus.slots) return `+${l.bonus.slots} feu`;
               if(l.bonus.speed) return `−${Math.round(l.bonus.speed*100)}% cuisson`;
-              if(l.bonus.storage) return `Stockage ×${1+upItem.levels.slice(0,curLv).reduce((s,x)=>s+(x.bonus.storage||0),0)}`;
+              if(l.bonus.storage) return `Stock ×${1+upItem.levels.slice(0,curLv).reduce((s,x)=>s+(x.bonus.storage||0),0)}`;
               if(l.bonus.clean) return `Nettoyage −${l.bonus.clean}s`;
               return "";
             }).filter(Boolean);
@@ -3100,50 +3584,29 @@ function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,addToas
               <div key={upItem.id} style={{
                 background:isMax?C.greenP:C.card,
                 border:`1.5px solid ${isMax?C.green:C.border}`,
-                borderRadius:14,padding:16,
-                boxShadow:isMax?`0 0 12px ${C.green}22`:`0 1px 5px rgba(0,0,0,0.06)`,
-              }}>
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                  <div style={{fontSize:28}}>{upItem.icon}</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.body}}>{upItem.name}</div>
-                    <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>{upItem.desc}</div>
+                borderRadius:12,padding:12}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                  <span style={{fontSize:20}}>{upItem.icon}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{upItem.name}</div>
                   </div>
                 </div>
-
-                {/* Level pip bar */}
-                <div style={{display:"flex",gap:4,marginBottom:10}}>
+                <div style={{display:"flex",gap:3,marginBottom:7}}>
                   {upItem.levels.map((_,i)=>(
-                    <div key={i} style={{
-                      flex:1,height:5,borderRadius:3,
-                      background:i<curLv?C.green:C.border,
-                      transition:"background 0.3s",
-                    }}/>
+                    <div key={i} style={{flex:1,height:3,borderRadius:3,
+                      background:i<curLv?C.green:C.border}}/>
                   ))}
                 </div>
-
-                {/* Active bonuses */}
                 {activeBonuses.length>0&&(
-                  <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>
-                    {activeBonuses.map((b,i)=>(
-                      <span key={i} style={{fontSize:10,background:C.greenP,color:C.green,
-                        border:`1px solid ${C.green}33`,borderRadius:5,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>
-                        ✓ {b}
-                      </span>
-                    ))}
+                  <div style={{fontSize:9,color:C.green,fontFamily:F.body,fontWeight:600,marginBottom:6}}>
+                    ✓ {activeBonuses.join(" · ")}
                   </div>
                 )}
-
                 {isMax?(
-                  <div style={{textAlign:"center",fontSize:12,color:C.green,
-                    fontWeight:700,fontFamily:F.body,padding:"8px 0"}}>
-                    ✅ Niveau maximum atteint
-                  </div>
+                  <div style={{fontSize:10,color:C.green,fontWeight:700,fontFamily:F.body}}>✅ Max</div>
                 ):(
-                  <div style={{borderTop:`1px solid ${C.border}`,paddingTop:10}}>
-                    <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginBottom:8}}>
-                      Niveau {curLv+1} — {nextLv.label}
-                    </div>
+                  <div>
+                    <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:5}}>{nextLv.label}</div>
                     <Btn v={canAfford?"amber":"disabled"} sm
                       onClick={()=>{
                         if(!canAfford)return;
@@ -3154,7 +3617,7 @@ function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,addToas
                         addToast({icon:upItem.icon,title:`${upItem.name} N${curLv+1}`,
                           msg:nextLv.label,color:C.amber,tab:"cuisine"});
                       }}>
-                      💰 {nextLv.cost} € — Améliorer
+                      💰 {nextLv.cost}€
                     </Btn>
                   </div>
                 )}
@@ -3166,50 +3629,7 @@ function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,addToas
     </div>
   );
 }
-
-/* ═══════════════════════════════════════════════════════
-   MENU VIEW — Rentabilité, activation, prix dynamique
-═══════════════════════════════════════════════════════ */
-
-/* ── Thèmes de menu ── */
-const MENU_THEMES=[
-  {
-    id:"bistrot",  icon:"🍺", name:"Bistrot",      color:C.green,
-    desc:"Cuisine généreuse et abordable.",
-    priceMult:0.90, repBonus:0,  xpMult:1.0,
-    accent:"#eaf3ed",
-  },
-  {
-    id:"gastro",   icon:"⭐", name:"Gastronomique", color:C.purple,
-    desc:"Plats élaborés, prix premium +15%.",
-    priceMult:1.15, repBonus:5,  xpMult:1.2,
-    accent:"#f0eaf8",
-  },
-  {
-    id:"saison",   icon:"🌿", name:"Saisonnier",    color:C.terra,
-    desc:"Produits frais du marché, réputation +8.",
-    priceMult:1.00, repBonus:8,  xpMult:1.1,
-    accent:"#fdf0e8",
-  },
-  {
-    id:"none",     icon:"📋", name:"Standard",      color:C.muted,
-    desc:"Menu habituel sans modificateur.",
-    priceMult:1.00, repBonus:0,  xpMult:1.0,
-    accent:C.bg,
-  },
-];
-
-/* ── Formules ── */
-const FORMULA_PRESETS=[
-  { id:"decouverte", icon:"🍽",  name:"Menu Découverte",  discount:0.12,
-    cats:["Entrées","Plats","Desserts"], desc:"1 entrée + 1 plat + 1 dessert" },
-  { id:"express",    icon:"⚡",  name:"Menu Express",     discount:0.08,
-    cats:["Plats","Boissons"],          desc:"1 plat + 1 boisson" },
-  { id:"prestige",   icon:"👑",  name:"Menu Prestige",    discount:0.15,
-    cats:["Entrées","Plats","Desserts","Boissons"], desc:"Formule complète 4 services" },
-];
-
-function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActiveTheme,dailyStats}){
+function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActiveTheme,dailyStats,bp={}}){
   const [mainTab,setMainTab]=useState("carte");
   const [catFilter,setCatFilter]=useState("Tout");
   const [sortBy,setSortBy]=useState("cat");
@@ -3436,7 +3856,7 @@ function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActive
             </div>
           </div>
 
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12}}>
+          <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(240px,1fr))",gap:bp.isMobile?8:12}}>
             {sorted.map(m=>{
               const cc=catC[m.cat]||C.navy;
               const enabled=m.enabled!==false;
@@ -3554,7 +3974,7 @@ function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActive
           <div style={{fontSize:12,color:C.muted,fontFamily:F.body,marginBottom:16,lineHeight:1.6}}>
             Les formules combinent plusieurs plats à prix réduit. Une fois configurées et activées, les clients les commandent automatiquement en priorité.
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:14}}>
+          <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"repeat(auto-fill,minmax(270px,1fr))",gap:bp.isMobile?10:14}}>
             {FORMULA_PRESETS.map(preset=>{
               const existing=(formulas||[]).find(f=>f.presetId===preset.id);
               return(
@@ -3646,7 +4066,7 @@ function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActive
           <div style={{fontSize:12,color:C.muted,fontFamily:F.body,marginBottom:16,lineHeight:1.6}}>
             Le thème modifie visuellement la carte et applique un multiplicateur de prix global + bonus de réputation sur chaque service.
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:14}}>
+          <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":"repeat(auto-fill,minmax(240px,1fr))",gap:bp.isMobile?10:14}}>
             {MENU_THEMES.map(t=>{
               const isActive=(activeTheme||"none")===t.id;
               return(
@@ -3682,7 +4102,7 @@ function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActive
       {mainTab==="perf"&&(
         <div>
           {/* KPIs */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:10,marginBottom:20}}>
+          <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(130px,1fr))",gap:10,marginBottom:20}}>
             {[
               {l:"Plats actifs",   v:menu.filter(m=>m.enabled!==false).length,      i:"✅",c:C.green, bg:C.greenP},
               {l:"Désactivés",     v:menu.filter(m=>m.enabled===false).length,       i:"⏸", c:C.amber, bg:C.amberP},
@@ -3824,18 +4244,57 @@ function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActive
 /* ═══════════════════════════════════════════════════════
    STOCK VIEW
 ═══════════════════════════════════════════════════════ */
-function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMode,setSupplierMode,pendingDeliveries,setPendingDeliveries}){
+function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMode,setSupplierMode,pendingDeliveries,setPendingDeliveries,menu=[],bp={}}){
   const storageMult=1+(kitchen?.upgrades?.stockage||0);
   const [modal,setModal]=useState(false);
   const [form,setForm]=useState({name:"",qty:"",unit:"kg",alert:"",cat:"",price:""});
   const [editId,setEditId]=useState(null);
   const [adjId,setAdjId]=useState(null);
   const [adjV,setAdjV]=useState("");
+  const [viewMode,setViewMode]=useState("cartes"); // "cartes"|"liste"|"graphique"
+  const [collapsedCats,setCollapsedCats]=useState({});
+  const [sortMode,setSortMode]=useState("urgence"); // "urgence"|"alpha"|"cat"
 
   const alerts=stock.filter(s=>s.qty<=s.alert);
-
   const sup=SUPPLIERS[supplierMode||"premium"];
-  // Deduct cost using supplier pricing; if delayed, schedule delivery
+
+  /* ── Calcul prédictif : portions restantes par ingrédient ── */
+  const portionsPerIngredient=(stockId)=>{
+    // Calcule combien de fois cet ingrédient peut être utilisé selon les recettes actives
+    const uses=menu.filter(m=>m.enabled!==false)
+      .flatMap(m=>(m.ingredients||[]).filter(i=>i.stockId===stockId));
+    if(!uses.length)return null;
+    const item=stock.find(s=>s.id===stockId);
+    if(!item)return null;
+    const minUse=Math.min(...uses.map(u=>u.qty));
+    return minUse>0?Math.floor(item.qty/minUse):null;
+  };
+
+  // Top 3 ingrédients critiques avec estimation de rupture
+  const criticalIngredients=[...stock]
+    .map(it=>{
+      const portions=portionsPerIngredient(it.id);
+      return {...it,portions};
+    })
+    .filter(it=>it.portions!==null&&it.portions<10)
+    .sort((a,b)=>(a.portions??999)-(b.portions??999))
+    .slice(0,3);
+
+  // Valeur totale de l'inventaire
+  const inventoryValue=stock.reduce((sum,s)=>sum+(s.qty*(s.price||0)),0);
+
+  /* ── Commander selon prévision ── */
+  const orderByForecast=()=>{
+    criticalIngredients.forEach(it=>{
+      const target=it.alert*6;
+      const qty=+(target-it.qty).toFixed(3);
+      if(qty>0){
+        deductCost(it,qty);
+        setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(target,+(s.qty+qty).toFixed(3))}:s));
+      }
+    });
+  };
+
   const deductCost=(item,addedQty)=>{
     const unitPrice=(item.price||0)*(1-sup.discount);
     const cost=+(unitPrice*addedQty).toFixed(2);
@@ -3844,118 +4303,135 @@ function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMode,setSu
       addTx("achat",`Achat ${item.name} — ${+addedQty.toFixed(3)} ${item.unit} (${sup.name})`,cost);
     }
     if(sup.delay>0){
-      const label=`${item.name} ×${+addedQty.toFixed(3)} ${item.unit}`;
       setPendingDeliveries(p=>[...p,{
         id:Date.now()+Math.random(),
         items:[{stockId:item.id,qty:addedQty}],
-        labels:label,
+        labels:`${item.name} ×${+addedQty.toFixed(3)} ${item.unit}`,
         arrivedAt:Date.now()+sup.delay*1000,
       }]);
-      return false; // delayed — don't add to stock immediately
+      return false;
     }
-    return true; // instant
+    return true;
   };
 
   const save=()=>{
-    if(editId)setStock(p=>p.map(s=>s.id===editId
-      ?{...s,...form,qty:+form.qty,alert:+form.alert,price:+(form.price||0)}:s));
-    setModal(false);
-    setEditId(null);
-    setForm({name:"",qty:"",unit:"kg",alert:"",cat:"",price:""});
+    if(editId)setStock(p=>p.map(s=>s.id===editId?{...s,...form,qty:+form.qty,alert:+form.alert,price:+(form.price||0)}:s));
+    setModal(false);setEditId(null);setForm({name:"",qty:"",unit:"kg",alert:"",cat:"",price:""});
   };
   const applyAdj=(id)=>{
     const v=parseFloat(adjV);
     if(isNaN(v))return;
     const item=stock.find(s=>s.id===id);
     let doAdd=true;
-    if(v>0 && item){const instant=deductCost(item,v);if(!instant)doAdd=false;}
+    if(v>0&&item){const instant=deductCost(item,v);if(!instant)doAdd=false;}
     if(doAdd)setStock(p=>p.map(s=>s.id===id?{...s,qty:Math.max(0,+(s.qty+v).toFixed(3))}:s));
     setAdjId(null);setAdjV("");
   };
-
-  // Unit-aware quick-add presets
   const quickAmounts=unit=>{
-    if(["kg","L"].includes(unit))   return [0.5,1,5];
-    if(["btl","pcs","bottes"].includes(unit)) return [1,6,12];
-    if(unit==="u")                  return [6,12,24];
-    return [1,5,10];
+    if(["kg","L"].includes(unit))return[0.5,1,5];
+    if(["btl","pcs","bottes"].includes(unit))return[1,6,12];
+    if(unit==="u")return[6,12,24];
+    return[1,5,10];
   };
-
-  // Restock all low items to alert*4
   const restockAll=()=>{
-    let anyInstant=false;
     stock.filter(s=>s.qty<=s.alert).forEach(s=>{
       const added=+(s.alert*4-s.qty).toFixed(3);
-      if(added>0){const inst=deductCost(s,added);if(inst)anyInstant=true;}
+      if(added>0){const inst=deductCost(s,added);if(inst)setStock(p=>p.map(x=>x.id===s.id?{...x,qty:+(s.alert*4).toFixed(2)}:x));}
     });
-    if(sup.delay===0)setStock(p=>p.map(s=>s.qty<=s.alert?{...s,qty:+(s.alert*4).toFixed(2)}:s));
   };
 
-  // Group by category
   const cats=[...new Set(stock.map(s=>s.cat))];
-  const catIcon={Viandes:"🥩",Poissons:"🐟",Fins:"⭐",Légumes:"🥦","Légumes & Herbes":"🌿",
-    Herbes:"🌿",Laitiers:"🧈",Épicerie:"🫙",Boissons:"🍷"};
+  const catIcon={Viandes:"🥩",Poissons:"🐟",Fins:"⭐",Légumes:"🥦","Légumes & Herbes":"🌿",Herbes:"🌿",Laitiers:"🧈",Épicerie:"🫙",Boissons:"🍷"};
+  const toggleCat=(cat)=>setCollapsedCats(p=>({...p,[cat]:!p[cat]}));
+
+  // Sorted stock for list/bar views
+  const sortedStock=[...stock].sort((a,b)=>{
+    if(sortMode==="urgence"){
+      const pa=a.alert>0?(a.qty/a.alert):99;
+      const pb=b.alert>0?(b.qty/b.alert):99;
+      return pa-pb;
+    }
+    if(sortMode==="alpha")return a.name.localeCompare(b.name);
+    return a.cat.localeCompare(b.cat)||a.name.localeCompare(b.name);
+  });
+
+  const getBarColor=(it)=>{
+    const cap=(it.alert>0?it.alert*6:Math.max(it.qty*2,10))*storageMult;
+    const pct=cap>0?(it.qty/cap)*100:0;
+    const alertPct=cap>0?(it.alert/cap)*100:0;
+    return pct<=alertPct?C.red:pct<=alertPct*2.5?C.amber:C.green;
+  };
 
   return(
     <div>
-      {/* Supplier toggle */}
-      <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,
-        padding:"14px 18px",marginBottom:16,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
-        <span style={{fontSize:18}}>🚛</span>
-        <div style={{flex:1}}>
-          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:2}}>
-            Mode d'approvisionnement
+      {/* ── KPI Header ── */}
+      <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(140px,1fr))",gap:bp.isMobile?8:10,marginBottom:14}}>
+        {[
+          {label:"Alertes stock",  val:alerts.length,              icon:"⚠️",c:alerts.length>0?C.red:C.green,    bg:alerts.length>0?C.redP:C.greenP},
+          {label:"Valeur inventaire",val:inventoryValue.toFixed(0)+"€",icon:"💶",c:C.amber,bg:C.amberP},
+          {label:"Ruptures prévues",val:criticalIngredients.length, icon:"🔮",c:criticalIngredients.length>0?C.terra:C.green, bg:criticalIngredients.length>0?C.terraP:C.greenP},
+          {label:"Articles en stock",val:stock.length,              icon:"📦",c:C.navy, bg:C.navyP},
+        ].map(s=>(
+          <div key={s.label} style={{background:s.bg,border:`1.5px solid ${s.c}22`,borderRadius:12,padding:"12px 14px",textAlign:"center"}}>
+            <div style={{fontSize:18,marginBottom:3}}>{s.icon}</div>
+            <div style={{fontSize:18,fontWeight:800,color:s.c,fontFamily:F.title,lineHeight:1}}>{s.val}</div>
+            <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:3}}>{s.label}</div>
           </div>
-          <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
-            {SUPPLIERS[supplierMode||"premium"].desc}
-          </div>
-        </div>
-        <div style={{display:"flex",gap:6}}>
-          {Object.values(SUPPLIERS).map(s=>{
-            const active=(supplierMode||"premium")===s.id;
-            return(
-              <button key={s.id} onClick={()=>setSupplierMode(s.id)} style={{
-                padding:"7px 14px",fontSize:11,fontWeight:600,
-                background:active?C.navy:C.bg,
-                border:`1.5px solid ${active?C.navy:C.border}`,
-                borderRadius:8,color:active?C.white:C.muted,
-                cursor:"pointer",fontFamily:F.body,
-                display:"flex",alignItems:"center",gap:5}}>
-                <span>{s.icon}</span>
-                <span>{s.name}</span>
-                {s.discount>0&&<span style={{fontSize:9,background:"#ffffff33",
-                  borderRadius:4,padding:"1px 4px"}}>−{(s.discount*100).toFixed(0)}%</span>}
-              </button>
-            );
-          })}
-        </div>
+        ))}
       </div>
 
-      {/* Pending deliveries */}
-      {pendingDeliveries&&pendingDeliveries.length>0&&(
-        <div style={{background:C.navyP,border:`1.5px solid ${C.navy}33`,borderRadius:12,
-          padding:"12px 16px",marginBottom:16}}>
-          <div style={{fontSize:12,fontWeight:700,color:C.navy,fontFamily:F.title,marginBottom:8,
-            display:"flex",alignItems:"center",gap:6}}>
-            <span>🚚</span>
-            <span>{pendingDeliveries.length} livraison{pendingDeliveries.length>1?"s":""} en cours</span>
+      {/* ── Prévision rupture ── */}
+      {criticalIngredients.length>0&&(
+        <div style={{background:"linear-gradient(135deg,#fff8f0,#fff3ea)",
+          border:`1.5px solid ${C.terra}44`,borderRadius:14,padding:"14px 18px",marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:18}}>🔮</span>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:C.terra,fontFamily:F.title}}>
+                  Prévision rupture
+                </div>
+                <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
+                  Ingrédients critiques — basé sur les recettes actives
+                </div>
+              </div>
+            </div>
+            <Btn sm v="terra" onClick={orderByForecast} icon="🛒">
+              Commander
+            </Btn>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {pendingDeliveries.map(d=>{
-              const secsLeft=Math.max(0,Math.ceil((d.arrivedAt-Date.now())/1000));
-              const pct=Math.max(0,Math.min(100,100-(secsLeft/120)*100));
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {criticalIngredients.map(it=>{
+              const cap=(it.alert>0?it.alert*6:Math.max(it.qty*2,10))*storageMult;
+              const pct=cap>0?Math.min(100,(it.qty/cap)*100):0;
+              const urgencyColor=it.portions===0?C.red:it.portions<3?C.terra:C.amber;
               return(
-                <div key={d.id} style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{flex:1,fontSize:11,color:C.navy,fontFamily:F.body,
-                    overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                    {d.labels}
+                <div key={it.id} style={{display:"flex",alignItems:"center",gap:10,
+                  background:urgencyColor+"10",borderRadius:9,padding:"8px 12px",
+                  border:`1px solid ${urgencyColor}22`}}>
+                  <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,
+                    background:urgencyColor+"18",border:`2px solid ${urgencyColor}44`,
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                    fontSize:11,fontWeight:800,color:urgencyColor}}>
+                    {it.portions??0}
                   </div>
-                  <div style={{width:80,height:5,background:C.border,borderRadius:99,overflow:"hidden",flexShrink:0}}>
-                    <div style={{height:"100%",borderRadius:99,background:C.navy,
-                      width:`${pct}%`,transition:"width 1s linear"}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                      <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>
+                        {it.name}
+                      </span>
+                      <span style={{fontSize:10,color:urgencyColor,fontWeight:700,fontFamily:F.body}}>
+                        {it.portions===0?"⛔ Épuisé":`~${it.portions} repas`}
+                      </span>
+                    </div>
+                    <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${pct}%`,background:urgencyColor,
+                        borderRadius:99,transition:"width 0.4s"}}/>
+                    </div>
                   </div>
-                  <span style={{fontSize:10,color:C.navy,fontWeight:600,fontFamily:F.body,
-                    flexShrink:0,minWidth:28}}>{secsLeft}s</span>
+                  <div style={{fontSize:10,color:C.muted,fontFamily:F.body,flexShrink:0}}>
+                    {+(it.qty).toFixed(2)} {it.unit}
+                  </div>
                 </div>
               );
             })}
@@ -3963,171 +4439,396 @@ function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMode,setSu
         </div>
       )}
 
-      {/* Alert banner */}
+      {/* ── Supplier toggle ── */}
+      <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:12,
+        padding:"12px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        <span style={{fontSize:16}}>🚛</span>
+        <div style={{flex:1}}>
+          <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:1}}>
+            Approvisionnement
+          </div>
+          <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
+            {SUPPLIERS[supplierMode||"premium"].desc}
+          </div>
+        </div>
+        <div style={{display:"flex",gap:5}}>
+          {Object.values(SUPPLIERS).map(s=>{
+            const active=(supplierMode||"premium")===s.id;
+            return(
+              <button key={s.id} onClick={()=>setSupplierMode(s.id)} style={{
+                padding:"5px 12px",fontSize:11,fontWeight:600,
+                background:active?C.navy:C.bg,border:`1.5px solid ${active?C.navy:C.border}`,
+                borderRadius:7,color:active?C.white:C.muted,cursor:"pointer",fontFamily:F.body,
+                display:"flex",alignItems:"center",gap:4}}>
+                <span>{s.icon}</span><span>{s.name}</span>
+                {s.discount>0&&<span style={{fontSize:9,background:"#ffffff33",borderRadius:3,padding:"1px 4px"}}>−{(s.discount*100).toFixed(0)}%</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Livraisons en cours ── */}
+      {pendingDeliveries?.length>0&&(
+        <div style={{background:C.navyP,border:`1.5px solid ${C.navy}33`,borderRadius:10,
+          padding:"10px 14px",marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:C.navy,fontFamily:F.title,marginBottom:6,
+            display:"flex",alignItems:"center",gap:5}}>
+            <span>🚚</span><span>{pendingDeliveries.length} livraison{pendingDeliveries.length>1?"s":""} en cours</span>
+          </div>
+          {pendingDeliveries.map(d=>{
+            const secsLeft=Math.max(0,Math.ceil((d.arrivedAt-Date.now())/1000));
+            const pct=Math.max(0,Math.min(100,100-(secsLeft/120)*100));
+            return(
+              <div key={d.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                <div style={{flex:1,fontSize:10,color:C.navy,fontFamily:F.body,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.labels}</div>
+                <div style={{width:70,height:4,background:C.border,borderRadius:99,overflow:"hidden",flexShrink:0}}>
+                  <div style={{height:"100%",background:C.navy,width:`${pct}%`,transition:"width 1s linear",borderRadius:99}}/>
+                </div>
+                <span style={{fontSize:9,color:C.navy,fontWeight:700,fontFamily:F.body,flexShrink:0,minWidth:24}}>{secsLeft}s</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Alerte + actions globales ── */}
       {alerts.length>0&&(
-        <div style={{background:C.redP,border:`1.5px solid ${C.red}33`,
-          borderRadius:12,padding:"12px 16px",marginBottom:20,
-          display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-          <span style={{fontSize:18}}>⚠️</span>
-          <span style={{color:C.red,fontWeight:700,fontSize:13,fontFamily:F.body,flexShrink:0}}>
+        <div style={{background:C.redP,border:`1.5px solid ${C.red}33`,borderRadius:10,
+          padding:"10px 14px",marginBottom:12,
+          display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+          <span>⚠️</span>
+          <span style={{color:C.red,fontWeight:700,fontSize:12,fontFamily:F.body,flexShrink:0}}>
             {alerts.length} alerte{alerts.length>1?"s":""} stock bas
           </span>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap",flex:1}}>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",flex:1}}>
             {alerts.map(a=>(
-              <span key={a.id} style={{background:C.red+"18",color:C.red,
-                border:`1px solid ${C.red}33`,borderRadius:6,padding:"3px 10px",
-                fontSize:11,fontFamily:F.body,fontWeight:600}}>
+              <span key={a.id} style={{background:C.red+"18",color:C.red,border:`1px solid ${C.red}33`,
+                borderRadius:5,padding:"2px 8px",fontSize:10,fontFamily:F.body,fontWeight:600}}>
                 {a.name} : {+(a.qty).toFixed(2)} {a.unit}
               </span>
             ))}
           </div>
-          <button onClick={restockAll} style={{
-            flexShrink:0,padding:"7px 14px",fontSize:12,fontWeight:700,
-            background:C.terra,border:"none",borderRadius:8,
-            color:C.white,cursor:"pointer",fontFamily:F.body}}>
+          <button onClick={restockAll} style={{flexShrink:0,padding:"6px 12px",fontSize:11,fontWeight:700,
+            background:C.terra,border:"none",borderRadius:7,color:C.white,cursor:"pointer",fontFamily:F.body}}>
             ⟳ Tout réapprovisionner
           </button>
         </div>
       )}
 
-      {/* Categories */}
-      {cats.map(cat=>{
-        const items=stock.filter(s=>s.cat===cat);
-        return(
-          <div key={cat} style={{marginBottom:28}}>
-            {/* Category header */}
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-              <span style={{fontSize:18}}>{catIcon[cat]||"📦"}</span>
-              <span style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>{cat}</span>
-              <div style={{flex:1,height:1,background:C.border,marginLeft:4}}/>
-            </div>
+      {/* ── Barre vue + tri ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",gap:5}}>
+          {[{k:"cartes",icon:"⊞",label:"Cartes"},{k:"liste",icon:"☰",label:"Liste"},{k:"graphique",icon:"📊",label:"Graphique"}].map(v=>(
+            <button key={v.k} onClick={()=>setViewMode(v.k)} style={{
+              padding:"5px 12px",borderRadius:8,fontSize:11,fontWeight:600,
+              background:viewMode===v.k?C.navy:"transparent",
+              color:viewMode===v.k?"#fff":C.muted,
+              border:`1.5px solid ${viewMode===v.k?C.navy:C.border}`,
+              cursor:"pointer",fontFamily:F.body,display:"flex",alignItems:"center",gap:4}}>
+              <span>{v.icon}</span><span>{v.label}</span>
+            </button>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:5,alignItems:"center"}}>
+          <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>Trier :</span>
+          {[{k:"urgence",label:"⚠ Urgence"},{k:"cat",label:"Catégorie"},{k:"alpha",label:"A→Z"}].map(s=>(
+            <button key={s.k} onClick={()=>setSortMode(s.k)} style={{
+              fontSize:10,padding:"3px 8px",borderRadius:6,
+              background:sortMode===s.k?C.navy:C.bg,color:sortMode===s.k?"#fff":C.muted,
+              border:`1px solid ${sortMode===s.k?C.navy:C.border}`,cursor:"pointer",fontFamily:F.body}}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-            {/* Item cards */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))",gap:10}}>
-              {items.map(it=>{
+      {/* ══ VUE GRAPHIQUE ══ */}
+      {viewMode==="graphique"&&(
+        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"16px 20px"}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:14}}>
+            📊 Niveaux de stock — {stock.length} ingrédients
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:5}}>
+            {sortedStock.map(it=>{
+              const cap=(it.alert>0?it.alert*6:Math.max(it.qty*2,10))*storageMult;
+              const pct=cap>0?Math.min(100,(it.qty/cap)*100):0;
+              const alertPct=cap>0?Math.min(100,(it.alert/cap)*100):0;
+              const barColor=getBarColor(it);
+              const low=it.qty<=it.alert;
+              const portions=portionsPerIngredient(it.id);
+              return(
+                <div key={it.id} style={{display:"flex",alignItems:"center",gap:10,padding:"4px 0"}}>
+                  <div style={{width:130,fontSize:11,fontFamily:F.body,color:low?C.red:C.ink,
+                    fontWeight:low?700:400,flexShrink:0,textAlign:"right",
+                    overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
+                    title={it.name}>
+                    {it.name}
+                  </div>
+                  <div style={{flex:1,position:"relative",height:18,background:C.bg,
+                    border:`1px solid ${C.border}`,borderRadius:5,overflow:"hidden"}}>
+                    <div style={{position:"absolute",top:0,left:0,bottom:0,
+                      width:`${pct}%`,background:barColor,opacity:0.85,
+                      transition:"width 0.4s ease"}}/>
+                    {/* Alert line */}
+                    <div style={{position:"absolute",top:0,bottom:0,
+                      left:`${alertPct}%`,width:1.5,background:C.red+"88"}}/>
+                    <div style={{position:"absolute",inset:0,display:"flex",
+                      alignItems:"center",paddingLeft:5,
+                      fontSize:9,fontWeight:700,fontFamily:F.body,
+                      color:pct>20?"rgba(255,255,255,0.9)":C.ink}}>
+                      {+(it.qty).toFixed(1)} {it.unit}
+                    </div>
+                  </div>
+                  <div style={{width:55,fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0,textAlign:"right"}}>
+                    {portions!==null?(
+                      <span style={{color:portions<3?C.red:portions<10?C.amber:C.muted,fontWeight:portions<10?700:400}}>
+                        ~{portions} repas
+                      </span>
+                    ):null}
+                  </div>
+                  <div style={{display:"flex",gap:3,flexShrink:0}} onClick={e=>e.stopPropagation()}>
+                    {quickAmounts(it.unit).map(n=>{
+                      const cap2=(it.alert>0?it.alert*6:Math.max(it.qty*2,10))*storageMult;
+                      const wouldExceed=it.qty+n>cap2;
+                      return(
+                        <button key={n} onClick={()=>{
+                          if(wouldExceed)return;
+                          deductCost(it,n);
+                          setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap2,+(s.qty+n).toFixed(3))}:s));
+                        }} disabled={wouldExceed} style={{
+                          padding:"2px 6px",fontSize:9,fontWeight:700,borderRadius:4,
+                          background:wouldExceed?C.bg:C.greenP,color:wouldExceed?C.muted:C.green,
+                          border:`1px solid ${wouldExceed?C.border:C.green}22`,
+                          cursor:wouldExceed?"not-allowed":"pointer",fontFamily:F.body,opacity:wouldExceed?0.45:1}}>
+                          +{n}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ══ VUE LISTE ══ */}
+      {viewMode==="liste"&&(
+        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body}}>
+            <thead>
+              <tr style={{background:C.bg}}>
+                {["Ingrédient","Catégorie","Stock","Alerte","Valeur","Repas","Acheter"].map(h=>(
+                  <th key={h} style={{padding:"8px 12px",fontSize:9,fontWeight:700,color:C.muted,
+                    textAlign:"left",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedStock.map((it,i)=>{
                 const low=it.qty<=it.alert;
-                // Fixed cap: alert*6, never shrinks with usage
                 const cap=(it.alert>0?it.alert*6:Math.max(it.qty*2,10))*storageMult;
                 const pct=cap>0?Math.min(100,(it.qty/cap)*100):0;
-                const alertPct=cap>0?Math.min(100,(it.alert/cap)*100):0;
-                const barColor=pct<=alertPct?C.red:pct<=alertPct*2.5?C.amber:C.green;
-                const amounts=quickAmounts(it.unit);
-
+                const barColor=getBarColor(it);
+                const portions=portionsPerIngredient(it.id);
+                const amounts=quickAmounts(it.unit).slice(0,2);
                 return(
-                  <div key={it.id} style={{
-                    background:low?C.redP:C.card,
-                    border:`1.5px solid ${low?C.red+"55":C.border}`,
-                    borderRadius:14,padding:14,
-                    boxShadow:low?`0 2px 14px ${C.red}20`:"0 1px 5px rgba(0,0,0,0.06)",
-                    cursor:"pointer",transition:"all 0.15s"}}
-                    className="hovcard"
-                    onClick={()=>{setEditId(it.id);setForm({
-                      name:it.name,
-                      qty:String(it.qty),
-                      unit:it.unit,
-                      alert:String(it.alert),
-                      cat:it.cat,
-                      price:String(it.price||0),
-                    });setModal(true);}}>
-
-                    {/* Name + alert badge */}
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                      <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.body,flex:1,lineHeight:1.3}}>
-                        {it.name}
-                      </div>
-                      {low
-                        ?<span style={{fontSize:10,color:C.red,fontWeight:700,fontFamily:F.body,
-                            flexShrink:0,marginLeft:6,background:C.red+"18",
-                            border:`1px solid ${C.red}33`,borderRadius:5,padding:"2px 6px"}}>
-                          ⚠ Bas
-                        </span>
-                        :<span style={{fontSize:10,color:C.green,fontWeight:600,fontFamily:F.body,
-                            flexShrink:0,marginLeft:6,background:C.greenP,
-                            border:`1px solid ${C.green}33`,borderRadius:5,padding:"2px 6px"}}>
-                          ✓ OK
-                        </span>
-                      }
-                    </div>
-
-                    {/* Visual fill gauge */}
-                    <div style={{marginBottom:6}}>
-                      <div style={{height:22,background:C.bg,border:`1px solid ${C.border}`,
-                        borderRadius:8,overflow:"hidden",position:"relative"}}>
-                        <div style={{position:"absolute",top:0,left:0,bottom:0,
-                          width:`${pct}%`,background:barColor,
-                          borderRadius:7,transition:"width 0.4s ease",opacity:0.9}}/>
-                        {/* Alert marker */}
-                        <div style={{position:"absolute",top:0,bottom:0,
-                          left:`${alertPct}%`,width:2,
-                          background:C.red+"99"}}/>
-                        {/* Label */}
-                        <div style={{position:"absolute",inset:0,
-                          display:"flex",alignItems:"center",justifyContent:"center",
-                          fontSize:11,fontWeight:700,fontFamily:F.body,
-                          color:pct>25?C.surface:C.ink,
-                          textShadow:pct>25?"0 1px 3px rgba(0,0,0,0.35)":"none"}}>
-                          {+(it.qty).toFixed(2)} {it.unit}
+                  <tr key={it.id} style={{background:i%2===0?C.card:C.bg,
+                    borderLeft:low?`3px solid ${C.red}`:"3px solid transparent"}}>
+                    <td style={{padding:"7px 12px",borderBottom:`1px solid ${C.border}11`}}>
+                      <div style={{fontSize:12,fontWeight:low?700:600,color:low?C.red:C.ink}}>{it.name}</div>
+                    </td>
+                    <td style={{padding:"7px 12px",borderBottom:`1px solid ${C.border}11`}}>
+                      <span style={{fontSize:9,background:C.bg,color:C.muted,borderRadius:4,padding:"1px 5px",fontFamily:F.body}}>
+                        {catIcon[it.cat]||"📦"} {it.cat}
+                      </span>
+                    </td>
+                    <td style={{padding:"7px 12px",borderBottom:`1px solid ${C.border}11`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <div style={{width:60,height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                          <div style={{height:"100%",width:`${pct}%`,background:barColor,borderRadius:99}}/>
                         </div>
+                        <span style={{fontSize:11,fontWeight:700,color:low?C.red:C.ink,whiteSpace:"nowrap"}}>
+                          {+(it.qty).toFixed(2)} {it.unit}
+                        </span>
                       </div>
-                    </div>
-
-                    {/* Scale labels */}
-                    <div style={{display:"flex",justifyContent:"space-between",
-                      fontSize:9,color:C.muted,fontFamily:F.body,marginBottom:6}}>
-                      <span>0</span>
-                      <span style={{color:C.red}}>⚑ {it.alert}</span>
-                      <span>{cap} {it.unit}</span>
-                    </div>
-                    {/* Price */}
-                    <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:10}}>
-                      💶 {(it.price||0).toFixed(2)} € / {it.unit}
-                    </div>
-
-                    {/* Quick add buttons */}
-                    {adjId===it.id?(
-                      <div style={{display:"flex",gap:6,alignItems:"center"}}
-                        onClick={e=>e.stopPropagation()}>
-                        <Inp type="number" value={adjV} onChange={e=>setAdjV(e.target.value)}
-                          placeholder="+/-" style={{flex:1,fontSize:12,padding:"5px 8px"}}/>
-                        <Btn sm v="primary" onClick={()=>applyAdj(it.id)}>OK</Btn>
-                        <Btn sm v="ghost" onClick={()=>setAdjId(null)}>✕</Btn>
-                      </div>
-                    ):(
-                      <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>
+                    </td>
+                    <td style={{padding:"7px 12px",fontSize:11,color:C.muted,borderBottom:`1px solid ${C.border}11`}}>
+                      {it.alert} {it.unit}
+                    </td>
+                    <td style={{padding:"7px 12px",fontSize:11,color:C.amber,fontWeight:600,
+                      borderBottom:`1px solid ${C.border}11`,whiteSpace:"nowrap"}}>
+                      {((it.qty*(it.price||0)).toFixed(2))}€
+                    </td>
+                    <td style={{padding:"7px 12px",borderBottom:`1px solid ${C.border}11`}}>
+                      {portions!==null?(
+                        <span style={{fontSize:10,fontWeight:700,color:portions<3?C.red:portions<10?C.amber:C.green}}>
+                          {portions<3?"⛔":portions<10?"⚠":"✓"} {portions} repas
+                        </span>
+                      ):<span style={{color:C.muted,fontSize:10}}>—</span>}
+                    </td>
+                    <td style={{padding:"7px 12px",borderBottom:`1px solid ${C.border}11`}}>
+                      <div style={{display:"flex",gap:3}}>
                         {amounts.map(n=>{
                           const wouldExceed=it.qty+n>cap;
                           return(
-                          <button key={n} onClick={()=>{
-                            if(wouldExceed)return;
-                            deductCost(it,n);
-                            setStock(p=>p.map(s=>s.id===it.id
-                              ?{...s,qty:Math.min(cap,+(s.qty+n).toFixed(3))}:s));
-                          }}
-                            disabled={wouldExceed}
-                            style={{flex:1,padding:"5px 0",fontSize:11,fontWeight:700,
-                              background:wouldExceed?C.bg:C.greenP,
+                            <button key={n} onClick={()=>{
+                              if(wouldExceed)return;
+                              const inst=deductCost(it,n);
+                              if(inst)setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap,+(s.qty+n).toFixed(3))}:s));
+                            }} disabled={wouldExceed} style={{
+                              padding:"3px 8px",fontSize:10,fontWeight:700,borderRadius:5,
+                              background:wouldExceed?C.bg:C.greenP,color:wouldExceed?C.muted:C.green,
                               border:`1px solid ${wouldExceed?C.border:C.green}33`,
-                              borderRadius:7,
-                              color:wouldExceed?C.muted:C.green,
-                              cursor:wouldExceed?"not-allowed":"pointer",
-                              fontFamily:F.body,lineHeight:1,
-                              opacity:wouldExceed?0.45:1}}>
-                            +{n}
-                          </button>
+                              cursor:wouldExceed?"not-allowed":"pointer",fontFamily:F.body,opacity:wouldExceed?0.45:1}}>
+                              +{n}
+                            </button>
                           );
                         })}
-                        <button onClick={()=>setAdjId(it.id)}
-                          style={{flex:"0 0 28px",padding:"5px 0",fontSize:12,fontWeight:700,
-                            background:C.navyP,border:`1px solid ${C.navy}33`,
-                            borderRadius:7,color:C.navy,cursor:"pointer"}}>
-                          ±
-                        </button>
                       </div>
-                    )}
-                  </div>
+                    </td>
+                  </tr>
                 );
               })}
-            </div>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ══ VUE CARTES (accordéon par catégorie) ══ */}
+      {viewMode==="cartes"&&cats.map(cat=>{
+        const items=stock.filter(s=>s.cat===cat);
+        const collapsed=collapsedCats[cat];
+        const catAlerts=items.filter(s=>s.qty<=s.alert).length;
+        return(
+          <div key={cat} style={{marginBottom:20}}>
+            {/* Accordion header */}
+            <button onClick={()=>toggleCat(cat)} style={{
+              width:"100%",display:"flex",alignItems:"center",gap:8,
+              marginBottom:collapsed?0:12,padding:"8px 12px",
+              background:catAlerts>0?C.redP:C.card,
+              border:`1.5px solid ${catAlerts>0?C.red+"33":C.border}`,
+              borderRadius:collapsed?10:12,cursor:"pointer",
+              transition:"all 0.2s",textAlign:"left"}}>
+              <span style={{fontSize:18}}>{catIcon[cat]||"📦"}</span>
+              <span style={{fontSize:14,fontWeight:700,color:catAlerts>0?C.red:C.ink,fontFamily:F.title,flex:1}}>
+                {cat}
+              </span>
+              <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
+                {items.length} article{items.length>1?"s":""}
+              </span>
+              {catAlerts>0&&(
+                <span style={{fontSize:10,background:C.red,color:"#fff",borderRadius:20,
+                  padding:"1px 8px",fontFamily:F.body,fontWeight:700}}>
+                  ⚠ {catAlerts}
+                </span>
+              )}
+              <span style={{fontSize:14,color:C.muted,transform:collapsed?"rotate(-90deg)":"rotate(0deg)",transition:"transform 0.2s"}}>▾</span>
+            </button>
+
+            {!collapsed&&(
+              <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"repeat(auto-fill,minmax(210px,1fr))",gap:bp.isMobile?8:10}}>
+                {items.map(it=>{
+                  const low=it.qty<=it.alert;
+                  const cap=(it.alert>0?it.alert*6:Math.max(it.qty*2,10))*storageMult;
+                  const pct=cap>0?Math.min(100,(it.qty/cap)*100):0;
+                  const alertPct=cap>0?Math.min(100,(it.alert/cap)*100):0;
+                  const barColor=getBarColor(it);
+                  const amounts=quickAmounts(it.unit);
+                  const portions=portionsPerIngredient(it.id);
+
+                  return(
+                    <div key={it.id} style={{
+                      background:low?C.redP:C.card,
+                      border:`1.5px solid ${low?C.red+"55":C.border}`,
+                      borderRadius:14,padding:14,
+                      boxShadow:low?`0 2px 14px ${C.red}20`:"0 1px 5px rgba(0,0,0,0.06)",
+                      cursor:"pointer",transition:"all 0.15s"}}
+                      className="hovcard"
+                      onClick={()=>{setEditId(it.id);setForm({name:it.name,qty:String(it.qty),unit:it.unit,alert:String(it.alert),cat:it.cat,price:String(it.price||0)});setModal(true);}}>
+
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                        <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.body,flex:1,lineHeight:1.3}}>
+                          {it.name}
+                        </div>
+                        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
+                          {low
+                            ?<span style={{fontSize:9,color:C.red,fontWeight:700,background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:5,padding:"1px 5px"}}>⚠ Bas</span>
+                            :<span style={{fontSize:9,color:C.green,fontWeight:600,background:C.greenP,border:`1px solid ${C.green}33`,borderRadius:5,padding:"1px 5px"}}>✓ OK</span>
+                          }
+                          {/* Prévision portions */}
+                          {portions!==null&&(
+                            <span style={{fontSize:9,fontWeight:700,
+                              color:portions<3?C.red:portions<10?C.amber:C.muted,
+                              fontFamily:F.body}}>
+                              {portions<3?"⛔":portions<10?"⚠":"🍽"} ~{portions} repas
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Gauge */}
+                      <div style={{marginBottom:5}}>
+                        <div style={{height:20,background:C.bg,border:`1px solid ${C.border}`,borderRadius:7,overflow:"hidden",position:"relative"}}>
+                          <div style={{position:"absolute",top:0,left:0,bottom:0,width:`${pct}%`,background:barColor,borderRadius:6,transition:"width 0.4s ease",opacity:0.9}}/>
+                          <div style={{position:"absolute",top:0,bottom:0,left:`${alertPct}%`,width:2,background:C.red+"99"}}/>
+                          <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",
+                            fontSize:10,fontWeight:700,fontFamily:F.body,color:pct>25?C.surface:C.ink,
+                            textShadow:pct>25?"0 1px 3px rgba(0,0,0,0.35)":"none"}}>
+                            {+(it.qty).toFixed(2)} {it.unit}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:C.muted,fontFamily:F.body,marginBottom:5}}>
+                        <span>0</span>
+                        <span style={{color:C.red}}>⚑ {it.alert}</span>
+                        <span>{cap} {it.unit}</span>
+                      </div>
+                      <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginBottom:8}}>
+                        💶 {(it.price||0).toFixed(2)} € / {it.unit}
+                      </div>
+
+                      {/* Quick add */}
+                      {adjId===it.id?(
+                        <div style={{display:"flex",gap:5,alignItems:"center"}} onClick={e=>e.stopPropagation()}>
+                          <Inp type="number" value={adjV} onChange={e=>setAdjV(e.target.value)}
+                            placeholder="+/-" style={{flex:1,fontSize:11,padding:"4px 7px"}}/>
+                          <Btn sm v="primary" onClick={()=>applyAdj(it.id)}>OK</Btn>
+                          <Btn sm v="ghost" onClick={()=>setAdjId(null)}>✕</Btn>
+                        </div>
+                      ):(
+                        <div style={{display:"flex",gap:3}} onClick={e=>e.stopPropagation()}>
+                          {amounts.map(n=>{
+                            const wouldExceed=it.qty+n>cap;
+                            return(
+                              <button key={n} onClick={()=>{
+                                if(wouldExceed)return;
+                                deductCost(it,n);
+                                setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap,+(s.qty+n).toFixed(3))}:s));
+                              }} disabled={wouldExceed} style={{
+                                flex:1,padding:"4px 0",fontSize:10,fontWeight:700,
+                                background:wouldExceed?C.bg:C.greenP,border:`1px solid ${wouldExceed?C.border:C.green}33`,
+                                borderRadius:6,color:wouldExceed?C.muted:C.green,
+                                cursor:wouldExceed?"not-allowed":"pointer",fontFamily:F.body,lineHeight:1,opacity:wouldExceed?0.45:1}}>
+                                +{n}
+                              </button>
+                            );
+                          })}
+                          <button onClick={()=>setAdjId(it.id)}
+                            style={{flex:"0 0 26px",padding:"4px 0",fontSize:11,fontWeight:700,
+                              background:C.navyP,border:`1px solid ${C.navy}33`,
+                              borderRadius:6,color:C.navy,cursor:"pointer"}}>
+                            ±
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })}
@@ -4153,10 +4854,6 @@ function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMode,setSu
     </div>
   );
 }
-
-/* ═══════════════════════════════════════════════════════
-   COMPLAINTS VIEW
-═══════════════════════════════════════════════════════ */
 function ComplaintsView({complaints,setComplaints,tables,servers,seenIds}){
   const [modal,setModal]=useState(false);
   const [form,setForm]=useState({date:"",table:"",server:"",type:"Qualité plat",desc:"",status:"nouveau",prio:"moyenne"});
@@ -4282,108 +4979,135 @@ function ComplaintsView({complaints,setComplaints,tables,servers,seenIds}){
 const HELP_SECTIONS=[
   {
     icon:"⊞", title:"Tables",
-    color:"#2a5c3f",
+    color:"#1e5c38",
     items:[
       {q:"Arrivée des clients",a:"Un nouveau groupe arrive toutes les 30 secondes (65 % de chance). La taille du groupe ne dépasse jamais la capacité maximale des tables libres. La file d'attente reste active même si vous changez d'onglet."},
       {q:"Humeur et patience",a:"🤩 Enthousiaste (45s, ×1.5 XP) · 😊 Détendu (35s) · 😐 Neutre (25s) · 😑 Pressé (18s) · 😤 Impatient (11s, ×0.6 XP). La barre de patience passe du vert au rouge — si elle atteint 0, le groupe part sans consommer."},
-      {q:"Placement automatique",a:"Si une table libre et un serveur actif sont disponibles, cliquez sur ▶ Placer pour installer le groupe. La commande est générée et le serveur part la prendre."},
-      {q:"Prise de commande",a:"Le serveur prend la commande selon la taille du groupe : 30s (2 personnes), 1 min (4 personnes), 1m30 (6 personnes). La carte affiche 🛎 prise de commande avec un compte à rebours. La commande part en cuisine à la fin."},
-      {q:"Repas en cours",a:"Une fois les plats servis, la table passe en 🍴 repas en cours. Le temps de repas correspond aux ⅔ du temps du plat le plus long. Le bouton Encaisser est verrouillé pendant ce délai."},
-      {q:"Nettoyage",a:"Après l'encaissement, un serveur libre nettoie la table pendant 1 minute (🧹 nettoyage). La table redevient libre automatiquement."},
-      {q:"Agrandir une table",a:"Sur chaque table libre, un bouton permet d'augmenter la capacité : 2→4 couverts pour 800 €, puis 4→6 couverts pour 1 800 €. Maximum 6 couverts. Des groupes plus grands arriveront une fois les tables agrandies."},
-      {q:"Niveau des tables",a:"Chaque encaissement fait progresser la table (6 niveaux : 🪑 Basique → 🏆 Légendaire). Les tables de niveau élevé multiplient les gains d'XP."},
+      {q:"Plan de salle / Vue grille",a:"Basculez entre le plan SVG et la vue grille via le bouton 🗺 / ⊞. Le plan montre toutes les tables avec leur statut coloré. Cliquez une table pour ouvrir son panneau de détail latéral."},
+      {q:"Timeline de phases",a:"Chaque table affiche une barre de 4 segments : 🛎 Commande (bleu) → 🔥 Cuisine (orange) → 🍴 Repas (vert) → 🧹 Nettoyage (jaune). Chaque segment se remplit progressivement. La phase cuisine utilise le plat le plus long encore en cuisson."},
+      {q:"Placement automatique",a:"Si une table libre et un serveur actif sont disponibles, cliquez sur ▶ Placer pour installer le groupe automatiquement. Sinon, utilisez la modale pour choisir table et serveur manuellement."},
+      {q:"Prise de commande",a:"Le serveur prend la commande selon la taille du groupe : 30s (2p), 1 min (4p), 1m30 (6p). La carte affiche 🛎 avec un compte à rebours et la barre de phase se remplit."},
+      {q:"Repas en cours",a:"Une fois les plats servis, la table passe en 🍴 repas. Le temps correspond aux ⅔ du plat le plus long. Le bouton Encaisser est verrouillé pendant ce délai."},
+      {q:"Nettoyage",a:"Après l'encaissement, un serveur nettoie pendant 1 minute (réduit par l'amélioration Station de plonge). La table redevient libre automatiquement."},
+      {q:"Agrandir une table",a:"Sur chaque table libre, un bouton permet d'augmenter la capacité : 2→4 couverts pour 800 €, puis 4→6 couverts pour 1 800 €. Des groupes plus grands arriveront ensuite."},
+      {q:"File d'attente — rappel",a:"Si un groupe part avant d'être placé, il reste rappelable 2 minutes dans la liste d'attente. Cliquez ↩ Rappeler pour le remettre en tête de file avec +15s de patience."},
+      {q:"Réorganiser la file",a:"Les boutons ↑↓ sur chaque ticket de la file permettent de prioriser les groupes. Un indicateur de backlog (temps total estimé) s'affiche en haut."},
     ]
   },
   {
     icon:"👤", title:"Serveurs",
-    color:"#1c3352",
+    color:"#162d4a",
     items:[
-      {q:"Équipe de départ",a:"Le restaurant démarre avec deux serveurs : Marie Dupont (14 €/h) et Pierre Martin (12 €/h). Le nombre de serveurs est fixe."},
-      {q:"Statuts",a:"Actif → disponible. En pause → indisponible, non payé. 🛎 En service → prend une commande ou nettoie (durée variable). Seuls les serveurs actifs sont assignés automatiquement."},
-      {q:"Durée de service",a:"Prise de commande : 30s (2p), 1 min (4p), 1m30 (6p). Nettoyage : toujours 1 minute. Un serveur en service ne peut pas être mis en pause ni réassigné."},
-      {q:"Expérience et niveau",a:"Les serveurs gagnent 50 % de l'XP de chaque encaissement. 5 niveaux : 🎓 Stagiaire → 👑 Maître."},
-      {q:"Salaire",a:"Les serveurs actifs sont payés toutes les heures réelles. Les serveurs en pause ou au repos ne sont pas payés."},
+      {q:"Équipe et slots",a:"Le restaurant démarre avec 2 serveurs. Des slots supplémentaires se débloquent avec le niveau du restaurant : 3 au Bistrot, 4 à la Brasserie, jusqu'à 8 au Palace."},
+      {q:"Statuts",a:"Actif → disponible. En pause → indisponible, non payé. 🛎 En service → prend une commande ou nettoie. Seuls les serveurs actifs (moral > 10) sont assignés automatiquement."},
+      {q:"Moral",a:"Le moral baisse de 1 point toutes les 5 minutes si le serveur est actif. Il remonte pendant les pauses. En dessous de 10 (💀 Burnout), le serveur n'est plus disponible. Utilisez 🎁 Prime 50€ pour remonter un moral bas."},
+      {q:"Spécialités",a:"Débloquées au niveau 2 : ⚡ Rapidité (−30% temps commande), ✨ Charme (+20% pourboires), 🍷 Sommelier (+10% pourboires), 🎩 VIP (+15% pourboires). Améliorées au niveau 4."},
+      {q:"Formations",a:"5 domaines de formation : Accueil, Rapidité, Sommellerie, Prestige VIP, Bien-être. Chaque domaine a 3 niveaux progressifs. Les formations améliorent les spécialités et le moral maximal."},
+      {q:"Expérience et niveau",a:"Les serveurs gagnent de l'XP à chaque encaissement. 5 niveaux : 🎓 Stagiaire → 👑 Maître. Les pourboires augmentent aussi avec le niveau."},
+      {q:"Salaire",a:"Les serveurs actifs sont payés toutes les heures réelles. En pause ou au repos, ils ne sont pas payés."},
     ]
   },
   {
     icon:"👨‍🍳", title:"Cuisine",
-    color:"#c4622d",
+    color:"#b85520",
     items:[
-      {q:"File d'attente",a:"Les tickets arrivent en cuisine après le délai de prise de commande. Ils s'ajoutent dans l'ordre d'arrivée."},
-      {q:"Feux de cuisson",a:"4 feux simultanés de base, +1 par commis débloqué. Cliquez sur ▶ Démarrer ou « Tout démarrer » pour lancer les cuissons disponibles."},
-      {q:"Temps de cuisson",a:"Réduit par le niveau du chef (×1.0 à ×3.0) et les commis (+15 % chacun). La barre de progression affiche le temps restant en mm:ss."},
-      {q:"Servir une table",a:"Quand tous les plats d'une table sont prêts (✅), le bouton 🍽 Servir apparaît. La table passe en phase repas (⅔ du temps du plat le plus long) avant encaissement."},
-      {q:"Chef et commis",a:"Le chef gagne +12 XP par plat terminé. Les commis gagnent +40 % de ce montant. Commis supplémentaires débloqués aux niveaux 2 et 4 du chef."},
+      {q:"Piano de cuisine",a:"Le centre de l'onglet affiche un piano SVG avec N brûleurs. Les flammes s'animent en orange pendant la cuisson, passent au vert à 80% de progression, avec vapeur quand c'est presque prêt."},
+      {q:"Tickets de commande",a:"Chaque table a un ticket ordonnable (boutons ↑↓). Le ticket change de couleur selon l'attente : 🟢 < 3 min · 🟡 3–5 min · 🔴 > 5 min. Un badge indique les tickets en retard."},
+      {q:"Feux de cuisson",a:"4 feux de base + commis débloqués + améliorations Fourneau. Cliquez ▶ sur un plat ou « Tout démarrer » pour remplir les feux libres."},
+      {q:"Temps de cuisson",a:"Réduit par le niveau du chef (×1.0 à ×3.0), les commis (+15% chacun) et l'amélioration Four professionnel (jusqu'à −50%)."},
+      {q:"Servir une table",a:"Quand tous les plats d'une table sont prêts (✅ PRÊT), le bouton 🍽 Servir apparaît. La table passe en phase repas avant encaissement."},
+      {q:"Chef et commis",a:"Le chef gagne +12 XP par plat. Les commis gagnent 40% de ce montant. 3 commis débloqués aux niveaux 2 et 4 du chef (niveaux 1, 2 et 3 selon l'avancement)."},
+      {q:"Améliorations cuisine",a:"🔥 Fourneau (+1 feu, 3 niveaux) · 🏺 Four professionnel (−50% temps, 3 niveaux) · 🧊 Chambre froide (capacité stock ×3, 2 niveaux) · 🚿 Station de plonge (nettoyage −40s, 2 niveaux)."},
     ]
   },
   {
     icon:"📋", title:"Menu",
-    color:"#5c4a8a",
+    color:"#5c2e96",
     items:[
-      {q:"Cartes des plats",a:"Chaque carte affiche le nom, le prix, le temps de préparation ⏱ et les ingrédients. Badge vert = stock suffisant, rouge = stock insuffisant."},
-      {q:"Modifier un plat",a:"Cliquez sur une carte pour modifier le nom, la catégorie, le prix, le temps de préparation (en secondes) et la recette."},
-      {q:"Temps de préparation",a:"Exprimé en secondes. Les plats principaux prennent entre 75s et 180s. Ce temps est réduit par le chef et les commis à la cuisson."},
+      {q:"4 sous-onglets",a:"📋 Carte (plats actifs), 🍽 Formules (menus combinés), 🎨 Thèmes (modificateurs globaux), 📊 Performance (analyse de rentabilité)."},
+      {q:"Prix dynamique",a:"Sur chaque carte, ajustez le prix : −10%, −5%, +5%, +10%, +20%. Le bouton ↺ réinitialise au prix de base. Les prix ajustés s'appliquent aux nouvelles commandes."},
+      {q:"Activer / Désactiver",a:"Le bouton ⏸ retire un plat du menu sans le supprimer. Les plats désactivés ne sont plus commandés par les clients."},
+      {q:"Score de rentabilité",a:"Chaque plat a un score composé : 40% marge brute + 40% popularité + 20% disponibilité stock. Badge 🔥 pour le plat le mieux noté."},
+      {q:"Formules",a:"3 modèles : Menu Découverte (−12%, 3 services), Menu Express (−8%, 2 services), Menu Prestige (−15%, 4 services). Configurez les plats de chaque catégorie puis activez."},
+      {q:"Thèmes",a:"🍺 Bistrot (×0.90 prix) · ⭐ Gastronomique (×1.15 prix, +5 rép, +20% XP) · 🌿 Saisonnier (+8 rép, +10% XP). Le thème actif s'applique à chaque encaissement."},
+      {q:"Plats du jour",a:"2 plats aléatoires sont mis en avant chaque heure avec −20% de réduction. Ils apparaissent dans la file d'attente et dans l'onglet Tables."},
     ]
   },
   {
     icon:"📦", title:"Stocks",
-    color:"#1c3352",
+    color:"#162d4a",
     items:[
-      {q:"Vue par catégorie",a:"Les produits sont regroupés par catégorie. Chaque carte affiche une jauge avec le niveau actuel, le seuil d'alerte (⚑) et la capacité maximale."},
-      {q:"Acheter des ingrédients",a:"Boutons rapides pour réapprovisionner. Le coût est déduit de la caisse immédiatement. Les ingrédients sont consommés au démarrage de chaque cuisson."},
-      {q:"Boutons grisés",a:"Un bouton est grisé si l'ajout dépasserait le stock maximum autorisé."},
-      {q:"Tout réapprovisionner",a:"Le bouton ⟳ dans la bannière d'alerte remonte tous les produits en rupture à 4× leur seuil en un clic."},
-      {q:"Alertes",a:"Quand une quantité tombe sous le seuil, la carte passe en rouge et le badge ⚠ s'affiche dans la navigation."},
+      {q:"3 modes de vue",a:"⊞ Cartes (défaut, accordéon par catégorie), ☰ Liste (tableau compact), 📊 Graphique (barres horizontales triées par urgence). Triez par urgence, catégorie ou alphabétique."},
+      {q:"Prévision rupture",a:"Le bloc 🔮 calcule combien de repas chaque ingrédient peut encore couvrir selon les recettes actives. Couleur : ✓ vert (>10 repas) · ⚠ orange (<10) · ⛔ rouge (<3 ou épuisé)."},
+      {q:"Commander selon prévision",a:"Le bouton 🛒 Commander réapprovisionne automatiquement les 3 ingrédients les plus critiques jusqu'au niveau optimal, en tenant compte du fournisseur actif."},
+      {q:"Fournisseurs",a:"⚡ Grossiste Premium : prix plein, livraison instantanée. 🚚 Fournisseur Local : −20% mais livraison en 2 minutes. Les livraisons en cours s'affichent avec une barre de progression."},
+      {q:"Accordéon catégories",a:"Cliquez sur l'en-tête d'une catégorie pour la réduire ou l'agrandir. Le badge rouge indique combien d'alertes il y a dans chaque catégorie sans avoir à dérouler."},
+      {q:"KPI inventaire",a:"4 métriques en haut : alertes stock, valeur totale de l'inventaire, ruptures prévues, nombre d'articles. Mis à jour en temps réel."},
     ]
   },
   {
-    icon:"🎯", title:"Objectifs",
-    color:"#b87d10",
+    icon:"🎯", title:"Objectifs & Défis",
+    color:"#a06c08",
     items:[
-      {q:"Séries d'objectifs",a:"16 objectifs en 4 séries : Premiers pas, Croissance, Excellence, Légende. Chaque série est plus exigeante que la précédente."},
-      {q:"Conditions",a:"Les objectifs couvrent : tables servies, chiffre d'affaires, tables agrandies et niveaux de restaurant débloqués."},
-      {q:"Récompenses",a:"Chaque objectif complété donne des espèces et de l'XP restaurant. Cliquez sur Récupérer pour encaisser."},
-      {q:"Badge et notifications",a:"Un badge numérique apparaît sur l'onglet 🎯 dès qu'une récompense est prête. Appuyez sur le toast pour ouvrir directement l'onglet."},
+      {q:"Séries d'objectifs",a:"16 objectifs en 4 séries : Premiers pas, Croissance, Excellence, Légende. Chaque objectif complété donne des espèces et de l'XP restaurant. Cliquez Récupérer pour encaisser."},
+      {q:"Défis quotidiens",a:"3 défis renouvelés chaque jour, tirés au sort selon la date. Catégories : clients servis, recettes, notes, rush express, service VIP, salle comble, pourboires. Récompenses immédiates."},
+      {q:"Jalons de progression",a:"Une frise chronologique affiche 6 jalons clés (10 clients, 50 clients, 1k€, 5k€, 20k€, Palace). Les jalons atteints s'illuminent en or."},
+      {q:"Badge et notifications",a:"Un badge rouge sur l'onglet Objectifs indique les récompenses prêtes + défis quotidiens complétés. Les toasts sont cliquables pour y accéder directement."},
     ]
   },
   {
     icon:"💰", title:"Finances",
-    color:"#b87d10",
+    color:"#a06c08",
     items:[
-      {q:"Caisse",a:"Le restaurant démarre avec 5 000 €. Affiché dans le header : vert si ≥ 200 €, rouge si critique."},
-      {q:"Recettes",a:"Chaque encaissement crédite la caisse du montant de l'addition."},
-      {q:"Dépenses",a:"Achats de stock et agrandissements de tables déduits en temps réel. Salaires prélevés toutes les heures réelles."},
-      {q:"Grand livre",a:"Cliquez sur 💰 dans le header pour voir toutes les transactions avec le résumé Recettes / Dépenses / Résultat net."},
+      {q:"Caisse",a:"Le restaurant démarre avec 5 000 €. Affiché en vert (≥ 200 €) ou rouge (critique). Cliquez sur 💰 pour ouvrir le Grand Livre."},
+      {q:"Résultat du jour",a:"Dans l'onglet Statistiques : revenus encaissés, dépenses du jour et résultat net. La masse salariale active (chef + commis + serveurs) est détaillée en €/h."},
+      {q:"Grand livre",a:"Toutes les transactions avec résumé Recettes / Dépenses / Résultat net. Limité aux 200 dernières entrées."},
+      {q:"Prêts bancaires",a:"3 options : Petit prêt (1 500€), Standard (4 000€), Grand prêt (9 000€). Remboursement automatique par mensualités horaires. Un seul prêt actif à la fois. Remboursement anticipé possible."},
+      {q:"Salaires",a:"Débités automatiquement toutes les heures réelles. Seuls les personnels actifs sont payés. Les commis non débloqués ne sont pas comptés."},
     ]
   },
   {
     icon:"📊", title:"Statistiques",
-    color:"#2a5c3f",
+    color:"#1e5c38",
     items:[
-      {q:"Données journalières",a:"Les 5 derniers jours : clients servis, clients perdus et revenus par jour."},
-      {q:"Taux de service",a:"Barre de progression par jour : vert ≥ 80 %, orange ≥ 50 %, rouge < 50 %."},
-      {q:"Graphiques",a:"Barres visuelles pour les revenus et la répartition servis/perdus, mises à jour en temps réel."},
+      {q:"Graphiques linéaires",a:"3 courbes SVG interactives : Revenus, Clients servis, Réputation. Passez la souris sur un point pour voir la valeur exacte. Un indicateur ↗/↘ montre la tendance vs j−1."},
+      {q:"Période",a:"Sélecteur 3 jours / 5 jours pour zoomer ou élargir la vue."},
+      {q:"Analyse financière",a:"Compte de résultat du jour (revenus, dépenses, résultat net), masse salariale active, camembert de répartition des revenus par catégorie de menu, panier moyen."},
+      {q:"Réputation",a:"Jauge circulaire SVG avec palier actuel, effets sur les pourboires et le taux de spawn clients. Barre de progression vers le palier suivant."},
+      {q:"Tableau journalier",a:"Les N derniers jours : clients servis, perdus, taux de service (barre colorée) et revenus. La ligne du jour est mise en avant."},
+    ]
+  },
+  {
+    icon:"⭐", title:"Réputation",
+    color:"#5c2e96",
+    items:[
+      {q:"5 paliers",a:"💀 Désastreuse (0–19) · 😟 Dégradée (20–39) · 😐 Neutre (40–59) · 😊 Appréciée (60–79) · 🌟 Réputée (80+). Chaque palier modifie les pourboires et le taux d'arrivée des clients."},
+      {q:"Gain de réputation",a:"★★★★★ +4 pts · ★★★★ +2 pts · ★★★ 0 pt · ★★ −4 pts · ★ −8 pts. Client VIP servi +6 pts. Bonus selon le thème de menu actif."},
+      {q:"Perte de réputation",a:"Client perdu −3 pts · Plainte −5 pts · Amende inspection −6 pts · Passage inspection réussie +3 pts."},
+      {q:"Effets en jeu",a:"Les pourboires et le taux de spawn clients sont multipliés par le modificateur du palier (×0.5 à ×1.25). Visible dans le header et l'onglet Statistiques."},
     ]
   },
   {
     icon:"⚠", title:"Plaintes",
-    color:"#c4622d",
+    color:"#b85520",
     items:[
-      {q:"Liste des plaintes",a:"Triées de la plus récente à la plus ancienne. Badge ● NOUVEAU sur les plaintes non encore consultées."},
-      {q:"Indicateur non lu",a:"Le badge ● NOUVEAU disparaît dès que vous ouvrez l'onglet Plaintes ou cliquez sur l'alerte 💬 dans le header."},
-      {q:"Alerte header",a:"L'alerte 💬 indique le nombre de nouvelles plaintes. Cliquez dessus pour aller directement à l'onglet — elle disparaît ensuite."},
+      {q:"Génération automatique",a:"Une plainte est générée automatiquement si la note est ≤ 2 étoiles lors d'un encaissement, ou en cas d'amende d'inspection sanitaire."},
+      {q:"Liste des plaintes",a:"Triées de la plus récente à la plus ancienne. Badge ● NOUVEAU sur les plaintes non encore consultées. Priorités : haute (rouge), moyenne (orange), basse (bleu)."},
+      {q:"Alerte header",a:"L'alerte 💬 indique le nombre de nouvelles plaintes. Cliquez dessus pour accéder directement à l'onglet — le badge disparaît après consultation."},
     ]
   },
   {
     icon:"🏆", title:"Niveau Restaurant",
-    color:"#b87d10",
+    color:"#a06c08",
     items:[
-      {q:"Progression",a:"Chaque encaissement ajoute de l'XP. La barre dans le header indique l'avancement vers le niveau suivant."},
-      {q:"Déblocage des tables",a:"☕ Café (3) → 🍺 Bistrot (5) → 🍽 Brasserie (7) → ⭐ Restaurant (9) → 🌟 Grand Restaurant (11) → 👑 Palace (12)."},
-      {q:"Toasts de navigation",a:"Chaque toast est cliquable et vous amène directement à l'onglet concerné. Un hint ↗ indique les toasts navigables."},
+      {q:"Progression",a:"Chaque encaissement ajoute de l'XP (modifié par l'humeur du groupe, le statut VIP et le thème de menu). La barre dans le header indique l'avancement."},
+      {q:"Déblocage des tables",a:"☕ Café de quartier (3 tables) → 🍺 Bistrot (5) → 🍽 Brasserie (7) → ⭐ Restaurant (9) → 🌟 Grand Restaurant (11) → 👑 Palace (12 tables)."},
+      {q:"Déblocage des serveurs",a:"Bistrot +1 slot (3 total) → Brasserie +1 (4) → Restaurant +1 (5) → Grand Restaurant +1 (6) → Palace +2 (8 serveurs maximum)."},
+      {q:"Événements aléatoires",a:"Toutes les 4 minutes réelles : 🔍 Inspection sanitaire (amende ou bonus), ⚡ Rush inattendu (3 groupes ajoutés), 🧊 Panne frigo (stocks réduits), 🎩 Critique Michelin (client VIP)."},
     ]
   },
 ];
+
 
 function HelpModal({onClose}){
   const [sec,setSec]=useState(0);
@@ -4599,10 +5323,15 @@ function DailySummaryModal({onClose,dailyStats,objStats,servers,menu,transaction
 /* ═══════════════════════════════════════════════════════
    STATS VIEW — Dashboard redesigné (B)
 ═══════════════════════════════════════════════════════ */
-function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=50}){
-  const days=[...dailyStats].reverse();
-  const maxRevenue=Math.max(...days.map(d=>d.revenue),1);
-  const maxClients=Math.max(...days.map(d=>d.served+d.lost),1);
+function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=50,transactions=[],menu=[],bp={}}){
+  const [period,setPeriod]=useState(5);   // 3 or 5 days
+  const [hovRevIdx,setHovRevIdx]=useState(null);
+  const [hovCliIdx,setHovCliIdx]=useState(null);
+  const [hovRepIdx,setHovRepIdx]=useState(null);
+
+  const days=[...dailyStats].slice(-period).reverse(); // most recent first → reverse for chart left→right
+  const chartDays=[...dailyStats].slice(-period);      // chronological for charts
+
   const rl=restoLv(restoXp||0);
   const rlD=rl.d;
   const nextRl=rl.next;
@@ -4610,319 +5339,437 @@ function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=
   const clD=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
   const repTier=getRepTier(reputation);
   const nextRepTier=REP_THRESHOLDS.find(t=>t.min>reputation);
-  const prevRepTier=[...REP_THRESHOLDS].reverse().find(t=>t.min<(repTier.min));
+  const nextObj=OBJECTIVES_DEF.find(o=>!o.condition(objStats||{}));
 
-  const nextObj=OBJECTIVES_DEF.find(o=>!(objStats?.completedIds||[]).includes(o.id)&&!o.condition(objStats||{}));
+  // ── Trend helpers ──────────────────────────────────────
+  const trend=(arr,key)=>{
+    if(arr.length<2)return null;
+    const last=arr[arr.length-1][key]||0;
+    const prev=arr[arr.length-2][key]||0;
+    if(prev===0)return null;
+    return Math.round(((last-prev)/prev)*100);
+  };
+  const revTrend=trend(chartDays,"revenue");
+  const srvTrend=trend(chartDays,"served");
+
+  // ── SVG Line Chart helper ───────────────────────────────
+  const LineChart=({data,color,label,unit="",hov,setHov,height=110,fillOpacity=0.15})=>{
+    const W=320,H=height,PAD=20,BOTTOM=22;
+    const vals=data.map(d=>d||0);
+    const maxV=Math.max(...vals,1);
+    const pts=vals.map((v,i)=>[
+      PAD+(i/(vals.length-1||1))*(W-PAD*2),
+      H-BOTTOM-((v/maxV)*(H-BOTTOM-8))
+    ]);
+    // Smooth bezier path
+    const path=pts.length<2?"":[
+      `M ${pts[0][0]} ${pts[0][1]}`,
+      ...pts.slice(1).map((p,i)=>{
+        const prev=pts[i];
+        const cp1x=prev[0]+(p[0]-prev[0])/3;
+        const cp2x=p[0]-(p[0]-prev[0])/3;
+        return `C ${cp1x} ${prev[1]} ${cp2x} ${p[1]} ${p[0]} ${p[1]}`;
+      })
+    ].join(" ");
+    const fillPath=path+` L ${pts[pts.length-1][0]} ${H-BOTTOM} L ${pts[0][0]} ${H-BOTTOM} Z`;
+
+    return(
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{overflow:"visible"}} onMouseLeave={()=>setHov(null)}>
+        {/* Grid lines */}
+        {[0.25,0.5,0.75,1].map(f=>(
+          <line key={f} x1={PAD} y1={H-BOTTOM-(f*(H-BOTTOM-8))} x2={W-PAD} y2={H-BOTTOM-(f*(H-BOTTOM-8))}
+            stroke={C.border} strokeWidth="0.8" strokeDasharray="4 3"/>
+        ))}
+        {/* Baseline */}
+        <line x1={PAD} y1={H-BOTTOM} x2={W-PAD} y2={H-BOTTOM} stroke={C.border} strokeWidth="1"/>
+        {/* Fill area */}
+        {pts.length>=2&&<path d={fillPath} fill={color} opacity={fillOpacity}/>}
+        {/* Line */}
+        {pts.length>=2&&<path d={path} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>}
+        {/* Points */}
+        {pts.map(([x,y],i)=>(
+          <g key={i} onMouseEnter={()=>setHov(i)} style={{cursor:"pointer"}}>
+            <circle cx={x} cy={y} r={hov===i?6:4} fill={color} stroke="#fff" strokeWidth="2"
+              opacity={hov===i||hov===null?1:0.6}
+              style={{transition:"r 0.15s,opacity 0.15s"}}/>
+            {/* Tooltip */}
+            {hov===i&&(
+              <g>
+                <rect x={x-36} y={y-32} width={72} height={22} rx="6"
+                  fill={C.ink} opacity="0.9"/>
+                <text x={x} y={y-17} textAnchor="middle" fontSize="10" fontWeight="700"
+                  fill="#fff" fontFamily="sans-serif">
+                  {vals[i].toFixed(unit==="€"?0:0)}{unit}
+                </text>
+              </g>
+            )}
+          </g>
+        ))}
+        {/* X labels */}
+        {chartDays.map((d,i)=>(
+          <text key={i} x={pts[i]?.[0]||0} y={H-5} textAnchor="middle"
+            fontSize="8" fill={i===chartDays.length-1?color:C.muted}
+            fontFamily="sans-serif" fontWeight={i===chartDays.length-1?"700":"400"}>
+            {d.date.slice(0,5)}
+          </text>
+        ))}
+      </svg>
+    );
+  };
+
+  // ── Financial analysis ─────────────────────────────────
+  // Revenue by category from today's transactions
+  const todayLabel=new Date().toLocaleDateString("fr-FR");
+  const todayTx=transactions.filter(t=>t.type==="revenu"&&new Date(t.date).toLocaleDateString("fr-FR")===todayLabel);
+  const totalRevToday=todayTx.reduce((s,t)=>s+t.amount,0);
+  const totalExpToday=transactions.filter(t=>t.type!=="revenu"&&new Date(t.date).toLocaleDateString("fr-FR")===todayLabel)
+    .reduce((s,t)=>s+t.amount,0);
+  const netToday=+(totalRevToday-totalExpToday).toFixed(2);
+
+  // Salary costs per hour (active staff)
+  const chefSalary=kitchen?.chef?.salary||0;
+  const commissSalary=(kitchen?.commis||[]).filter(c=>c.status==="actif").reduce((s,c)=>s+(c.salary||0),0);
+  const serverSalary=(servers||[]).filter(s=>s.status==="actif").reduce((s,sv)=>s+(sv.salary||0),0);
+  const totalSalaryPerHour=chefSalary+commissSalary+serverSalary;
+
+  // Revenue breakdown by menu category (estimated from orders)
+  const catRevenue={Entrées:0,Plats:0,Desserts:0,Boissons:0};
+  const totalOrders=menu.reduce((s,m)=>s+(m.orderCount||0),0)||1;
+  menu.forEach(m=>{
+    const cat=m.cat;
+    if(catRevenue[cat]!==undefined)
+      catRevenue[cat]+=m.price*(m.orderCount||0);
+  });
+  const totalCatRev=Object.values(catRevenue).reduce((s,v)=>s+v,0)||1;
+  const catColors2={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy};
+
+  // Average basket
+  const totalServed=objStats?.totalServed||1;
+  const avgBasket=objStats?.totalRevenue?+(objStats.totalRevenue/totalServed).toFixed(2):0;
+
+  // Pie chart SVG
+  const PieChart=({data,size=100})=>{
+    const cx=size/2,cy=size/2,r=size/2-8;
+    let cumAngle=-Math.PI/2;
+    const slices=data.filter(d=>d.value>0);
+    const total=slices.reduce((s,d)=>s+d.value,0)||1;
+    return(
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {slices.map((d,i)=>{
+          const angle=(d.value/total)*2*Math.PI;
+          const x1=cx+r*Math.cos(cumAngle);
+          const y1=cy+r*Math.sin(cumAngle);
+          cumAngle+=angle;
+          const x2=cx+r*Math.cos(cumAngle);
+          const y2=cy+r*Math.sin(cumAngle);
+          const largeArc=angle>Math.PI?1:0;
+          return(
+            <path key={i}
+              d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`}
+              fill={d.color} stroke="#fff" strokeWidth="1.5" opacity="0.9"/>
+          );
+        })}
+        <circle cx={cx} cy={cy} r={r*0.52} fill={C.surface}/>
+      </svg>
+    );
+  };
+
+  // Reputation history (approximate from dailyStats rating)
+  const repHistory=chartDays.map((d,i)=>{
+    const r=d.ratingAvg||((objStats?.totalRating||0)/(objStats?.ratingCount||1));
+    return Math.min(100,Math.max(0,40+r*10));
+  });
 
   return(
-    <div style={{maxWidth:900,margin:"0 auto",padding:"10px 0"}}>
+    <div style={{maxWidth:960,margin:"0 auto",padding:"10px 0"}}>
 
-      {/* ── Réputation Hero ─────────────────────────────── */}
-      <div style={{background:`linear-gradient(135deg,${repTier.color}14,${repTier.color}06)`,
-        border:`2px solid ${repTier.color}33`,borderRadius:18,padding:"20px 24px",marginBottom:20}}>
-        <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-          {/* Gauge circulaire */}
-          <div style={{position:"relative",width:80,height:80,flexShrink:0}}>
-            <svg width={80} height={80} style={{transform:"rotate(-90deg)"}}>
-              <circle cx={40} cy={40} r={32} fill="none" stroke={C.border} strokeWidth={8}/>
-              <circle cx={40} cy={40} r={32} fill="none" stroke={repTier.color} strokeWidth={8}
-                strokeDasharray={`${2*Math.PI*32}`}
-                strokeDashoffset={`${2*Math.PI*32*(1-reputation/100)}`}
-                strokeLinecap="round"
-                style={{transition:"stroke-dashoffset 0.8s ease"}}/>
-            </svg>
-            <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",
-              alignItems:"center",justifyContent:"center"}}>
-              <span style={{fontSize:22,lineHeight:1}}>{repTier.icon}</span>
-              <span style={{fontSize:10,fontWeight:800,color:repTier.color,
-                fontFamily:F.title,lineHeight:1}}>{Math.round(reputation)}</span>
-            </div>
-          </div>
-
-          {/* Texte */}
-          <div style={{flex:1,minWidth:180}}>
-            <div style={{fontSize:20,fontWeight:800,color:repTier.color,
-              fontFamily:F.title,marginBottom:4}}>{repTier.label}</div>
-            <div style={{fontSize:12,color:C.muted,fontFamily:F.body,
-              lineHeight:1.5,marginBottom:10}}>{repTier.desc}</div>
-            {/* Effets actifs */}
-            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-              <span style={{fontSize:11,background:repTier.tipMult>=1?C.greenP:C.redP,
-                color:repTier.tipMult>=1?C.green:C.red,
-                border:`1px solid ${repTier.tipMult>=1?C.green:C.red}33`,
-                borderRadius:6,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>
-                💸 Pourboires ×{repTier.tipMult}
-              </span>
-              <span style={{fontSize:11,background:repTier.spawnMult>=1?C.greenP:C.redP,
-                color:repTier.spawnMult>=1?C.green:C.red,
-                border:`1px solid ${repTier.spawnMult>=1?C.green:C.red}33`,
-                borderRadius:6,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>
-                🚶 Clients ×{repTier.spawnMult}
-              </span>
-            </div>
-          </div>
-
-          {/* Paliers */}
-          <div style={{flexShrink:0,minWidth:160}}>
-            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:8,fontWeight:600,
-              textTransform:"uppercase",letterSpacing:"0.06em"}}>Paliers</div>
-            {REP_THRESHOLDS.slice().reverse().map(t=>(
-              <div key={t.min} style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
-                <div style={{width:8,height:8,borderRadius:"50%",
-                  background:reputation>=t.min?t.color:C.border,
-                  border:`1.5px solid ${t.color}`,
-                  boxShadow:reputation>=t.min&&repTier.min===t.min?`0 0 0 3px ${t.color}33`:"none",
-                  flexShrink:0,transition:"all 0.3s"}}/>
-                <span style={{fontSize:10,fontFamily:F.body,
-                  fontWeight:repTier.min===t.min?700:400,
-                  color:repTier.min===t.min?t.color:C.muted}}>
-                  {t.icon} {t.label} ({t.min}+)
-                </span>
-              </div>
-            ))}
-          </div>
+      {/* ── Période + KPIs ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
+        <div style={{display:"flex",gap:5}}>
+          {[3,5].map(p=>(
+            <button key={p} onClick={()=>setPeriod(p)} style={{
+              padding:"5px 14px",borderRadius:8,fontSize:12,fontWeight:600,
+              background:period===p?C.navy:"transparent",
+              color:period===p?"#fff":C.muted,
+              border:`1.5px solid ${period===p?C.navy:C.border}`,
+              cursor:"pointer",fontFamily:F.body}}>
+              {p} jours
+            </button>
+          ))}
         </div>
-
-        {/* Barre de progression vers palier suivant */}
-        {nextRepTier&&(
-          <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${repTier.color}22`}}>
-            <div style={{display:"flex",justifyContent:"space-between",
-              fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:5}}>
-              <span>Vers <strong style={{color:nextRepTier.color}}>{nextRepTier.icon} {nextRepTier.label}</strong></span>
-              <span style={{color:repTier.color,fontWeight:700}}>
-                {Math.round(nextRepTier.min-reputation)} pts restants
-              </span>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {[
+            {l:"CA total",     v:(objStats?.totalRevenue||0).toFixed(0)+"€", c:C.amber},
+            {l:"Clients",      v:objStats?.totalServed||0,                    c:C.green},
+            {l:"Panier moyen", v:avgBasket+"€",                               c:C.terra},
+            {l:"Note moy.",    v:objStats?.ratingCount>0?((objStats.totalRating||0)/objStats.ratingCount).toFixed(1)+" ★":"—", c:C.purple},
+          ].map(s=>(
+            <div key={s.l} style={{background:s.c+"12",border:`1px solid ${s.c}22`,
+              borderRadius:10,padding:"7px 13px",textAlign:"center",minWidth:90}}>
+              <div style={{fontSize:15,fontWeight:800,color:s.c,fontFamily:F.title,lineHeight:1}}>{s.v}</div>
+              <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:2}}>{s.l}</div>
             </div>
-            <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden"}}>
-              <div style={{height:"100%",borderRadius:99,background:repTier.color,
-                width:`${Math.round(((reputation-(repTier.min))/(nextRepTier.min-repTier.min))*100)}%`,
-                transition:"width 0.8s ease"}}/>
-            </div>
-          </div>
-        )}
-        {!nextRepTier&&(
-          <div style={{marginTop:10,textAlign:"center",fontSize:12,color:repTier.color,
-            fontWeight:700,fontFamily:F.body}}>
-            {repTier.icon} Réputation maximale atteinte !
-          </div>
-        )}
+          ))}
+        </div>
       </div>
 
-      {/* ── Progression Hero ────────────────────────────── */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:24}}>
-
-        {/* Restaurant XP */}
-        <div style={{background:`linear-gradient(135deg,${rlD.color}18,${C.surface})`,
-          border:`2px solid ${rlD.color}33`,borderRadius:18,padding:"18px 20px"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
-            <div style={{width:48,height:48,background:rlD.color+"22",border:`2px solid ${rlD.color}44`,
-              borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>
-              {rlD.icon}
-            </div>
-            <div>
-              <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginBottom:2}}>Restaurant</div>
-              <div style={{fontSize:17,fontWeight:800,color:rlD.color,fontFamily:F.title}}>{rlD.name}</div>
-            </div>
-            <div style={{marginLeft:"auto",textAlign:"right"}}>
-              <div style={{fontSize:24,fontWeight:800,color:rlD.color,fontFamily:F.title,lineHeight:1}}>N{rlD.l}</div>
-              <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>/{RESTO_LVL.length-1}</div>
-            </div>
+      {/* ══ GRAPHIQUES SVG ══ */}
+      <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"1fr 1fr 1fr",gap:bp.isMobile?10:12,marginBottom:20}}>
+        {/* Revenue */}
+        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"14px 16px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>💶 Revenus</span>
+            {revTrend!==null&&(
+              <span style={{fontSize:11,fontWeight:700,color:revTrend>=0?C.green:C.red,fontFamily:F.body}}>
+                {revTrend>=0?"↗":"↘"} {Math.abs(revTrend)}%
+              </span>
+            )}
           </div>
-          <div style={{marginBottom:6}}>
-            <div style={{display:"flex",justifyContent:"space-between",fontSize:10,
-              color:C.muted,fontFamily:F.body,marginBottom:5}}>
-              <span style={{color:rlD.color,fontWeight:600}}>{restoXp||0} XP</span>
-              <span>{rl.l<RESTO_LVL.length-1?`${nextRl.xpNeeded} XP pour ${nextRl.name}`:"✦ Niveau max"}</span>
-            </div>
-            <div style={{height:10,background:C.border,borderRadius:99,overflow:"hidden"}}>
-              <div style={{height:"100%",width:`${rl.pct||0}%`,background:rlD.color,
-                borderRadius:99,transition:"width 0.8s ease"}}/>
-            </div>
-          </div>
-          <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:10}}>
-            {RESTO_LVL.map((r,i)=>(
-              <div key={i} style={{width:20,height:20,borderRadius:6,
-                background:i<=rl.l?r.color:"#e0d8cc",
-                display:"flex",alignItems:"center",justifyContent:"center",
-                fontSize:10,title:r.name,
-                boxShadow:i===rl.l?`0 0 0 2px ${r.color}66`:"none",
-                transition:"all 0.3s"}}>
-                {i<=rl.l?r.icon:""}
-              </div>
-            ))}
-          </div>
+          <LineChart data={chartDays.map(d=>d.revenue)} color={C.amber} unit="€"
+            hov={hovRevIdx} setHov={setHovRevIdx}/>
         </div>
 
-        {/* Chef XP */}
-        <div style={{background:`linear-gradient(135deg,${clD.color}18,${C.surface})`,
-          border:`2px solid ${clD.color}33`,borderRadius:18,padding:"18px 20px"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
-            <div style={{width:48,height:48,background:clD.color+"22",border:`2px solid ${clD.color}44`,
-              borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>
-              {clD.icon}
-            </div>
-            <div>
-              <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginBottom:2}}>{kitchen?.chef?.name||"Chef"}</div>
-              <div style={{fontSize:17,fontWeight:800,color:clD.color,fontFamily:F.title}}>{clD.name}</div>
-            </div>
-            <div style={{marginLeft:"auto",textAlign:"right"}}>
-              <div style={{fontSize:24,fontWeight:800,color:clD.color,fontFamily:F.title,lineHeight:1}}>N{cl.l}</div>
-              <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>/{CHEF_LVL.length-1}</div>
-            </div>
+        {/* Clients */}
+        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"14px 16px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>👥 Clients servis</span>
+            {srvTrend!==null&&(
+              <span style={{fontSize:11,fontWeight:700,color:srvTrend>=0?C.green:C.red,fontFamily:F.body}}>
+                {srvTrend>=0?"↗":"↘"} {Math.abs(srvTrend)}%
+              </span>
+            )}
           </div>
-          <div>
-            <div style={{display:"flex",justifyContent:"space-between",fontSize:10,
-              color:C.muted,fontFamily:F.body,marginBottom:5}}>
-              <span style={{color:clD.color,fontWeight:600}}>{cl.r} XP</span>
-              <span>{cl.l<CHEF_LVL.length-1?`${cl.n} XP pour niveau suivant`:"✦ Niveau max"}</span>
-            </div>
-            <div style={{height:10,background:C.border,borderRadius:99,overflow:"hidden"}}>
-              <div style={{height:"100%",
-                width:`${cl.l<CHEF_LVL.length-1?Math.min(100,Math.round(cl.r/cl.n*100)):100}%`,
-                background:clD.color,borderRadius:99,transition:"width 0.8s ease"}}/>
-            </div>
-          </div>
-          <div style={{marginTop:12,display:"flex",gap:8,flexWrap:"wrap"}}>
-            <span style={{fontSize:10,background:clD.color+"18",color:clD.color,
-              border:`1px solid ${clD.color}33`,borderRadius:6,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>
-              ⚡ ×{clD.speed} vitesse
+          <LineChart data={chartDays.map(d=>d.served)} color={C.green} unit=" clients"
+            hov={hovCliIdx} setHov={setHovCliIdx}/>
+        </div>
+
+        {/* Réputation estimée */}
+        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"14px 16px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+              {repTier.icon} Réputation
             </span>
-            <span style={{fontSize:10,background:C.navyP,color:C.navy,
-              border:`1px solid ${C.navy}22`,borderRadius:6,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>
-              🧑‍🍳 {clD.commis} commis
+            <span style={{fontSize:11,fontWeight:700,color:repTier.color,fontFamily:F.body}}>
+              {Math.round(reputation)}/100
             </span>
           </div>
+          <LineChart data={repHistory} color={repTier.color} unit="/100"
+            hov={hovRepIdx} setHov={setHovRepIdx} fillOpacity={0.12}/>
         </div>
       </div>
 
-      {/* ── Prochain objectif ────────────────────────────── */}
-      {nextObj&&(
-        <div style={{background:C.purpleP,border:`1.5px solid ${C.purple}33`,
-          borderRadius:14,padding:"14px 18px",marginBottom:20,
-          display:"flex",alignItems:"center",gap:14}}>
-          <span style={{fontSize:28,flexShrink:0}}>{nextObj.icon}</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginBottom:2}}>🎯 Prochain objectif</div>
-            <div style={{fontSize:14,fontWeight:700,color:C.purple,fontFamily:F.title}}>{nextObj.title}</div>
-            <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>{nextObj.desc}</div>
+      {/* ══ ANALYSE FINANCIÈRE ══ */}
+      <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":"1fr 1fr",gap:bp.isMobile?10:12,marginBottom:20}}>
+
+        {/* Compte de résultat du jour */}
+        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"18px 20px"}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:14,
+            display:"flex",alignItems:"center",gap:7}}>
+            <span>📊</span> Résultat du jour
           </div>
-          <div style={{textAlign:"right",flexShrink:0}}>
-            <div style={{fontSize:12,color:C.amber,fontWeight:700,fontFamily:F.body}}>💶 +{nextObj.reward.cash}€</div>
-            <div style={{fontSize:11,color:C.green,fontWeight:700,fontFamily:F.body}}>⭐ +{nextObj.reward.xp} XP</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {[
+              {l:"Revenus encaissés",v:"+"+totalRevToday.toFixed(2)+"€",c:C.green,icon:"📈"},
+              {l:"Dépenses (achats + salaires)",v:"−"+totalExpToday.toFixed(2)+"€",c:C.red,icon:"📉"},
+            ].map(r=>(
+              <div key={r.l} style={{display:"flex",justifyContent:"space-between",
+                alignItems:"center",padding:"8px 12px",
+                background:r.c+"08",borderRadius:9,
+                border:`1px solid ${r.c}18`}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:14}}>{r.icon}</span>
+                  <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>{r.l}</span>
+                </div>
+                <span style={{fontSize:14,fontWeight:800,color:r.c,fontFamily:F.title}}>{r.v}</span>
+              </div>
+            ))}
+            <div style={{borderTop:`2px solid ${C.border}`,paddingTop:10,marginTop:4,
+              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>⚖️ Résultat net</span>
+              <span style={{fontSize:20,fontWeight:800,
+                color:netToday>=0?C.green:C.red,fontFamily:F.title}}>
+                {netToday>=0?"+":""}{netToday.toFixed(2)}€
+              </span>
+            </div>
+          </div>
+
+          {/* Masse salariale */}
+          <div style={{marginTop:14,padding:"10px 12px",background:C.navyP,
+            borderRadius:9,border:`1px solid ${C.navy}22`}}>
+            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:5}}>
+              💸 Masse salariale active
+            </div>
+            <div style={{display:"flex",gap:bp.isMobile?7:10,flexWrap:"wrap"}}>
+              {[
+                {l:"Chef",v:chefSalary},
+                {l:"Commis",v:commissSalary},
+                {l:"Serveurs",v:serverSalary},
+              ].map(r=>(
+                <div key={r.l} style={{flex:1,textAlign:"center"}}>
+                  <div style={{fontSize:13,fontWeight:700,color:C.navy,fontFamily:F.title}}>{r.v}€/h</div>
+                  <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{r.l}</div>
+                </div>
+              ))}
+              <div style={{flex:1,textAlign:"center",borderLeft:`1px solid ${C.navy}22`,paddingLeft:8}}>
+                <div style={{fontSize:13,fontWeight:700,color:C.navy,fontFamily:F.title}}>{totalSalaryPerHour}€/h</div>
+                <div style={{fontSize:9,color:C.navy,fontFamily:F.body,fontWeight:600}}>TOTAL</div>
+              </div>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* ── KPI Cards ────────────────────────────────────── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12,marginBottom:24}}>
-        {[
-          {label:"Clients servis",val:days.reduce((s,d)=>s+d.served,0),icon:"✅",c:C.green,bg:C.greenP},
-          {label:"Clients perdus",val:days.reduce((s,d)=>s+d.lost,0),icon:"😤",c:C.red,bg:C.redP},
-          {label:"CA total",val:objStats?.totalRevenue?.toFixed(0)+"€"||"0€",icon:"💶",c:C.amber,bg:C.amberP},
-          {label:"Note moyenne",val:objStats?.ratingCount>0?(objStats.totalRating/objStats.ratingCount).toFixed(1)+" ★":"—",icon:"⭐",c:C.purple,bg:C.purpleP},
-        ].map(s=>(
-          <div key={s.label} style={{background:s.bg,border:`1.5px solid ${s.c}22`,
-            borderRadius:14,padding:"14px 16px",textAlign:"center"}}>
-            <div style={{fontSize:24,marginBottom:4}}>{s.icon}</div>
-            <div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:F.title,lineHeight:1}}>{s.val}</div>
-            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:4}}>{s.label}</div>
+        {/* Répartition revenus par catégorie */}
+        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"18px 20px"}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:14,
+            display:"flex",alignItems:"center",gap:7}}>
+            <span>🥧</span> Revenus par catégorie
           </div>
-        ))}
+          <div style={{display:"flex",gap:16,alignItems:"center"}}>
+            <PieChart data={Object.entries(catRevenue).map(([k,v])=>({color:catColors2[k]||C.navy,value:v,label:k}))} size={110}/>
+            <div style={{flex:1,display:"flex",flexDirection:"column",gap:7}}>
+              {Object.entries(catRevenue).map(([cat,rev])=>{
+                const pct=totalCatRev>0?Math.round((rev/totalCatRev)*100):0;
+                const color=catColors2[cat]||C.navy;
+                return(
+                  <div key={cat}>
+                    <div style={{display:"flex",justifyContent:"space-between",
+                      fontSize:10,fontFamily:F.body,marginBottom:3}}>
+                      <div style={{display:"flex",alignItems:"center",gap:5}}>
+                        <div style={{width:8,height:8,borderRadius:2,background:color,flexShrink:0}}/>
+                        <span style={{color:C.ink,fontWeight:600}}>{cat}</span>
+                      </div>
+                      <div style={{display:"flex",gap:6}}>
+                        <span style={{color:C.muted}}>{rev.toFixed(0)}€</span>
+                        <span style={{color:color,fontWeight:700}}>{pct}%</span>
+                      </div>
+                    </div>
+                    <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${pct}%`,background:color,
+                        borderRadius:99,transition:"width 0.6s ease"}}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div style={{marginTop:14,padding:"8px 12px",background:C.greenP,
+            borderRadius:9,border:`1px solid ${C.green}22`,
+            display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>🛒 Panier moyen / client</span>
+            <span style={{fontSize:16,fontWeight:800,color:C.green,fontFamily:F.title}}>{avgBasket}€</span>
+          </div>
+        </div>
       </div>
 
-      {/* ── Prêt bancaire ────────────────────────────────── */}
+      {/* ── Réputation + Progression ── */}
+      <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":"1fr 1fr",gap:12,marginBottom:20}}>
+        {/* Réputation hero */}
+        <div style={{background:`linear-gradient(135deg,${repTier.color}14,${C.surface})`,
+          border:`2px solid ${repTier.color}33`,borderRadius:14,padding:"16px 18px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+            <div style={{position:"relative",width:64,height:64,flexShrink:0}}>
+              <svg width={64} height={64} style={{transform:"rotate(-90deg)"}}>
+                <circle cx={32} cy={32} r={26} fill="none" stroke={C.border} strokeWidth={7}/>
+                <circle cx={32} cy={32} r={26} fill="none" stroke={repTier.color} strokeWidth={7}
+                  strokeDasharray={`${2*Math.PI*26}`}
+                  strokeDashoffset={`${2*Math.PI*26*(1-reputation/100)}`}
+                  strokeLinecap="round" style={{transition:"stroke-dashoffset 0.8s"}}/>
+              </svg>
+              <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                <span style={{fontSize:18}}>{repTier.icon}</span>
+                <span style={{fontSize:9,fontWeight:800,color:repTier.color,fontFamily:F.title}}>{Math.round(reputation)}</span>
+              </div>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:16,fontWeight:800,color:repTier.color,fontFamily:F.title}}>{repTier.label}</div>
+              <div style={{display:"flex",gap:6,marginTop:5,flexWrap:"wrap"}}>
+                <span style={{fontSize:10,background:repTier.tipMult>=1?C.greenP:C.redP,color:repTier.tipMult>=1?C.green:C.red,border:`1px solid ${repTier.tipMult>=1?C.green:C.red}22`,borderRadius:5,padding:"1px 7px",fontFamily:F.body,fontWeight:600}}>💸 ×{repTier.tipMult}</span>
+                <span style={{fontSize:10,background:repTier.spawnMult>=1?C.greenP:C.redP,color:repTier.spawnMult>=1?C.green:C.red,border:`1px solid ${repTier.spawnMult>=1?C.green:C.red}22`,borderRadius:5,padding:"1px 7px",fontFamily:F.body,fontWeight:600}}>🚶 ×{repTier.spawnMult}</span>
+              </div>
+            </div>
+          </div>
+          {nextRepTier&&(
+            <>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:C.muted,fontFamily:F.body,marginBottom:4}}>
+                <span>→ {nextRepTier.icon} {nextRepTier.label}</span>
+                <span style={{color:repTier.color,fontWeight:700}}>{Math.round(nextRepTier.min-reputation)} pts</span>
+              </div>
+              <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                <div style={{height:"100%",borderRadius:99,background:repTier.color,
+                  width:`${Math.max(0,Math.round(((reputation-repTier.min)/(nextRepTier.min-repTier.min))*100))}%`,
+                  transition:"width 0.8s"}}/>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Restaurant + Chef progression */}
+        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}>
+          {/* Restaurant */}
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+            <div style={{width:36,height:36,background:rlD.color+"18",border:`2px solid ${rlD.color}33`,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{rlD.icon}</div>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",justifyContent:"space-between"}}>
+                <span style={{fontSize:12,fontWeight:700,color:rlD.color,fontFamily:F.title}}>{rlD.name}</span>
+                <span style={{fontSize:11,fontWeight:700,color:rlD.color,fontFamily:F.body}}>N{rlD.l}</span>
+              </div>
+              <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden",marginTop:5}}>
+                <div style={{height:"100%",width:`${rl.pct||0}%`,background:rlD.color,borderRadius:99,transition:"width 0.8s"}}/>
+              </div>
+              <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:2}}>
+                {rl.l<RESTO_LVL.length-1?`${restoXp||0} / ${nextRl.xpNeeded} XP`:"✦ Niveau max"}
+              </div>
+            </div>
+          </div>
+          {/* Chef */}
+          <div style={{display:"flex",alignItems:"center",gap:10,borderTop:`1px solid ${C.border}`,paddingTop:10}}>
+            <div style={{width:36,height:36,background:clD.color+"18",border:`2px solid ${clD.color}33`,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{clD.icon}</div>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",justifyContent:"space-between"}}>
+                <span style={{fontSize:12,fontWeight:700,color:clD.color,fontFamily:F.title}}>{clD.name}</span>
+                <span style={{fontSize:11,fontWeight:700,color:clD.color,fontFamily:F.body}}>N{cl.l}</span>
+              </div>
+              <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden",marginTop:5}}>
+                <div style={{height:"100%",width:`${cl.l<CHEF_LVL.length-1?Math.min(100,Math.round(cl.r/cl.n*100)):100}%`,background:clD.color,borderRadius:99,transition:"width 0.8s"}}/>
+              </div>
+              <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:2}}>
+                {cl.l<CHEF_LVL.length-1?`${cl.r} / ${cl.n} XP`:"✦ Niveau max"} · ⚡×{clD.speed}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Prêt bancaire ── */}
       {loan&&(
-        <div style={{background:C.amberP,border:`1.5px solid ${C.amber}44`,borderRadius:14,
-          padding:"14px 20px",marginBottom:20,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-          <span style={{fontSize:22}}>🏦</span>
+        <div style={{background:C.amberP,border:`1.5px solid ${C.amber}44`,borderRadius:12,
+          padding:"12px 18px",marginBottom:16,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
+          <span style={{fontSize:18}}>🏦</span>
           <div style={{flex:1}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.amber,fontFamily:F.title}}>
-              Prêt en cours — {loan.label}
-            </div>
-            <div style={{fontSize:11,color:C.ink,fontFamily:F.body,marginTop:2}}>
-              Restant dû : <strong>{loan.remaining.toFixed(2)} €</strong>&nbsp;·&nbsp;{loan.repayPerHour} €/h
+            <div style={{fontSize:11,fontWeight:700,color:C.amber,fontFamily:F.title}}>Prêt — {loan.label}</div>
+            <div style={{fontSize:10,color:C.ink,fontFamily:F.body,marginTop:1}}>
+              Restant : <strong>{loan.remaining.toFixed(2)} €</strong> · {loan.repayPerHour} €/h
             </div>
           </div>
-          <div style={{height:8,width:180,background:C.border,borderRadius:99,overflow:"hidden"}}>
+          <div style={{height:7,width:150,background:C.border,borderRadius:99,overflow:"hidden"}}>
             <div style={{height:"100%",borderRadius:99,background:C.amber,
               width:`${Math.max(2,100-loan.remaining/(loan.amount*(1+loan.rate))*100)}%`}}/>
           </div>
         </div>
       )}
 
-      {/* ── Graphiques ───────────────────────────────────── */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:24}}>
-        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:16,padding:"18px 20px"}}>
-          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:16}}>💶 Revenus / jour</div>
-          <div style={{display:"flex",gap:8,alignItems:"flex-end",height:110}}>
-            {[...dailyStats].slice(-5).map((d,i)=>{
-              const h=maxRevenue>0?Math.round((d.revenue/maxRevenue)*100):2;
-              const isToday=i===dailyStats.slice(-5).length-1;
-              return(
-                <div key={d.date} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-                  <div style={{fontSize:9,color:C.amber,fontWeight:700,fontFamily:F.body,textAlign:"center"}}>
-                    {d.revenue>0?`${Math.round(d.revenue)}€`:""}
-                  </div>
-                  <div style={{width:"100%",height:`${Math.max(h,3)}px`,
-                    background:isToday?C.amber:`${C.amber}88`,
-                    borderRadius:"5px 5px 0 0",transition:"height 0.6s ease",
-                    border:isToday?`1px solid ${C.amber}`:"none"}}/>
-                  <div style={{fontSize:8,color:isToday?C.amber:C.muted,fontFamily:F.body,
-                    fontWeight:isToday?700:400,textAlign:"center"}}>
-                    {d.date.slice(0,5)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:16,padding:"18px 20px"}}>
-          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:16}}>👥 Clients / jour</div>
-          <div style={{display:"flex",gap:8,alignItems:"flex-end",height:110}}>
-            {[...dailyStats].slice(-5).map((d,i)=>{
-              const isToday=i===dailyStats.slice(-5).length-1;
-              const hs=maxClients>0?Math.round((d.served/maxClients)*100):0;
-              const hl=maxClients>0?Math.round((d.lost/maxClients)*100):0;
-              return(
-                <div key={d.date} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-                  <div style={{width:"100%",display:"flex",flexDirection:"column",alignItems:"stretch",gap:1}}>
-                    {hl>0&&<div style={{height:`${hl}px`,background:`${C.red}${isToday?"":"88"}`,borderRadius:"4px 4px 0 0"}}/>}
-                    {hs>0&&<div style={{height:`${hs}px`,background:`${C.green}${isToday?"":"88"}`,borderRadius:hl===0?"4px 4px 0 0":"0"}}/>}
-                    {hs===0&&hl===0&&<div style={{height:3,background:C.border}}/>}
-                  </div>
-                  <div style={{fontSize:8,color:isToday?C.ink:C.muted,fontFamily:F.body,fontWeight:isToday?700:400,textAlign:"center"}}>
-                    {d.date.slice(0,5)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{display:"flex",gap:12,marginTop:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:C.muted,fontFamily:F.body}}>
-              <div style={{width:10,height:10,background:C.green,borderRadius:2}}/>Servis
-            </div>
-            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:C.muted,fontFamily:F.body}}>
-              <div style={{width:10,height:10,background:C.red,borderRadius:2}}/>Perdus
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Tableau journalier ───────────────────────────── */}
-      <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:16,overflow:"hidden"}}>
-        <div style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`,
-          display:"flex",alignItems:"center",gap:8}}>
-          <span style={{fontSize:15}}>📅</span>
-          <span style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>5 derniers jours</span>
+      {/* ── Tableau journalier ── */}
+      <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
+        <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:7}}>
+          <span style={{fontSize:14}}>📅</span>
+          <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>{period} derniers jours</span>
         </div>
         <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:400}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:420}}>
             <thead>
               <tr style={{background:C.bg}}>
                 {["Date","✅ Servis","😤 Perdus","Taux","💶 Revenus"].map(h=>(
-                  <th key={h} style={{padding:"10px 16px",fontSize:11,fontWeight:700,
-                    color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`}}>{h}</th>
+                  <th key={h} style={{padding:"9px 14px",fontSize:10,fontWeight:700,color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`}}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -4933,27 +5780,25 @@ function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=
                 const rc=rate>=80?C.green:rate>=50?C.amber:C.red;
                 return(
                   <tr key={d.date} style={{background:i===0?C.greenP:i%2===0?C.card:C.bg}}>
-                    <td style={{padding:"11px 16px",fontSize:12,fontWeight:i===0?700:500,
-                      color:C.ink,borderBottom:`1px solid ${C.border}11`}}>
-                      {d.date}{i===0&&<span style={{marginLeft:6,fontSize:9,background:C.green,
-                        color:"#fff",borderRadius:4,padding:"1px 6px",fontWeight:700}}>Auj.</span>}
+                    <td style={{padding:"9px 14px",fontSize:12,fontWeight:i===0?700:500,color:C.ink,borderBottom:`1px solid ${C.border}11`}}>
+                      {d.date}{i===0&&<span style={{marginLeft:5,fontSize:8,background:C.green,color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700}}>Auj.</span>}
                     </td>
-                    <td style={{padding:"11px 16px",borderBottom:`1px solid ${C.border}11`}}>
-                      <span style={{fontSize:13,fontWeight:700,color:C.green}}>{d.served}</span>
+                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
+                      <span style={{fontSize:12,fontWeight:700,color:C.green}}>{d.served}</span>
                     </td>
-                    <td style={{padding:"11px 16px",borderBottom:`1px solid ${C.border}11`}}>
-                      <span style={{fontSize:13,fontWeight:700,color:d.lost>0?C.red:C.muted}}>{d.lost}</span>
+                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
+                      <span style={{fontSize:12,fontWeight:700,color:d.lost>0?C.red:C.muted}}>{d.lost}</span>
                     </td>
-                    <td style={{padding:"11px 16px",borderBottom:`1px solid ${C.border}11`}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{width:60,height:7,background:C.border,borderRadius:4,overflow:"hidden"}}>
+                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:7}}>
+                        <div style={{width:55,height:6,background:C.border,borderRadius:4,overflow:"hidden"}}>
                           <div style={{height:"100%",width:`${rate}%`,background:rc,borderRadius:4}}/>
                         </div>
-                        <span style={{fontSize:11,fontWeight:700,color:rc}}>{total>0?`${rate}%`:"—"}</span>
+                        <span style={{fontSize:10,fontWeight:700,color:rc}}>{total>0?`${rate}%`:"—"}</span>
                       </div>
                     </td>
-                    <td style={{padding:"11px 16px",borderBottom:`1px solid ${C.border}11`}}>
-                      <span style={{fontSize:13,fontWeight:700,color:C.amber}}>
+                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
+                      <span style={{fontSize:12,fontWeight:700,color:C.amber}}>
                         {d.revenue.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
                       </span>
                     </td>
@@ -5063,7 +5908,7 @@ function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
     </Modal>
   );
 }
-function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,todayChallenges,challengeProgress,challengeClaimed,setChallengeClaimed,challengeLostToday,setCash,addTx,addRestoXp,addToast,restoXp,restoLvN}){
+function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,todayChallenges,challengeProgress,challengeClaimed,setChallengeClaimed,challengeLostToday,setCash,addTx,addRestoXp,addToast,restoXp,restoLvN,bp={}}){
   const series=["Revenus","Clients","Niveau","Salle"];
 
   const claimChallenge=(ch)=>{
@@ -5206,7 +6051,7 @@ function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,todayChallen
       })()}
 
       {/* Summary bar */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:28}}>
+      <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":bp.isTablet?"repeat(2,1fr)":"repeat(4,1fr)",gap:bp.isMobile?8:12,marginBottom:28}}>
         {series.map(s=>{
           const all=OBJECTIVES_DEF.filter(o=>o.series===s);
           const done=all.filter(o=>completedIds.includes(o.id)).length;
@@ -5309,6 +6154,47 @@ function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,todayChallen
 }
 
 
+/* ══════════════════════════════════════════════════════════
+   HOOK : useBreakpoint — détection taille d'écran réactive
+══════════════════════════════════════════════════════════ */
+function useBreakpoint(){
+  const [bp,setBp]=useState(()=>({
+    w:typeof window!=="undefined"?window.innerWidth:1280,
+    isMobile:typeof window!=="undefined"?window.innerWidth<640:false,
+    isTablet:typeof window!=="undefined"?window.innerWidth>=640&&window.innerWidth<1024:false,
+    isDesktop:typeof window!=="undefined"?window.innerWidth>=1024:true,
+    isSmall:typeof window!=="undefined"?window.innerWidth<480:false,
+  }));
+  useEffect(()=>{
+    const update=()=>{
+      const w=window.innerWidth;
+      setBp({
+        w,
+        isMobile:w<640,
+        isTablet:w>=640&&w<1024,
+        isDesktop:w>=1024,
+        isSmall:w<480,
+      });
+    };
+    // Use ResizeObserver if available, fallback to resize event
+    if(typeof ResizeObserver!=="undefined"){
+      const ro=new ResizeObserver(update);
+      ro.observe(document.documentElement);
+      return()=>ro.disconnect();
+    } else {
+      window.addEventListener("resize",update,{passive:true});
+      return()=>window.removeEventListener("resize",update);
+    }
+  },[]);
+  return bp;
+}
+
+/* ── Helpers responsive ── */
+// Retourne la valeur selon breakpoint: rVal(bp, mobile, tablet, desktop)
+const rVal=(bp,mobile,tablet,desktop)=>bp.isMobile?mobile:bp.isTablet?tablet:desktop;
+// Grid columns helper
+const rGrid=(bp,m=1,t=2,d=3)=>`repeat(${bp.isMobile?m:bp.isTablet?t:d},1fr)`;
+
 const TABS=[
   {id:"tables",     label:"Tables",      icon:"⊞"},
   {id:"servers",    label:"Serveurs",    icon:"👤"},
@@ -5366,6 +6252,7 @@ const pickDailyChallenges=(dateStr)=>{
 };
 
 export default function App(){
+  const bp=useBreakpoint();
   const _today = new Date().toLocaleDateString("fr-FR");
 
   /* ── États principaux — initialisés avec les valeurs par défaut ── */
@@ -5591,7 +6478,8 @@ export default function App(){
   },[isLoaded,tables,servers,menu,stock,complaints,kitchen,
      restoXp,cash,loan,supplierMode,pendingDeliveries,
      completedIds,challengeProgress,challengeClaimed,
-     challengeLostToday,pendingClaim,objStats,dailyStats,reputation]);
+     challengeLostToday,pendingClaim,objStats,dailyStats,reputation,
+     formulas,activeTheme]);
 
   /* ── GDevelop : écoute du message d'initialisation ─── */
   useEffect(()=>{
@@ -5959,113 +6847,232 @@ export default function App(){
       )}
       <style>{`
         * { box-sizing: border-box; }
-        .hovcard:hover { box-shadow: 0 6px 22px rgba(0,0,0,0.11) !important; transform: translateY(-1px); }
-        .hovbtn:hover { filter: brightness(1.08); transform: translateY(-1px); }
-        .hovbtn { transition: filter 0.15s, transform 0.15s; }
-        select option { background:#fff; color:#1a1612; }
-        ::placeholder { color:#b0a490; }
-        input:focus, select:focus { outline: 2px solid #2a5c3f88 !important; border-color: #2a5c3f !important; }
-        @keyframes slideIn  { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes slideUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        @keyframes popIn    { 0%{transform:scale(0.8);opacity:0} 70%{transform:scale(1.06)} 100%{transform:scale(1);opacity:1} }
-        @keyframes breathe  { 0%,100%{box-shadow:0 0 0 0 rgba(42,92,63,0)} 50%{box-shadow:0 0 0 6px rgba(42,92,63,0.18)} }
-        @keyframes breatheAmber { 0%,100%{box-shadow:0 0 0 0 rgba(184,125,16,0)} 50%{box-shadow:0 0 0 5px rgba(184,125,16,0.22)} }
-        @keyframes toastBar { from{width:100%} to{width:0%} }
-        @keyframes ledPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        @keyframes shimmer  { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-        @keyframes saveFlash{ 0%{opacity:0;transform:scale(0.8)} 20%{opacity:1;transform:scale(1.1)} 80%{opacity:1;transform:scale(1)} 100%{opacity:0;transform:scale(0.95)} }
+        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+        /* ── Hover cards ── */
+        .hovcard { transition: box-shadow 0.22s cubic-bezier(.4,0,.2,1), transform 0.18s cubic-bezier(.4,0,.2,1) !important; }
+        .hovcard:hover { box-shadow: 0 8px 28px rgba(23,18,14,0.14), 0 2px 6px rgba(23,18,14,0.07) !important; transform: translateY(-2px) !important; }
+        .hovcard:active { transform: translateY(0px) !important; box-shadow: 0 2px 8px rgba(23,18,14,0.08) !important; }
+
+        /* ── Buttons ── */
+        button { transition: filter 0.14s, transform 0.14s, box-shadow 0.14s, opacity 0.14s !important; }
+        button:not(:disabled):hover { filter: brightness(1.10); transform: translateY(-1px); }
+        button:not(:disabled):active { transform: translateY(0px) scale(0.97); filter: brightness(0.96); }
+
+        /* ── Inputs ── */
+        select option { background:#fff; color:#18130e; }
+        ::placeholder { color:#b0a088; }
+        input, select { transition: border-color 0.15s, box-shadow 0.15s; }
+        input:focus, select:focus {
+          outline: none !important;
+          border-color: #1e5c38 !important;
+          box-shadow: 0 0 0 3px #1e5c3822 !important;
+        }
+
+        /* ── Animations ── */
+        @keyframes slideIn      { from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes slideUp      { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fadeIn       { from{opacity:0} to{opacity:1} }
+        @keyframes pulse        { 0%,100%{opacity:1} 50%{opacity:0.45} }
+        @keyframes popIn        { 0%{transform:scale(0.82);opacity:0} 65%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
+        @keyframes breathe      { 0%,100%{box-shadow:0 0 0 0 rgba(30,92,56,0)} 50%{box-shadow:0 0 0 7px rgba(30,92,56,0.16)} }
+        @keyframes breatheAmber { 0%,100%{box-shadow:0 0 0 0 rgba(160,108,8,0)} 50%{box-shadow:0 0 0 6px rgba(160,108,8,0.20)} }
+        @keyframes toastBar     { from{width:100%} to{width:0%} }
+        @keyframes ledPulse     { 0%,100%{opacity:1} 50%{opacity:0.35} }
+        @keyframes shimmer      { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+        @keyframes shimmerBar   {
+          0%  { background-position: -200% 0; }
+          100%{ background-position:  200% 0; }
+        }
+        @keyframes saveFlash    { 0%{opacity:0;transform:scale(0.8)} 20%{opacity:1;transform:scale(1.1)} 80%{opacity:1} 100%{opacity:0;transform:scale(0.95)} }
+        @keyframes countUp      { from{transform:translateY(6px);opacity:0} to{transform:translateY(0);opacity:1} }
+        @keyframes glow         { 0%,100%{opacity:0.5} 50%{opacity:1} }
+        @keyframes tabSlide     { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+        /* ── Tab content entry ── */
+        .tab-content { animation: tabSlide 0.22s ease both; }
+
+        /* ── XP bar shimmer ── */
+        .xpbar-shimmer::after {
+          content:'';
+          position:absolute;
+          inset:0;
+          background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.35) 50%,transparent 100%);
+          background-size:200% 100%;
+          animation: shimmerBar 2.4s ease-in-out infinite;
+          border-radius:99px;
+        }
+        .xpbar-shimmer { position:relative; overflow:hidden; }
+
+        /* ── Accent strip card ── */
+        .card-strip { position:relative; overflow:hidden; }
+        .card-strip::before {
+          content:'';
+          position:absolute;
+          left:0;top:0;bottom:0;
+          width:4px;
+          border-radius:2px 0 0 2px;
+        }
+
+        /* ── Navigation tab bar ── */
+        .nav-tab-active {
+          background: linear-gradient(135deg, #1e5c3814, #1e5c3808) !important;
+          color: #1e5c38 !important;
+          border-bottom: 2.5px solid #1e5c38 !important;
+          font-weight: 700 !important;
+        }
+        .nav-tab {
+          transition: color 0.15s, background 0.15s, border-color 0.15s;
+        }
+        .nav-tab:hover:not(.nav-tab-active) {
+          background: rgba(30,92,56,0.05) !important;
+          color: #1e5c38 !important;
+        }
+
         /* ── Mobile ── */
-        @media (max-width: 640px) {
+        :root {
+          --gap: 16px;
+          --pad: 22px;
+          --card-radius: 16px;
+          --font-base: 13px;
+        }
+        @media (max-width: 639px) {
+          :root { --gap: 10px; --pad: 12px; --card-radius: 12px; --font-base: 12px; }
           .desktop-nav { display: none !important; }
           .mobile-nav  { display: flex !important; }
-          .content-area { padding: 14px 12px 90px !important; }
+          .content-area { padding: 12px var(--pad) 90px !important; }
           .badge-alert { font-size: 8px !important; width: 14px !important; height: 14px !important; }
+          .hide-mobile { display: none !important; }
+          .show-mobile { display: flex !important; }
+          /* Compact header on mobile */
+          .header-title { font-size: 13px !important; }
+          .header-line2 { gap: 6px !important; padding: 4px 10px 6px !important; }
+          /* Full-width tables on mobile */
+          .resp-grid { grid-template-columns: 1fr !important; }
+          .resp-grid-2 { grid-template-columns: 1fr 1fr !important; }
+          /* Modals full-screen on mobile */
+          .modal-inner { border-radius: 0 !important; max-height: 100vh !important; height: 100vh !important; }
         }
-        @media (min-width: 641px) {
+        @media (min-width: 640px) and (max-width: 1023px) {
+          :root { --gap: 12px; --pad: 16px; --card-radius: 14px; }
           .desktop-nav { display: flex !important; }
           .mobile-nav  { display: none !important; }
-          .content-area { padding: 20px 22px !important; }
+          .content-area { padding: 16px var(--pad) !important; }
+          .hide-tablet { display: none !important; }
+          .resp-grid { grid-template-columns: 1fr 1fr !important; }
+          .resp-grid-3 { grid-template-columns: 1fr 1fr !important; }
+        }
+        @media (min-width: 1024px) {
+          .desktop-nav { display: flex !important; }
+          .mobile-nav  { display: none !important; }
+          .content-area { padding: 20px var(--pad) !important; }
+          .show-mobile { display: none !important; }
         }
       `}</style>
 
       {/* Header — 2 lignes */}
-      <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,
-        boxShadow:"0 1px 8px rgba(0,0,0,0.07)"}}>
+      <div style={{
+        background:`linear-gradient(180deg,${C.surface} 0%,#faf7f0 100%)`,
+        borderBottom:`1px solid ${C.border}`,
+        boxShadow:"0 2px 14px rgba(23,18,14,0.08), 0 1px 3px rgba(23,18,14,0.04)",
+      }}>
 
         {/* Ligne 1 : logo · alertes · horloge · aide */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-          padding:"0 12px",minHeight:48,gap:8,flexWrap:"nowrap",overflow:"hidden"}}>
+          padding:bp.isMobile?"0 10px":"0 16px",minHeight:bp.isMobile?46:52,gap:8,flexWrap:"nowrap",overflow:"hidden"}}>
 
           {/* Logo + nom */}
-          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,minWidth:0}}>
-            <div style={{width:32,height:32,background:C.green,borderRadius:8,
-              display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>🍽</div>
+          <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,minWidth:0}}>
+            <div style={{
+              width:38,height:38,
+              background:`linear-gradient(135deg,${C.green} 0%,${C.greenL||"#2d7a50"} 100%)`,
+              borderRadius:11,
+              display:"flex",alignItems:"center",justifyContent:"center",
+              fontSize:19,flexShrink:0,
+              boxShadow:`0 3px 10px ${C.green}38`,
+            }}>🍽</div>
             <div style={{minWidth:0}}>
-              <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>Le Grand Restaurant</div>
-              <div style={{fontSize:9,color:C.muted,textTransform:"capitalize",whiteSpace:"nowrap"}}>
+              <div className={bp.isSmall?"hide-mobile":""} style={{
+                fontSize:bp.isMobile?13:15,fontWeight:800,color:C.ink,fontFamily:F.title,
+                whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
+                letterSpacing:"-0.02em",lineHeight:1.2,
+              }}>Le Grand Restaurant</div>
+              <div style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap",marginTop:1,letterSpacing:"0.02em"}}>
                 {now.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}
               </div>
             </div>
           </div>
 
           {/* Alertes + horloge + aide */}
-          <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
             {sAlerts>0&&(
-              <div style={{background:C.redP,border:`1px solid ${C.red}33`,borderRadius:6,
-                padding:"3px 7px",fontSize:10,color:C.red,fontWeight:600,whiteSpace:"nowrap"}}>
-                ⚠{sAlerts}
+              <div style={{
+                background:C.redP,border:`1.5px solid ${C.red}28`,borderRadius:8,
+                padding:"3px 9px",fontSize:10,color:C.red,fontWeight:700,whiteSpace:"nowrap",
+                display:"flex",alignItems:"center",gap:4,
+                boxShadow:`0 1px 4px ${C.red}18`,
+              }}>
+                <span style={{width:5,height:5,borderRadius:"50%",background:C.red,animation:"pulse 1.2s infinite",display:"inline-block",flexShrink:0}}/>
+                ⚠ {sAlerts}
               </div>
             )}
             {nCompl>0&&tab!=="complaints"&&(
               <div onClick={()=>{
                 setTab("complaints");
                 setSeenIds(p=>new Set([...p,...complaints.filter(c=>c.status==="nouveau").map(c=>c.id)]));
-              }} style={{background:C.terraP,border:`1px solid ${C.terra}33`,borderRadius:6,
-                padding:"3px 7px",fontSize:10,color:C.terra,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
-                💬{nCompl}
+              }} style={{
+                background:C.terraP,border:`1.5px solid ${C.terra}28`,borderRadius:8,
+                padding:"3px 9px",fontSize:10,color:C.terra,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",
+                boxShadow:`0 1px 4px ${C.terra}18`,
+              }}>
+                💬 {nCompl}
               </div>
             )}
             {queue.length>=5&&(
-              <div style={{background:C.redP,border:`1px solid ${C.red}33`,borderRadius:6,
-                padding:"3px 7px",fontSize:10,color:C.red,fontWeight:700,whiteSpace:"nowrap",
-                animation:"pulse 1.2s ease-in-out infinite"}}>
-                🚨 Salle saturée
-              </div>
+              <div style={{
+                background:C.redP,border:`1.5px solid ${C.red}28`,borderRadius:8,
+                padding:"3px 9px",fontSize:10,color:C.red,fontWeight:700,whiteSpace:"nowrap",
+                animation:"pulse 1.2s ease-in-out infinite",
+              }}>🚨</div>
             )}
-            <div style={{textAlign:"right",flexShrink:0}}>
-              <div style={{fontSize:16,fontWeight:700,color:C.ink,fontFamily:F.title,lineHeight:1.1}}>
+            {/* Horloge */}
+            <div style={{
+              textAlign:"right",flexShrink:0,
+              background:C.bg,border:`1px solid ${C.border}`,
+              borderRadius:8,padding:"3px 9px",
+            }}>
+              <div style={{fontSize:16,fontWeight:800,color:C.ink,fontFamily:F.title,lineHeight:1.1,letterSpacing:"-0.02em"}}>
                 {now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
               </div>
-              <div style={{fontSize:9,color:C.muted,whiteSpace:"nowrap"}}>
+              <div style={{fontSize:8,color:C.muted,whiteSpace:"nowrap",marginTop:1}}>
                 {activeTables.filter(t=>t.status==="occupée"||t.status==="mange").length}/{activeTables.length} tables
               </div>
             </div>
             <button onClick={()=>setShowHelp(true)} title="Guide utilisateur" style={{
-              width:28,height:28,borderRadius:"50%",
-              border:`1.5px solid ${C.green}`,
-              background:C.greenP,cursor:"pointer",fontSize:13,
+              width:30,height:30,borderRadius:"50%",
+              border:`1.5px solid ${C.green}44`,
+              background:C.greenP,cursor:"pointer",fontSize:14,
               color:C.green,display:"flex",alignItems:"center",justifyContent:"center",
-              flexShrink:0,fontWeight:800}}>
-              ?
-            </button>
-
-            {/* Bouton reset */}
+              flexShrink:0,fontWeight:800,
+              boxShadow:`0 2px 7px ${C.green}20`,
+            }}>?</button>
             <button onClick={()=>setShowResetModal(true)} title="Nouvelle partie" style={{
-              width:28,height:28,borderRadius:"50%",
-              border:`1.5px solid ${C.red}44`,
+              width:30,height:30,borderRadius:"50%",
+              border:`1.5px solid ${C.red}33`,
               background:C.redP,cursor:"pointer",fontSize:13,
               color:C.red,display:"flex",alignItems:"center",justifyContent:"center",
-              flexShrink:0,fontWeight:800,opacity:0.7}}>
-              ↺
-            </button>
+              flexShrink:0,fontWeight:800,opacity:0.65,
+            }}>↺</button>
           </div>
         </div>
 
         {/* Ligne 2 : niveau restaurant + cash */}
-        <div style={{borderTop:`1px solid ${C.border}`,
-          padding:"6px 12px 8px",display:"flex",alignItems:"center",gap:10,
-          background:C.bg,flexWrap:"nowrap",overflow:"hidden"}}>
+        <div style={{
+          borderTop:`1px solid ${C.border}`,
+          padding:bp.isMobile?"5px 10px 7px":"6px 16px 9px",display:"flex",alignItems:"center",gap:bp.isMobile?6:10,
+          background:`linear-gradient(180deg,${C.bg}90,${C.bg})`,
+          flexWrap:"nowrap",overflow:"hidden",
+        }}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
             <span style={{fontSize:14}}>{rlD.icon}</span>
             <span style={{fontSize:11,fontWeight:700,color:rlD.color,fontFamily:F.title,whiteSpace:"nowrap"}}>{rlD.name}</span>
@@ -6155,7 +7162,7 @@ export default function App(){
                 pendingDeliveries,dailySpecials,completedIds,
                 challengeDate,todayChallenges,challengeProgress,
                 challengeClaimed,challengeLostToday,pendingClaim,
-                objStats,dailyStats,reputation,
+                objStats,dailyStats,reputation,formulas,activeTheme,
               });
               setSaveStatus("saved");
               setTimeout(()=>setSaveStatus("idle"),2000);
@@ -6178,9 +7185,13 @@ export default function App(){
         </div>
       </div>
 
-      {/* Nav Desktop (C) */}
-      <div className="desktop-nav" style={{background:C.surface,borderBottom:`1px solid ${C.border}`,
-        padding:"0 20px",overflowX:"auto"}}>
+      {/* Nav Desktop */}
+      <div className="desktop-nav" style={{
+        background:C.surface,
+        borderBottom:`1px solid ${C.border}`,
+        padding:"0 16px",overflowX:"auto",
+        boxShadow:"0 1px 0 rgba(23,18,14,0.04)",
+      }}>
         {TABS.map(t=>{
           const readyChallenges=(todayChallenges||[]).filter(ch=>{
             const val=ch.key==="noLoss"?(challengeLostToday?0:1):
@@ -6195,20 +7206,30 @@ export default function App(){
               setTab(t.id);
               if(t.id==="complaints")
                 setSeenIds(p=>new Set([...p,...complaints.filter(c=>c.status==="nouveau").map(c=>c.id)]));
-            }} style={{
-              background:active?C.greenP:"transparent",color:active?C.green:C.muted,
-              border:"none",borderBottom:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
+            }} className={active?"nav-tab nav-tab-active":"nav-tab"} style={{
+              background:active?`linear-gradient(180deg,${C.green}10,${C.green}06)`:"transparent",
+              color:active?C.green:C.muted,
+              border:"none",
+              borderBottom:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
               borderRadius:active?"10px 10px 0 0":0,
-              padding:"13px 17px",fontSize:13,fontWeight:active?600:400,
+              padding:"12px 16px",
+              fontSize:12,fontWeight:active?700:400,
               cursor:"pointer",fontFamily:F.body,
-              display:"flex",alignItems:"center",gap:7,
-              transition:"color 0.15s",whiteSpace:"nowrap"}}>
-              <span style={{fontSize:15}}>{t.icon}</span>
-              <span style={{fontSize:12}}>{t.label}</span>
+              display:"flex",alignItems:"center",gap:6,
+              whiteSpace:"nowrap",
+              position:"relative",
+            }}>
+              <span style={{fontSize:15,lineHeight:1}}>{t.icon}</span>
+              <span>{t.label}</span>
               {badge>0&&(
-                <span className="badge-alert" style={{background:C.red,color:"#fff",borderRadius:"50%",
-                  width:17,height:17,fontSize:9,fontWeight:700,
-                  display:"inline-flex",alignItems:"center",justifyContent:"center"}}>
+                <span className="badge-alert" style={{
+                  background:C.red,color:"#fff",
+                  borderRadius:"50%",
+                  width:16,height:16,fontSize:9,fontWeight:800,
+                  display:"inline-flex",alignItems:"center",justifyContent:"center",
+                  boxShadow:`0 1px 4px ${C.red}44`,
+                  animation:"popIn 0.3s ease",
+                }}>
                   {badge}
                 </span>
               )}
@@ -6218,24 +7239,28 @@ export default function App(){
       </div>
 
       {/* Content */}
-      <div className="content-area" style={{maxWidth:1300,margin:"0 auto"}}>
-        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation}/>}
-        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast}/>}
-        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx}/>}
-        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats}/>}
-        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries}/>}
-        {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l}/>}
+      <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
+        <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
+        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} bp={bp}/>}
+        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} bp={bp}/>}
+        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} bp={bp}/>}
+        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats} bp={bp}/>}
+        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
+        {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
         {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
-        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation}/>}
+        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} bp={bp}/>}
+        </div>
       </div>
 
-      {/* Nav Mobile fixe en bas (C) */}
+      {/* Nav Mobile fixe en bas */}
       <div className="mobile-nav" style={{
         position:"fixed",bottom:0,left:0,right:0,zIndex:900,
-        background:C.surface,borderTop:`1px solid ${C.border}`,
-        boxShadow:"0 -4px 20px rgba(0,0,0,0.1)",
+        background:C.surface,
+        borderTop:`1px solid ${C.border}`,
+        boxShadow:"0 -4px 24px rgba(23,18,14,0.12), 0 -1px 4px rgba(23,18,14,0.06)",
         justifyContent:"space-around",alignItems:"stretch",
-        paddingBottom:"env(safe-area-inset-bottom,8px)"}}>
+        paddingBottom:"env(safe-area-inset-bottom,6px)",
+      }}>
         {TABS.map(t=>{
           const readyChallenges=(todayChallenges||[]).filter(ch=>{
             const val=ch.key==="noLoss"?(challengeLostToday?0:1):(challengeProgress[ch.key]||0);
@@ -6249,22 +7274,48 @@ export default function App(){
               if(t.id==="complaints")
                 setSeenIds(p=>new Set([...p,...complaints.filter(c=>c.status==="nouveau").map(c=>c.id)]));
             }} style={{
-              flex:1,background:"transparent",border:"none",
+              flex:1,
+              background:active?`linear-gradient(180deg,${C.green}08,transparent)`:"transparent",
+              border:"none",
               display:"flex",flexDirection:"column",alignItems:"center",
-              justifyContent:"center",padding:"8px 2px 6px",
+              justifyContent:"center",
+              padding:"9px 2px 5px",
               cursor:"pointer",position:"relative",
               borderTop:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
-              gap:3}}>
-              <span style={{fontSize:20,lineHeight:1,filter:active?"none":"grayscale(0.4) opacity(0.6)"}}>{t.icon}</span>
-              <span style={{fontSize:8,fontWeight:active?700:400,fontFamily:F.body,
-                color:active?C.green:C.muted,whiteSpace:"nowrap",letterSpacing:"0.02em"}}>
+              gap:4,
+              transition:"background 0.15s",
+            }}>
+              {/* Icon container */}
+              <div style={{
+                width:34,height:28,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                borderRadius:9,
+                background:active?C.green+"14":"transparent",
+                transition:"background 0.15s",
+              }}>
+                <span style={{
+                  fontSize:18,lineHeight:1,
+                  filter:active?"none":"grayscale(0.5) opacity(0.55)",
+                  transition:"filter 0.15s",
+                }}>{t.icon}</span>
+              </div>
+              <span style={{
+                fontSize:9,fontWeight:active?700:400,fontFamily:F.body,
+                color:active?C.green:C.muted,
+                whiteSpace:"nowrap",letterSpacing:"0.01em",
+                lineHeight:1,
+              }}>
                 {t.label}
               </span>
               {badge>0&&(
-                <span style={{position:"absolute",top:4,right:"calc(50% - 14px)",
+                <span style={{
+                  position:"absolute",top:5,right:"calc(50% - 18px)",
                   background:C.red,color:"#fff",borderRadius:"50%",
-                  width:14,height:14,fontSize:8,fontWeight:700,
-                  display:"inline-flex",alignItems:"center",justifyContent:"center"}}>
+                  width:15,height:15,fontSize:8,fontWeight:800,
+                  display:"inline-flex",alignItems:"center",justifyContent:"center",
+                  boxShadow:`0 1px 4px ${C.red}55`,
+                  animation:"popIn 0.3s ease",
+                }}>
                   {badge}
                 </span>
               )}
