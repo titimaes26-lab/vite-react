@@ -1,0 +1,587 @@
+/* ═══════════════════════════════════════════════════════
+   src/views/ServersView.jsx
+   Extrait du monolithe restaurant-manager.jsx
+   Dépendances déclarées dans les imports ci-dessous.
+═══════════════════════════════════════════════════════ */
+import { useState } from "react";
+import { C, F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL } from "../constants/gameData";
+import { Badge, Card, Btn, Modal, Lbl, Inp, Sel, XpBar } from "../components/ui";
+import { srvLv } from "../utils/levelUtils";
+
+export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast,bp={}}){
+  const [modal,setModal]=useState(false);   // "add" | "edit" | "fire" | "train" | false
+  const [form,setForm]=useState({name:"",status:"actif",salary:"12"});
+  const [editId,setEditId]=useState(null);
+  const [fireId,setFireId]=useState(null);
+  const [trainId,setTrainId]=useState(null);
+
+  const openTrain = (sv) => { setTrainId(sv.id); setModal("train"); };
+
+  const doTrain = (sv, domain, level) => {
+    const cost = level.cost;
+    if(cash < cost){
+      addToast&&addToast({icon:"❌",title:"Fonds insuffisants",msg:`Formation : ${cost}€ requis`,color:C.red,tab:"servers"});
+      return;
+    }
+    const prevLevel = (sv.trainings||{})[domain.id] || 0;
+    if(prevLevel >= domain.levels.length){
+      addToast&&addToast({icon:"✅",title:"Formation maximale",msg:`${sv.name} a déjà atteint le niveau maximum.`,color:C.muted,tab:"servers"});
+      return;
+    }
+    setCash&&setCash(c=>+(c-cost).toFixed(2));
+    addTx&&addTx("achat",`Formation ${domain.name} N${level.l} — ${sv.name}`,cost);
+
+    setServers(p=>p.map(s=>{
+      if(s.id!==sv.id) return s;
+      const newTrainings = {...(s.trainings||{}), [domain.id]: level.l};
+      const newXp = s.totalXp + level.xp;
+      const newMoral = Math.min(getMaxMoral({...s,trainings:newTrainings}),(s.moral??100)+level.moralBonus);
+      // Assign/upgrade specialty if domain has one
+      let newSpecialty = s.specialty;
+      let newSpecUpgraded = s.specialtyUpgraded;
+      if(level.specialtyId){
+        const sp = SRV_SPECIALTIES.find(x=>x.id===level.specialtyId);
+        if(!s.specialty){
+          newSpecialty = sp;
+        } else if(s.specialty.id===level.specialtyId && level.l===3 && !s.specialtyUpgraded){
+          newSpecUpgraded = true;
+        } else if(!s.specialty){
+          newSpecialty = sp;
+        }
+      }
+      return {...s,
+        trainings: newTrainings,
+        totalXp: newXp,
+        moral: newMoral,
+        specialty: newSpecialty,
+        specialtyUpgraded: newSpecUpgraded,
+        lastTrainedAt: Date.now(),
+      };
+    }));
+
+    addToast&&addToast({
+      icon:domain.icon,
+      title:`${sv.name} — ${domain.name} N${level.l} !`,
+      msg:`${level.effect} · +${level.xp} XP · +${level.moralBonus} moral`,
+      color:domain.color, tab:"servers"
+    });
+    setModal(false);
+    setTrainId(null);
+  };
+
+  const maxSlots = SERVER_SLOTS_BY_LEVEL[Math.min(restoLvN||0,5)]||2;
+  const canHire  = servers.length < maxSlots;
+  // Coût de recrutement : 3× le salaire horaire
+  const hireCost = Math.round(+(form.salary||12)*3);
+  const canAfford = cash >= hireCost;
+
+  const openAdd = () => {
+    const salary = String(Math.floor(Math.random()*5+10));
+    const name   = rName();
+    const hireCost = Math.round(+(salary)*3);
+    if(cash < hireCost){
+      addToast&&addToast({icon:"❌",title:"Fonds insuffisants",msg:`Recrutement : ${hireCost}€ requis`,color:C.red,tab:"servers"});
+      return;
+    }
+    setCash&&setCash(c=>+(c-hireCost).toFixed(2));
+    addTx&&addTx("achat",`Recrutement — ${name}`,hireCost);
+    setServers(p=>[...p,{id:Date.now(),name,status:"actif",totalXp:0,rating:4.0,salary:+salary,moral:100,specialty:null}]);
+    addToast&&addToast({icon:"👔",title:`${name} embauché·e !`,msg:`−${hireCost}€ · Salaire ${salary}€/h`,color:C.green,tab:"servers"});
+  };
+  const openEdit = (sv) => {
+    setEditId(sv.id);
+    setForm({name:sv.name,status:sv.status,salary:String(sv.salary||12)});
+    setModal("edit");
+  };
+  const openFire = (sv) => {
+    setFireId(sv.id);
+    setModal("fire");
+  };
+
+  const save = () => {
+    if(!form.name.trim()) return;
+    if(modal==="add"){
+      if(!canAfford){ addToast&&addToast({icon:"❌",title:"Fonds insuffisants",msg:`Recrutement : ${hireCost}€ requis`,color:C.red,tab:"servers"}); return; }
+      setCash&&setCash(c=>+(c-hireCost).toFixed(2));
+      addTx&&addTx("achat",`Recrutement — ${form.name}`,hireCost);
+      setServers(p=>[...p,{id:Date.now(),name:form.name,status:form.status,totalXp:0,rating:4.0,salary:+(form.salary||12)}]);
+      addToast&&addToast({icon:"👔",title:`${form.name} embauché·e !`,msg:`−${hireCost}€ · Salaire ${form.salary}€/h`,color:C.green,tab:"servers"});
+    } else {
+      setServers(p=>p.map(s=>s.id===editId?{...s,name:form.name,status:form.status,salary:+(form.salary||0)}:s));
+    }
+    setModal(false);
+  };
+
+  const doFire = () => {
+    const sv = servers.find(s=>s.id===fireId);
+    if(!sv) return;
+    setServers(p=>p.filter(s=>s.id!==fireId));
+    addToast&&addToast({icon:"👋",title:`${sv.name} licencié·e`,msg:"Le serveur a quitté l'équipe.",color:C.terra,tab:"servers"});
+    setModal(false);
+    setFireId(null);
+  };
+
+  const sColor={actif:C.green,pause:C.terra,repos:C.muted,service:C.amber};
+  const sBg   ={actif:C.greenP,pause:C.terraP,repos:C.bg,service:C.amberP};
+
+  return(
+    <div>
+      {/* ── Header barre ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+        marginBottom:16,flexWrap:"wrap",gap:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+            👤 Équipe — {servers.length}/{maxSlots} serveurs
+          </span>
+          <span style={{fontSize:11,background:canHire?C.greenP:C.redP,
+            color:canHire?C.green:C.red,border:`1px solid ${canHire?C.green:C.red}33`,
+            borderRadius:20,padding:"2px 10px",fontFamily:F.body,fontWeight:600}}>
+            {canHire?`${maxSlots-servers.length} poste${maxSlots-servers.length>1?"s":""} disponible${maxSlots-servers.length>1?"s":""}`:"Équipe complète"}
+          </span>
+        </div>
+        <Btn onClick={openAdd} disabled={!canHire} v={canHire?"primary":"disabled"} icon="➕">
+          Embaucher un serveur
+        </Btn>
+      </div>
+
+      {/* ── Grille des serveurs ── */}
+      <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"repeat(auto-fill,minmax(270px,1fr))",gap:bp.isMobile?10:13}}>
+        {servers.map(sv=>{
+          const sl=srvLv(sv.totalXp);
+          const slD=SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
+          const asgn=tables.filter(t=>t.server===sv.name);
+          const isWorking=sv.status==="service";
+          const moral=sv.moral??100;
+          const mc=moralColor(moral);
+          const mi=moralIcon(moral);
+          const ml=moralLabel(moral);
+          const isBurnout=moral<=10;
+          const isExhausted=moral<=20;
+          const sp=sv.specialty;
+          const primeCost=50;
+          const canAffordPrime=cash>=primeCost;
+
+          return(
+            <Card key={sv.id} accent={isBurnout?C.red+"66":slD.color+"44"}>
+              {/* Ligne 1 : avatar + nom + note */}
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+                <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                  <div style={{width:44,height:44,background:slD.color+"1a",
+                    border:`2px solid ${isBurnout?C.red:slD.color}33`,borderRadius:12,
+                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,
+                    position:"relative"}}>
+                    {slD.icon}
+                    {/* Moral badge */}
+                    <div style={{position:"absolute",bottom:-5,right:-5,
+                      width:18,height:18,borderRadius:"50%",fontSize:10,
+                      background:C.surface,border:`1.5px solid ${mc}`,
+                      display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      {mi}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:600,color:C.ink,fontFamily:F.title}}>{sv.name}</div>
+                    <div style={{display:"flex",gap:5,marginTop:4,flexWrap:"wrap"}}>
+                      <Badge color={slD.color} sm>{slD.name}</Badge>
+                      <Badge color={sColor[sv.status]||C.muted} bg={sBg[sv.status]||C.bg} sm>
+                        {isWorking
+                          ?`🛎 (${Math.max(0,Math.ceil((sv.serviceUntil-clockNow)/1000))}s)`
+                          :sv.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontSize:22,fontWeight:700,color:C.amber,fontFamily:F.title}}>
+                    {sv.rating}<span style={{fontSize:10,color:C.muted}}>/5</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Spécialité */}
+              {sp?(
+                <div style={{background:sp.color+"12",border:`1px solid ${sp.color}33`,
+                  borderRadius:8,padding:"6px 10px",marginBottom:10,
+                  display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:16}}>{sp.icon}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11,fontWeight:700,color:sp.color,fontFamily:F.body}}>
+                      {sp.name}{sv.specialtyUpgraded?" ✦":""}
+                    </div>
+                    <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{sp.desc}</div>
+                  </div>
+                </div>
+              ):sl.l>=1?(
+                <div style={{background:C.bg,border:`1px dashed ${C.border}`,
+                  borderRadius:8,padding:"6px 10px",marginBottom:10,
+                  fontSize:10,color:C.muted,fontFamily:F.body}}>
+                  🔒 Spécialité débloquée au niveau 2
+                </div>
+              ):null}
+
+              {/* Barre XP */}
+              <div style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",
+                  fontSize:10,color:C.muted,marginBottom:4,fontFamily:F.body}}>
+                  <span>XP · Niv.{sl.l}</span>
+                  <span style={{color:slD.color,fontWeight:600}}>{sl.r}/{sl.n}</span>
+                </div>
+                <XpBar xp={sl.r} needed={sl.n} color={slD.color}/>
+              </div>
+
+              {/* Jauge Moral */}
+              <div style={{marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",
+                  fontSize:10,marginBottom:4,fontFamily:F.body}}>
+                  <span style={{color:C.muted}}>Moral {mi} {ml}</span>
+                  <span style={{fontWeight:700,color:mc}}>{moral}/100</span>
+                </div>
+                <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${moral}%`,background:mc,
+                    borderRadius:99,transition:"width 0.5s ease"}}/>
+                </div>
+                {isBurnout&&(
+                  <div style={{fontSize:9,color:C.red,fontWeight:700,fontFamily:F.body,marginTop:3,
+                    animation:"pulse 1s infinite"}}>
+                    ⚠ Burnout — refuse les nouvelles tables !
+                  </div>
+                )}
+                {!isBurnout&&isExhausted&&(
+                  <div style={{fontSize:9,color:C.amber,fontFamily:F.body,marginTop:3}}>
+                    😓 Épuisé — service ralenti +20%
+                  </div>
+                )}
+              </div>
+
+              {/* Infos */}
+              <div style={{fontSize:11,color:C.muted,marginBottom:12,fontFamily:F.body}}>
+                <div>📍 {asgn.length>0?asgn.map(t=>t.name).join(", "):"Aucune table"}</div>
+                <div style={{marginTop:2}}>🏆 {sv.totalXp} XP · 💸 {(sv.salary||0).toFixed(0)} €/h</div>
+                {Object.keys(sv.trainings||{}).length>0&&(
+                  <div style={{marginTop:5,display:"flex",gap:4,flexWrap:"wrap"}}>
+                    {TRAINING_CATALOG.filter(d=>(sv.trainings||{})[d.id]>0).map(d=>(
+                      <span key={d.id} style={{fontSize:9,background:d.color+"14",color:d.color,
+                        border:`1px solid ${d.color}22`,borderRadius:5,padding:"1px 6px",
+                        fontFamily:F.body,fontWeight:600}}>
+                        {d.icon} N{(sv.trainings||{})[d.id]}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                {sv.status==="actif"&&!isWorking&&(
+                  <Btn sm v="terra" onClick={()=>setServers(p=>p.map(x=>x.id===sv.id?{...x,status:"pause"}:x))}>
+                    ⏸ Pause
+                  </Btn>
+                )}
+                {sv.status==="pause"&&(
+                  <Btn sm v="primary" onClick={()=>setServers(p=>p.map(x=>x.id===sv.id?{...x,status:"actif"}:x))}>
+                    ▶ Activer
+                  </Btn>
+                )}
+                {isWorking&&(
+                  <span style={{fontSize:11,color:C.amber,fontFamily:F.body,alignSelf:"center"}}>
+                    🛎 En service…
+                  </span>
+                )}
+                {/* Prime de motivation */}
+                {moral<60&&!isWorking&&(
+                  <Btn sm v={canAffordPrime?"navy":"disabled"}
+                    disabled={!canAffordPrime}
+                    onClick={()=>{
+                      if(!canAffordPrime)return;
+                      setCash&&setCash(c=>+(c-primeCost).toFixed(2));
+                      addTx&&addTx("achat",`Prime motivation — ${sv.name}`,primeCost);
+                      setServers(p=>p.map(x=>x.id!==sv.id?x:{...x,moral:Math.min(100,x.moral+50)}));
+                      addToast&&addToast({icon:"🎁",title:`Prime versée à ${sv.name}`,
+                        msg:`+50 moral · −${primeCost}€`,color:C.navy,tab:"servers"});
+                    }}>
+                    🎁 Prime {primeCost}€
+                  </Btn>
+                )}
+                {!isWorking&&(
+                  <Btn sm v="danger" onClick={()=>openFire(sv)}>Licencier</Btn>
+                )}
+                <Btn sm v="secondary" onClick={()=>openTrain(sv)} icon="🎓">
+                  Former
+                </Btn>
+              </div>
+            </Card>
+          );
+        })}
+
+        {/* ── Slots libres cliquables ── */}
+        {canHire&&Array.from({length:maxSlots-servers.length},(_,i)=>(
+          <div key={`free-${i}`} onClick={openAdd}
+            className="hovcard"
+            style={{background:C.bg,border:`1.5px dashed ${C.green}55`,
+              borderRadius:14,padding:"18px 16px",
+              display:"flex",flexDirection:"column",alignItems:"center",
+              justifyContent:"center",minHeight:160,gap:10,cursor:"pointer",
+              transition:"all 0.2s"}}>
+            <div style={{width:44,height:44,background:C.greenP,border:`2px dashed ${C.green}66`,
+              borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>
+              ➕
+            </div>
+            <div style={{fontSize:12,color:C.green,fontWeight:600,fontFamily:F.body}}>
+              Poste vacant
+            </div>
+            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,textAlign:"center"}}>
+              Cliquez pour embaucher
+            </div>
+          </div>
+        ))}
+
+        {/* ── Slots verrouillés ── */}
+        {(()=>{
+          const nextLevelSlots=Object.entries(SERVER_SLOTS_BY_LEVEL)
+            .filter(([lv,sl])=>parseInt(lv)>restoLvN&&sl>maxSlots)
+            .slice(0,2);
+          if(!nextLevelSlots.length)return null;
+          return nextLevelSlots.map(([lv])=>{
+            const r=RESTO_LVL.find(x=>x.l===parseInt(lv));
+            return(
+              <div key={`lock-${lv}`} style={{background:C.bg,border:`1.5px dashed ${C.border}`,
+                borderRadius:14,padding:"18px 16px",
+                display:"flex",flexDirection:"column",alignItems:"center",
+                justifyContent:"center",minHeight:160,gap:8,opacity:0.6}}>
+                <span style={{fontSize:32}}>🔒</span>
+                <div style={{fontSize:11,color:C.muted,fontFamily:F.body,textAlign:"center"}}>
+                  Poste verrouillé
+                </div>
+                {r&&<span style={{fontSize:11,background:r.color+"18",color:r.color,
+                  border:`1px solid ${r.color}33`,borderRadius:6,padding:"2px 8px",
+                  fontFamily:F.body,fontWeight:600}}>
+                  {r.icon} Niveau {r.l} — {r.name}
+                </span>}
+              </div>
+            );
+          });
+        })()}
+      </div>
+
+      {/* ── Modale Formation ── */}
+      {modal==="train"&&(()=>{
+        const sv=servers.find(s=>s.id===trainId);
+        if(!sv)return null;
+        const sl=srvLv(sv.totalXp);
+        const slD=SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
+        return(
+          <div onClick={()=>{setModal(false);setTrainId(null);}}
+            style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",
+              zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+            <div onClick={e=>e.stopPropagation()}
+              style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:18,
+                width:"100%",maxWidth:620,maxHeight:"90vh",overflowY:"auto",
+                boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
+
+              {/* Header */}
+              <div style={{padding:"18px 22px",borderBottom:`1px solid ${C.border}`,
+                display:"flex",justifyContent:"space-between",alignItems:"center",
+                position:"sticky",top:0,background:C.surface,zIndex:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:40,height:40,background:slD.color+"1a",
+                    border:`2px solid ${slD.color}33`,borderRadius:10,
+                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>
+                    {slD.icon}
+                  </div>
+                  <div>
+                    <div style={{fontSize:16,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+                      🎓 Former {sv.name}
+                    </div>
+                    <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>
+                      Niv.{sl.l} · {sv.totalXp} XP · Moral {sv.moral??100}/100
+                      {sv.specialty&&` · ${sv.specialty.icon} ${sv.specialty.name}`}
+                    </div>
+                  </div>
+                </div>
+                <button onClick={()=>{setModal(false);setTrainId(null);}}
+                  style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,
+                    width:32,height:32,cursor:"pointer",fontSize:16,color:C.muted,
+                    display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+              </div>
+
+              {/* Solde */}
+              <div style={{padding:"10px 22px",background:C.bg,borderBottom:`1px solid ${C.border}`,
+                display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Solde disponible :</span>
+                <span style={{fontSize:14,fontWeight:700,color:cash<100?C.red:C.green,fontFamily:F.title}}>
+                  {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+                </span>
+              </div>
+
+              {/* Domaines */}
+              <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",gap:20}}>
+                {TRAINING_CATALOG.map(domain=>{
+                  const currentLevel=(sv.trainings||{})[domain.id]||0;
+                  const isMaxed=currentLevel>=domain.levels.length;
+                  const nextLevel=domain.levels[currentLevel]||null;
+                  return(
+                    <div key={domain.id} style={{
+                      border:`1.5px solid ${domain.color}33`,borderRadius:14,overflow:"hidden"}}>
+
+                      {/* Domain header */}
+                      <div style={{background:domain.color+"12",padding:"12px 16px",
+                        display:"flex",alignItems:"center",gap:12,
+                        borderBottom:`1px solid ${domain.color}22`}}>
+                        <span style={{fontSize:22}}>{domain.icon}</span>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:14,fontWeight:700,color:domain.color,fontFamily:F.title}}>
+                            {domain.name}
+                          </div>
+                          <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:1}}>
+                            {domain.desc}
+                          </div>
+                        </div>
+                        {/* Niveau actuel */}
+                        <div style={{display:"flex",gap:4,flexShrink:0}}>
+                          {domain.levels.map((_,i)=>(
+                            <div key={i} style={{
+                              width:10,height:10,borderRadius:"50%",
+                              background:i<currentLevel?domain.color:C.border,
+                              border:`1.5px solid ${domain.color}`,
+                              transition:"background 0.3s"}}/>
+                          ))}
+                        </div>
+                        {isMaxed&&(
+                          <span style={{fontSize:11,background:domain.color,color:"#fff",
+                            borderRadius:20,padding:"2px 8px",fontFamily:F.body,fontWeight:700}}>
+                            ✓ Max
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Niveaux */}
+                      <div style={{padding:"10px 16px",display:"flex",flexDirection:"column",gap:8}}>
+                        {domain.levels.map((level,i)=>{
+                          const isDone=i<currentLevel;
+                          const isNext=i===currentLevel;
+                          const isLocked=i>currentLevel;
+                          const canAffordThis=cash>=level.cost;
+                          return(
+                            <div key={i} style={{
+                              display:"flex",alignItems:"center",gap:12,padding:"10px 12px",
+                              borderRadius:10,
+                              background:isDone?C.greenP:isNext?domain.color+"0a":C.bg,
+                              border:`1px solid ${isDone?C.green+"33":isNext?domain.color+"33":C.border}`,
+                              opacity:isLocked?0.45:1}}>
+
+                              {/* Indicateur niveau */}
+                              <div style={{width:28,height:28,borderRadius:"50%",flexShrink:0,
+                                background:isDone?C.green:isNext?domain.color:C.border,
+                                display:"flex",alignItems:"center",justifyContent:"center",
+                                fontSize:12,fontWeight:800,color:"#fff"}}>
+                                {isDone?"✓":level.l}
+                              </div>
+
+                              {/* Infos */}
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+                                  <span style={{fontSize:12,fontWeight:700,
+                                    color:isDone?C.green:isNext?domain.color:C.muted,
+                                    fontFamily:F.body}}>
+                                    Niveau {level.l} — {level.name}
+                                  </span>
+                                  {isDone&&<span style={{fontSize:9,background:C.green,color:"#fff",
+                                    borderRadius:99,padding:"1px 7px",fontFamily:F.body,fontWeight:700}}>
+                                    Acquis
+                                  </span>}
+                                </div>
+                                <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginBottom:4}}>
+                                  {level.desc}
+                                </div>
+                                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                                  <span style={{fontSize:10,background:domain.color+"14",
+                                    color:domain.color,border:`1px solid ${domain.color}22`,
+                                    borderRadius:5,padding:"1px 7px",fontFamily:F.body,fontWeight:600}}>
+                                    ✦ {level.effect}
+                                  </span>
+                                  <span style={{fontSize:10,background:C.greenP,color:C.green,
+                                    border:`1px solid ${C.green}22`,
+                                    borderRadius:5,padding:"1px 7px",fontFamily:F.body,fontWeight:600}}>
+                                    +{level.xp} XP
+                                  </span>
+                                  {level.moralBonus>0&&(
+                                    <span style={{fontSize:10,background:C.amberP,color:C.amber,
+                                      border:`1px solid ${C.amber}22`,
+                                      borderRadius:5,padding:"1px 7px",fontFamily:F.body,fontWeight:600}}>
+                                      +{level.moralBonus} moral
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Prix + bouton */}
+                              {isNext&&(
+                                <div style={{flexShrink:0,textAlign:"right"}}>
+                                  <div style={{fontSize:14,fontWeight:800,
+                                    color:canAffordThis?domain.color:C.red,
+                                    fontFamily:F.title,marginBottom:6}}>
+                                    {level.cost} €
+                                  </div>
+                                  <Btn sm
+                                    v={canAffordThis?"primary":"disabled"}
+                                    disabled={!canAffordThis}
+                                    onClick={()=>doTrain(sv,domain,level)}>
+                                    {canAffordThis?"Financer":"Fonds insuffisants"}
+                                  </Btn>
+                                </div>
+                              )}
+                              {isDone&&(
+                                <div style={{fontSize:11,color:C.green,fontFamily:F.body,flexShrink:0}}>
+                                  ✅
+                                </div>
+                              )}
+                              {isLocked&&(
+                                <div style={{fontSize:11,color:C.muted,fontFamily:F.body,flexShrink:0}}>
+                                  🔒
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Modale Licenciement ── */}
+      {modal==="fire"&&(()=>{
+        const sv=servers.find(s=>s.id===fireId);
+        if(!sv)return null;
+        return(
+          <Modal title="👋 Licencier un serveur" onClose={()=>{setModal(false);setFireId(null);}}>
+            <div style={{display:"flex",flexDirection:"column",gap:18,textAlign:"center"}}>
+              <div style={{fontSize:42}}>{SRV_LVL[Math.min(srvLv(sv.totalXp).l,SRV_LVL.length-1)].icon}</div>
+              <div>
+                <div style={{fontSize:18,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:6}}>
+                  {sv.name}
+                </div>
+                <div style={{fontSize:12,color:C.muted,fontFamily:F.body,lineHeight:1.6}}>
+                  Niv.{srvLv(sv.totalXp).l} · {sv.totalXp} XP · {sv.rating}/5 ⭐<br/>
+                  Cette action est <strong>irréversible</strong>. Tout son XP sera perdu.
+                </div>
+              </div>
+              <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                <Btn v="ghost" onClick={()=>{setModal(false);setFireId(null);}}>Annuler</Btn>
+                <Btn v="danger" onClick={doFire} icon="👋">Licencier</Btn>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   KITCHEN VIEW
+═══════════════════════════════════════════════════════ */
