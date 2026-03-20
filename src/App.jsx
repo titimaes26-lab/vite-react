@@ -2,6 +2,16 @@ import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+// ── Hooks métier (remplacent les useEffect inline) ────
+import { useGameClock }    from "./hooks/useGameClock";
+import { useSpawner }      from "./hooks/useSpawner";
+import { useExpiry }       from "./hooks/useExpiry";
+import { useSalary }       from "./hooks/useSalary";
+import { useDeliveries }   from "./hooks/useDeliveries";
+import { useEvents }       from "./hooks/useEvents";
+import { useServerMoral }  from "./hooks/useServerMoral";
+import { useChallenges }   from "./hooks/useChallenges";
+import { useObjectives }   from "./hooks/useObjectives";
 
 function App() {
   const [count, setCount] = useState(0)
