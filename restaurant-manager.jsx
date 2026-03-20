@@ -191,52 +191,12 @@ const sanitizeSave = (save) => {
 };
 
 /* ─── Palette ─────────────────────────────────────────── */
-const C = {
-  bg:"#f2ede3", surface:"#ffffff", surface2:"#faf7f2", card:"#fdfaf5", border:"#ddd0b8",
-  green:"#236b47", greenL:"#2e8a5a", greenP:"#e6f4ed",
-  terra:"#b85a25", terraP:"#fdeee5", terraL:"#d4713a",
-  navy:"#18304f",  navyP:"#e4eaf4",
-  ink:"#18130e",   ink2:"#2e2419",  muted:"#8a7a65",
-  red:"#b83025",   redP:"#fce9e8",
-  amber:"#a86e08", amberP:"#fdf3dc",
-  purple:"#5e3492",purpleP:"#ece5f8",
-  white:"#ffffff",
-  shadow1:"rgba(24,19,14,0.06)",
-  shadow2:"rgba(24,19,14,0.12)",
-  shadow3:"rgba(24,19,14,0.20)",
-};
 
-const F = {
-  title:"'Playfair Display',Georgia,'Times New Roman',serif",
-  display:"'Playfair Display',Georgia,serif",
-  body:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif",
-  mono:"'SF Mono','Fira Code',monospace",
-};
 
 /* ─── XP / Level system ───────────────────────────────── */
 
-const SERVER_SLOTS_BY_LEVEL={0:2,1:3,2:4,3:5,4:6,5:8};
 
-const SERIES_COLORS={
-  Revenus: C.amber,
-  Clients: C.green,
-  Niveau:  C.purple,
-  Salle:   C.navy,
-};
-const SERIES_LABELS={
-  Revenus:"💶 Revenus",
-  Clients:"🍽 Clients",
-  Niveau: "⭐ Niveau",
-  Salle:  "🪑 Salle",
-};
 
-const SRV_LVL = [
-  { name:"Stagiaire", color:C.muted,  icon:"🎓" },
-  { name:"Serveur",   color:C.green,  icon:"👔" },
-  { name:"Senior",    color:C.navy,   icon:"⭐" },
-  { name:"Expert",    color:C.amber,  icon:"🎖" },
-  { name:"Maître",    color:C.purple, icon:"👑" },
-];
 
 /* ─── Spécialités serveurs ───────────────────────────── */
 const SRV_SPECIALTIES = [
@@ -345,38 +305,8 @@ const rVal=(bp,mobile,tablet,desktop)=>bp.isMobile?mobile:bp.isTablet?tablet:des
 // Grid columns helper
 const rGrid=(bp,m=1,t=2,d=3)=>`repeat(${bp.isMobile?m:bp.isTablet?t:d},1fr)`;
 
-const TABS=[
-  {id:"tables",     label:"Tables",      icon:"⊞"},
-  {id:"servers",    label:"Serveurs",    icon:"👤"},
-  {id:"cuisine",    label:"Cuisine",     icon:"👨‍🍳"},
-  {id:"menu",       label:"Menu",        icon:"📋"},
-  {id:"stock",      label:"Stocks",      icon:"📦"},
-  {id:"objectives", label:"Objectifs",   icon:"🎯"},
-  {id:"complaints", label:"Plaintes",    icon:"⚠"},
-  {id:"stats",      label:"Statistiques",icon:"📊"},
-];
 
 /* ── Objectifs de progression ── */
-const OBJECTIVES_DEF=[
-  // Série : Revenus
-  {id:"rev1",  series:"Revenus",    icon:"💶", title:"Premiers euros",      desc:"Encaisser 500€",          reward:{cash:50,  xp:100}, condition:s=>(s.totalRevenue||0)>=500  },
-  {id:"rev2",  series:"Revenus",    icon:"💶", title:"Bistrot rentable",     desc:"Encaisser 2 000€",        reward:{cash:150, xp:250}, condition:s=>(s.totalRevenue||0)>=2000 },
-  {id:"rev3",  series:"Revenus",    icon:"💶", title:"Restaurant prospère",  desc:"Encaisser 10 000€",       reward:{cash:500, xp:600}, condition:s=>(s.totalRevenue||0)>=10000},
-  {id:"rev4",  series:"Revenus",    icon:"💶", title:"Empire culinaire",     desc:"Encaisser 50 000€",       reward:{cash:2000,xp:1500},condition:s=>(s.totalRevenue||0)>=50000},
-  // Série : Clients
-  {id:"srv1",  series:"Clients",    icon:"🍽", title:"Premier service",      desc:"Servir 10 clients",       reward:{cash:30,  xp:80 }, condition:s=>(s.totalServed||0)>=10   },
-  {id:"srv2",  series:"Clients",    icon:"🍽", title:"Service régulier",     desc:"Servir 50 clients",       reward:{cash:80,  xp:200}, condition:s=>(s.totalServed||0)>=50   },
-  {id:"srv3",  series:"Clients",    icon:"🍽", title:"Grande salle comble",  desc:"Servir 200 clients",      reward:{cash:300, xp:500}, condition:s=>(s.totalServed||0)>=200  },
-  {id:"srv4",  series:"Clients",    icon:"🍽", title:"Institution locale",   desc:"Servir 1 000 clients",    reward:{cash:1000,xp:1200},condition:s=>(s.totalServed||0)>=1000 },
-  // Série : Niveau resto
-  {id:"lvl1",  series:"Niveau",     icon:"⭐", title:"Bistrot étoilé",       desc:"Atteindre le niveau 2",   reward:{cash:200, xp:300}, condition:s=>(s.restoLevel||0)>=2     },
-  {id:"lvl2",  series:"Niveau",     icon:"⭐", title:"Brasserie reconnue",   desc:"Atteindre le niveau 3",   reward:{cash:500, xp:600}, condition:s=>(s.restoLevel||0)>=3     },
-  {id:"lvl3",  series:"Niveau",     icon:"⭐", title:"Grand restaurant",     desc:"Atteindre le niveau 4",   reward:{cash:1200,xp:1000},condition:s=>(s.restoLevel||0)>=4     },
-  {id:"lvl4",  series:"Niveau",     icon:"👑", title:"Palace gastronomique", desc:"Atteindre le niveau 5",   reward:{cash:3000,xp:2000},condition:s=>(s.restoLevel||0)>=5     },
-  // Série : Tables
-  {id:"tbl1",  series:"Salle",      icon:"🪑", title:"Première extension",   desc:"Agrandir 1 table",        reward:{cash:50,  xp:80 }, condition:s=>(s.tablesUpgraded||0)>=1 },
-  {id:"tbl2",  series:"Salle",      icon:"🪑", title:"Salle réaménagée",     desc:"Agrandir 3 tables",       reward:{cash:120, xp:200}, condition:s=>(s.tablesUpgraded||0)>=3 },
-];
 
 /* ── Défis quotidiens ── */
 const ALL_CHALLENGES=[
@@ -576,8 +506,6 @@ export default function App(){
   },[]);
 
   /* ── Réputation ────────────────────────────────────── */
-  const repRef = useRef(50);
-  useEffect(()=>{ repRef.current=reputation; },[reputation]);
 
   const updateReputation = useCallback((delta, reason="")=>{
     setReputation(prev=>{
@@ -735,6 +663,11 @@ export default function App(){
 
 
 
+  const claimObjective=useCallback((id)=>{
+    const obj=OBJECTIVES_DEF.find(o=>o.id===id);
+    if(!obj)return;
+    setCompletedIds(p=>[...p,id]);
+    setPendingClaim(p=>p.filter(x=>x!==id));
     setCash(c=>+(c+obj.reward.cash).toFixed(2));
     addTx("revenu",`Récompense objectif : ${obj.title}`,obj.reward.cash);
     addRestoXp(obj.reward.xp);
