@@ -15,12 +15,12 @@ import {
   KITCHEN_UPGRADES, SUPPLIERS, LOAN_OPTIONS,
   CHALLENGES_POOL, OBJECTIVES_DEF, SERIES_LABELS, SERIES_COLORS,
   GAME_EVENTS, TABS,
-} from "./constants/gameData";
+} from "./src/constants/gameData";
 
 import {
   REP_THRESHOLDS, REP_DELTA, MENU_THEMES, FORMULA_PRESETS,
   MORAL_PAUSE_GAIN, getRepTier,
-} from "./constants/gameConstants";
+} from "./src/constants/gameConstants";
 
 // ── Logique pure ───────────────────────────────────────
 import {
@@ -28,44 +28,44 @@ import {
   dishCookTime, dishCookTimeWithUpgrades,
   calcRating, ratingColor, ratingStars,
   calcTip, srvXpFromCheckout, restoXpFromCheckout,
-} from "./utils/levelUtils";
+} from "./src/utils/levelUtils";
 
 import {
   pick, rName, rMood, rSize, pickSeeded,
   generateOrder, generateOrderWithSpecials,
-} from "./utils/randomUtils";
+} from "./src/utils/randomUtils";
 
 import {
   consumeStock, buildKitchenTickets,
   svcDuration, eatDuration, calcBill, quickAmounts,
-} from "./utils/orderUtils";
+} from "./src/utils/orderUtils";
 
 // ── Hooks métier ───────────────────────────────────────
-import { useGameClock }   from "./hooks/useGameClock";
-import { useSpawner }     from "./hooks/useSpawner";
-import { useExpiry }      from "./hooks/useExpiry";
-import { useSalary }      from "./hooks/useSalary";
-import { useDeliveries }  from "./hooks/useDeliveries";
-import { useEvents }      from "./hooks/useEvents";
-import { useServerMoral } from "./hooks/useServerMoral";
-import { useChallenges }  from "./hooks/useChallenges";
-import { useObjectives }  from "./hooks/useObjectives";
+import { useGameClock }   from "./src/hooks/useGameClock";
+import { useSpawner }     from "./src/hooks/useSpawner";
+import { useExpiry }      from "./src/hooks/useExpiry";
+import { useSalary }      from "./src/hooks/useSalary";
+import { useDeliveries }  from "./src/hooks/useDeliveries";
+import { useEvents }      from "./src/hooks/useEvents";
+import { useServerMoral } from "./src/hooks/useServerMoral";
+import { useChallenges }  from "./src/hooks/useChallenges";
+import { useObjectives }  from "./src/hooks/useObjectives";
 
 // ── Composants UI ──────────────────────────────────────
-import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./components/ui";
-import { Toasts } from "./components/system/Toasts";
+import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/ui";
+import { Toasts } from "./src/components/system/Toasts";
 
 // ── Vues ───────────────────────────────────────────────
-import { TablesView }     from "./views/TablesView";
-import { ServersView }    from "./views/ServersView";
-import { KitchenView }    from "./views/KitchenView";
-import { MenuView }       from "./views/MenuView";
-import { StockView }      from "./views/StockView";
-import { ComplaintsView } from "./views/ComplaintsView";
-import { StatsView }      from "./views/StatsView";
-import { ObjectivesView } from "./views/ObjectivesView";
-import { BankModal }      from "./views/BankModal";
-import { HelpModal }      from "./views/HelpModal";
+import { TablesView }     from "./src/views/TablesView";
+import { ServersView }    from "./src/views/ServersView";
+import { KitchenView }    from "./src/views/KitchenView";
+import { MenuView }       from "./src/views/MenuView";
+import { StockView }      from "./src/views/StockView";
+import { ComplaintsView } from "./src/views/ComplaintsView";
+import { StatsView }      from "./src/views/StatsView";
+import { ObjectivesView } from "./src/views/ObjectivesView";
+import { BankModal }      from "./src/views/BankModal";
+import { HelpModal }      from "./src/views/HelpModal";
 
 /* ─── Sauvegarde localStorage ─────────────────────────── */
 const SAVE_KEY = "resto_save_v1";
