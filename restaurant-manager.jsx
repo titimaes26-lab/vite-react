@@ -64,8 +64,8 @@ import { StockView }      from "./src/views/StockView";
 import { ComplaintsView } from "./src/views/ComplaintsView";
 import { StatsView }      from "./src/views/StatsView";
 import { ObjectivesView } from "./src/views/ObjectivesView";
-import { BankModal }      from "./src/components/BankModal";
-import { HelpModal }      from "./src/components/HelpModal";
+import { BankModal }      from "./src/components/system/BankModal";
+import { HelpModal }      from "./src/components/system/HelpModal";
 
 /* ─── Sauvegarde localStorage ─────────────────────────── */
 const SAVE_KEY = "resto_save_v1";
