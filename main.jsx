@@ -4,7 +4,7 @@
 ═══════════════════════════════════════════════════════ */
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./restaurant-manager.jsx";
+import App from "../restaurant-manager.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
