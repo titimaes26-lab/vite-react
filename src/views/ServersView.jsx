@@ -7,6 +7,10 @@ import { useState } from "react";
 import { C, F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL } from "../constants/gameData.js";
 import { Badge, Card, Btn, Modal, Lbl, Inp, Sel, XpBar } from "../components/ui/index.js";
 import { srvLv } from "../utils/levelUtils.js";
+/* ─── Helpers locaux ────────────────────────────────── */
+const moralIcon   = (m) => m>=70?"😊":m>=40?"😐":m>=20?"😓":"💀";
+const moralLabel  = (m) => m>=70?"En forme":m>=40?"Fatigué":m>=20?"Épuisé":"Burnout";
+
 /* ─── Helpers & données locaux ──────────────────────── */
 const moralColor  = (m) => m>=70 ? "#236b47" : m>=40 ? "#a86e08" : "#b83025";
 
