@@ -11,7 +11,7 @@
 import {
   SRV_LVL, CHEF_LVL, CHEF_XP_CAP,
   COMMIS_LVL, COMMIS_XP_CAP, RESTO_LVL,
-} from "../constants/gameData";
+} from "../constants/gameData.js";
 
 /* ─────────────────────────────────────────────────────
    SERVEURS — Niveau à partir de l'XP total

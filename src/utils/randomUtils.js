@@ -4,7 +4,7 @@
    Toutes les fonctions sont déterministes avec un seed.
 ═══════════════════════════════════════════════════════ */
 
-import { NAMES1, NAMES2, MOODS } from "../constants/gameData";
+import { NAMES1, NAMES2, MOODS } from "../constants/gameData.js";
 
 /* ─── Sélecteur aléatoire générique ─────────────────── */
 
