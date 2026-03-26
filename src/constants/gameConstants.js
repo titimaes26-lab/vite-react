@@ -7,7 +7,7 @@
    Contient : REP_THRESHOLDS, REP_DELTA, MENU_THEMES,
               FORMULA_PRESETS, MORAL_PAUSE_GAIN, getRepTier
 ═══════════════════════════════════════════════════════ */
-import { C } from "./gameData";
+import { C } from "./gameData.js";
 
 /* ─── Réputation restaurant (0–100) ──────────────────── */
 export const REP_THRESHOLDS = [
