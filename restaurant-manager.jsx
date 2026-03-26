@@ -64,8 +64,6 @@ import { StockView }      from "./src/views/StockView";
 import { ComplaintsView } from "./src/views/ComplaintsView";
 import { StatsView }      from "./src/views/StatsView";
 import { ObjectivesView } from "./src/views/ObjectivesView";
-import { BankModal }      from "./src/views/BankModal";
-import { HelpModal }      from "./src/views/HelpModal";
 
 /* ─── Sauvegarde localStorage ─────────────────────────── */
 const SAVE_KEY = "resto_save_v1";
@@ -266,6 +264,321 @@ const getMaxMoral = (sv) => {
   return 100 + (bienetre>=1?10:0) + (bienetre>=2?10:0);
 };
 
+
+
+/* ─── HELP_SECTIONS ──────────────────────────────────────── */
+const HELP_SECTIONS=[
+  {
+    icon:"⊞", title:"Tables",
+    color:"#1e5c38",
+    items:[
+      {q:"Arrivée des clients",a:"Un nouveau groupe arrive toutes les 30 secondes (65 % de chance). La taille du groupe ne dépasse jamais la capacité maximale des tables libres. La file d'attente reste active même si vous changez d'onglet."},
+      {q:"Humeur et patience",a:"🤩 Enthousiaste (45s, ×1.5 XP) · 😊 Détendu (35s) · 😐 Neutre (25s) · 😑 Pressé (18s) · 😤 Impatient (11s, ×0.6 XP). La barre de patience passe du vert au rouge — si elle atteint 0, le groupe part sans consommer."},
+      {q:"Plan de salle / Vue grille",a:"Basculez entre le plan SVG et la vue grille via le bouton 🗺 / ⊞. Le plan montre toutes les tables avec leur statut coloré. Cliquez une table pour ouvrir son panneau de détail latéral."},
+      {q:"Timeline de phases",a:"Chaque table affiche une barre de 4 segments : 🛎 Commande (bleu) → 🔥 Cuisine (orange) → 🍴 Repas (vert) → 🧹 Nettoyage (jaune). Chaque segment se remplit progressivement. La phase cuisine utilise le plat le plus long encore en cuisson."},
+      {q:"Placement automatique",a:"Si une table libre et un serveur actif sont disponibles, cliquez sur ▶ Placer pour installer le groupe automatiquement. Sinon, utilisez la modale pour choisir table et serveur manuellement."},
+      {q:"Prise de commande",a:"Le serveur prend la commande selon la taille du groupe : 30s (2p), 1 min (4p), 1m30 (6p). La carte affiche 🛎 avec un compte à rebours et la barre de phase se remplit."},
+      {q:"Repas en cours",a:"Une fois les plats servis, la table passe en 🍴 repas. Le temps correspond aux ⅔ du plat le plus long. Le bouton Encaisser est verrouillé pendant ce délai."},
+      {q:"Nettoyage",a:"Après l'encaissement, un serveur nettoie pendant 1 minute (réduit par l'amélioration Station de plonge). La table redevient libre automatiquement."},
+      {q:"Agrandir une table",a:"Sur chaque table libre, un bouton permet d'augmenter la capacité : 2→4 couverts pour 800 €, puis 4→6 couverts pour 1 800 €. Des groupes plus grands arriveront ensuite."},
+      {q:"File d'attente — rappel",a:"Si un groupe part avant d'être placé, il reste rappelable 2 minutes dans la liste d'attente. Cliquez ↩ Rappeler pour le remettre en tête de file avec +15s de patience."},
+      {q:"Réorganiser la file",a:"Les boutons ↑↓ sur chaque ticket de la file permettent de prioriser les groupes. Un indicateur de backlog (temps total estimé) s'affiche en haut."},
+    ]
+  },
+  {
+    icon:"👤", title:"Serveurs",
+    color:"#162d4a",
+    items:[
+      {q:"Équipe et slots",a:"Le restaurant démarre avec 2 serveurs. Des slots supplémentaires se débloquent avec le niveau du restaurant : 3 au Bistrot, 4 à la Brasserie, jusqu'à 8 au Palace."},
+      {q:"Statuts",a:"Actif → disponible. En pause → indisponible, non payé. 🛎 En service → prend une commande ou nettoie. Seuls les serveurs actifs (moral > 10) sont assignés automatiquement."},
+      {q:"Moral",a:"Le moral baisse de 1 point toutes les 5 minutes si le serveur est actif. Il remonte pendant les pauses. En dessous de 10 (💀 Burnout), le serveur n'est plus disponible. Utilisez 🎁 Prime 50€ pour remonter un moral bas."},
+      {q:"Spécialités",a:"Débloquées au niveau 2 : ⚡ Rapidité (−30% temps commande), ✨ Charme (+20% pourboires), 🍷 Sommelier (+10% pourboires), 🎩 VIP (+15% pourboires). Améliorées au niveau 4."},
+      {q:"Formations",a:"5 domaines de formation : Accueil, Rapidité, Sommellerie, Prestige VIP, Bien-être. Chaque domaine a 3 niveaux progressifs. Les formations améliorent les spécialités et le moral maximal."},
+      {q:"Expérience et niveau",a:"Les serveurs gagnent de l'XP à chaque encaissement. 5 niveaux : 🎓 Stagiaire → 👑 Maître. Les pourboires augmentent aussi avec le niveau."},
+      {q:"Salaire",a:"Les serveurs actifs sont payés toutes les heures réelles. En pause ou au repos, ils ne sont pas payés."},
+    ]
+  },
+  {
+    icon:"👨‍🍳", title:"Cuisine",
+    color:"#b85520",
+    items:[
+      {q:"Piano de cuisine",a:"Le centre de l'onglet affiche un piano SVG avec N brûleurs. Les flammes s'animent en orange pendant la cuisson, passent au vert à 80% de progression, avec vapeur quand c'est presque prêt."},
+      {q:"Tickets de commande",a:"Chaque table a un ticket ordonnable (boutons ↑↓). Le ticket change de couleur selon l'attente : 🟢 < 3 min · 🟡 3–5 min · 🔴 > 5 min. Un badge indique les tickets en retard."},
+      {q:"Feux de cuisson",a:"4 feux de base + commis débloqués + améliorations Fourneau. Cliquez ▶ sur un plat ou « Tout démarrer » pour remplir les feux libres."},
+      {q:"Temps de cuisson",a:"Réduit par le niveau du chef (×1.0 à ×3.0), les commis (+15% chacun) et l'amélioration Four professionnel (jusqu'à −50%)."},
+      {q:"Servir une table",a:"Quand tous les plats d'une table sont prêts (✅ PRÊT), le bouton 🍽 Servir apparaît. La table passe en phase repas avant encaissement."},
+      {q:"Chef et commis",a:"Le chef gagne +12 XP par plat. Les commis gagnent 40% de ce montant. 3 commis débloqués aux niveaux 2 et 4 du chef (niveaux 1, 2 et 3 selon l'avancement)."},
+      {q:"Améliorations cuisine",a:"🔥 Fourneau (+1 feu, 3 niveaux) · 🏺 Four professionnel (−50% temps, 3 niveaux) · 🧊 Chambre froide (capacité stock ×3, 2 niveaux) · 🚿 Station de plonge (nettoyage −40s, 2 niveaux)."},
+    ]
+  },
+  {
+    icon:"📋", title:"Menu",
+    color:"#5c2e96",
+    items:[
+      {q:"4 sous-onglets",a:"📋 Carte (plats actifs), 🍽 Formules (menus combinés), 🎨 Thèmes (modificateurs globaux), 📊 Performance (analyse de rentabilité)."},
+      {q:"Prix dynamique",a:"Sur chaque carte, ajustez le prix : −10%, −5%, +5%, +10%, +20%. Le bouton ↺ réinitialise au prix de base. Les prix ajustés s'appliquent aux nouvelles commandes."},
+      {q:"Activer / Désactiver",a:"Le bouton ⏸ retire un plat du menu sans le supprimer. Les plats désactivés ne sont plus commandés par les clients."},
+      {q:"Score de rentabilité",a:"Chaque plat a un score composé : 40% marge brute + 40% popularité + 20% disponibilité stock. Badge 🔥 pour le plat le mieux noté."},
+      {q:"Formules",a:"3 modèles : Menu Découverte (−12%, 3 services), Menu Express (−8%, 2 services), Menu Prestige (−15%, 4 services). Configurez les plats de chaque catégorie puis activez."},
+      {q:"Thèmes",a:"🍺 Bistrot (×0.90 prix) · ⭐ Gastronomique (×1.15 prix, +5 rép, +20% XP) · 🌿 Saisonnier (+8 rép, +10% XP). Le thème actif s'applique à chaque encaissement."},
+      {q:"Plats du jour",a:"2 plats aléatoires sont mis en avant chaque heure avec −20% de réduction. Ils apparaissent dans la file d'attente et dans l'onglet Tables."},
+    ]
+  },
+  {
+    icon:"📦", title:"Stocks",
+    color:"#162d4a",
+    items:[
+      {q:"3 modes de vue",a:"⊞ Cartes (défaut, accordéon par catégorie), ☰ Liste (tableau compact), 📊 Graphique (barres horizontales triées par urgence). Triez par urgence, catégorie ou alphabétique."},
+      {q:"Prévision rupture",a:"Le bloc 🔮 calcule combien de repas chaque ingrédient peut encore couvrir selon les recettes actives. Couleur : ✓ vert (>10 repas) · ⚠ orange (<10) · ⛔ rouge (<3 ou épuisé)."},
+      {q:"Commander selon prévision",a:"Le bouton 🛒 Commander réapprovisionne automatiquement les 3 ingrédients les plus critiques jusqu'au niveau optimal, en tenant compte du fournisseur actif."},
+      {q:"Fournisseurs",a:"⚡ Grossiste Premium : prix plein, livraison instantanée. 🚚 Fournisseur Local : −20% mais livraison en 2 minutes. Les livraisons en cours s'affichent avec une barre de progression."},
+      {q:"Accordéon catégories",a:"Cliquez sur l'en-tête d'une catégorie pour la réduire ou l'agrandir. Le badge rouge indique combien d'alertes il y a dans chaque catégorie sans avoir à dérouler."},
+      {q:"KPI inventaire",a:"4 métriques en haut : alertes stock, valeur totale de l'inventaire, ruptures prévues, nombre d'articles. Mis à jour en temps réel."},
+    ]
+  },
+  {
+    icon:"🎯", title:"Objectifs & Défis",
+    color:"#a06c08",
+    items:[
+      {q:"Séries d'objectifs",a:"16 objectifs en 4 séries : Premiers pas, Croissance, Excellence, Légende. Chaque objectif complété donne des espèces et de l'XP restaurant. Cliquez Récupérer pour encaisser."},
+      {q:"Défis quotidiens",a:"3 défis renouvelés chaque jour, tirés au sort selon la date. Catégories : clients servis, recettes, notes, rush express, service VIP, salle comble, pourboires. Récompenses immédiates."},
+      {q:"Jalons de progression",a:"Une frise chronologique affiche 6 jalons clés (10 clients, 50 clients, 1k€, 5k€, 20k€, Palace). Les jalons atteints s'illuminent en or."},
+      {q:"Badge et notifications",a:"Un badge rouge sur l'onglet Objectifs indique les récompenses prêtes + défis quotidiens complétés. Les toasts sont cliquables pour y accéder directement."},
+    ]
+  },
+  {
+    icon:"💰", title:"Finances",
+    color:"#a06c08",
+    items:[
+      {q:"Caisse",a:"Le restaurant démarre avec 5 000 €. Affiché en vert (≥ 200 €) ou rouge (critique). Cliquez sur 💰 pour ouvrir le Grand Livre."},
+      {q:"Résultat du jour",a:"Dans l'onglet Statistiques : revenus encaissés, dépenses du jour et résultat net. La masse salariale active (chef + commis + serveurs) est détaillée en €/h."},
+      {q:"Grand livre",a:"Toutes les transactions avec résumé Recettes / Dépenses / Résultat net. Limité aux 200 dernières entrées."},
+      {q:"Prêts bancaires",a:"3 options : Petit prêt (1 500€), Standard (4 000€), Grand prêt (9 000€). Remboursement automatique par mensualités horaires. Un seul prêt actif à la fois. Remboursement anticipé possible."},
+      {q:"Salaires",a:"Débités automatiquement toutes les heures réelles. Seuls les personnels actifs sont payés. Les commis non débloqués ne sont pas comptés."},
+    ]
+  },
+  {
+    icon:"📊", title:"Statistiques",
+    color:"#1e5c38",
+    items:[
+      {q:"Graphiques linéaires",a:"3 courbes SVG interactives : Revenus, Clients servis, Réputation. Passez la souris sur un point pour voir la valeur exacte. Un indicateur ↗/↘ montre la tendance vs j−1."},
+      {q:"Période",a:"Sélecteur 3 jours / 5 jours pour zoomer ou élargir la vue."},
+      {q:"Analyse financière",a:"Compte de résultat du jour (revenus, dépenses, résultat net), masse salariale active, camembert de répartition des revenus par catégorie de menu, panier moyen."},
+      {q:"Réputation",a:"Jauge circulaire SVG avec palier actuel, effets sur les pourboires et le taux de spawn clients. Barre de progression vers le palier suivant."},
+      {q:"Tableau journalier",a:"Les N derniers jours : clients servis, perdus, taux de service (barre colorée) et revenus. La ligne du jour est mise en avant."},
+    ]
+  },
+  {
+    icon:"⭐", title:"Réputation",
+    color:"#5c2e96",
+    items:[
+      {q:"5 paliers",a:"💀 Désastreuse (0–19) · 😟 Dégradée (20–39) · 😐 Neutre (40–59) · 😊 Appréciée (60–79) · 🌟 Réputée (80+). Chaque palier modifie les pourboires et le taux d'arrivée des clients."},
+      {q:"Gain de réputation",a:"★★★★★ +4 pts · ★★★★ +2 pts · ★★★ 0 pt · ★★ −4 pts · ★ −8 pts. Client VIP servi +6 pts. Bonus selon le thème de menu actif."},
+      {q:"Perte de réputation",a:"Client perdu −3 pts · Plainte −5 pts · Amende inspection −6 pts · Passage inspection réussie +3 pts."},
+      {q:"Effets en jeu",a:"Les pourboires et le taux de spawn clients sont multipliés par le modificateur du palier (×0.5 à ×1.25). Visible dans le header et l'onglet Statistiques."},
+    ]
+  },
+  {
+    icon:"⚠", title:"Plaintes",
+    color:"#b85520",
+    items:[
+      {q:"Génération automatique",a:"Une plainte est générée automatiquement si la note est ≤ 2 étoiles lors d'un encaissement, ou en cas d'amende d'inspection sanitaire."},
+      {q:"Liste des plaintes",a:"Triées de la plus récente à la plus ancienne. Badge ● NOUVEAU sur les plaintes non encore consultées. Priorités : haute (rouge), moyenne (orange), basse (bleu)."},
+      {q:"Alerte header",a:"L'alerte 💬 indique le nombre de nouvelles plaintes. Cliquez dessus pour accéder directement à l'onglet — le badge disparaît après consultation."},
+    ]
+  },
+  {
+    icon:"🏆", title:"Niveau Restaurant",
+    color:"#a06c08",
+    items:[
+      {q:"Progression",a:"Chaque encaissement ajoute de l'XP (modifié par l'humeur du groupe, le statut VIP et le thème de menu). La barre dans le header indique l'avancement."},
+      {q:"Déblocage des tables",a:"☕ Café de quartier (3 tables) → 🍺 Bistrot (5) → 🍽 Brasserie (7) → ⭐ Restaurant (9) → 🌟 Grand Restaurant (11) → 👑 Palace (12 tables)."},
+      {q:"Déblocage des serveurs",a:"Bistrot +1 slot (3 total) → Brasserie +1 (4) → Restaurant +1 (5) → Grand Restaurant +1 (6) → Palace +2 (8 serveurs maximum)."},
+      {q:"Événements aléatoires",a:"Toutes les 4 minutes réelles : 🔍 Inspection sanitaire (amende ou bonus), ⚡ Rush inattendu (3 groupes ajoutés), 🧊 Panne frigo (stocks réduits), 🎩 Critique Michelin (client VIP)."},
+    ]
+  },
+];
+
+/* ─── BankModal (inliné — fichier supprimé du repo) ─────── */
+function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
+  const takeLoan=(opt)=>{
+    if(loan){addToast({icon:"🏦",title:"Prêt en cours",msg:"Remboursez d'abord votre emprunt actuel.",color:C.red});return;}
+    const totalDue=+(opt.amount*(1+opt.rate)).toFixed(2);
+    setLoan({id:opt.id,label:opt.label,amount:opt.amount,remaining:totalDue,
+      rate:opt.rate,takenAt:Date.now(),repayPerHour:opt.monthly});
+    setCash(c=>+(c+opt.amount).toFixed(2));
+    addTx("revenu",`Prêt bancaire — ${opt.label} (${opt.amount}€)`,opt.amount);
+    addToast({icon:"🏦",title:`Prêt accordé — +${opt.amount} €`,
+      msg:`Remboursement : ${opt.monthly}€/h · Total : ${totalDue}€`,color:C.navy,tab:"stats"});
+    onClose();
+  };
+  const repayNow=()=>{
+    if(!loan)return;
+    if(cash<loan.remaining){addToast({icon:"❌",title:"Fonds insuffisants",msg:`Il vous manque ${(loan.remaining-cash).toFixed(2)}€`,color:C.red});return;}
+    setCash(c=>+(c-loan.remaining).toFixed(2));
+    addTx("remboursement",`Remboursement anticipé — ${loan.label}`,loan.remaining);
+    addToast({icon:"🎉",title:"Prêt soldé !",msg:"Votre emprunt est entièrement remboursé.",color:C.green,tab:"stats"});
+    setLoan(null);
+    onClose();
+  };
+  return(
+    <Modal title="🏦 Banque" onClose={onClose}>
+      <div style={{display:"flex",flexDirection:"column",gap:18}}>
+
+        {/* Active loan status */}
+        {loan?(
+          <div style={{background:C.amberP,border:`1.5px solid ${C.amber}44`,borderRadius:12,padding:"14px 16px"}}>
+            <div style={{fontSize:12,fontWeight:700,color:C.amber,fontFamily:F.title,marginBottom:8}}>
+              📋 Prêt en cours — {loan.label}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+              {[
+                {l:"Montant initial",v:`${loan.amount.toFixed(2)} €`},
+                {l:"Restant dû",v:`${loan.remaining.toFixed(2)} €`,c:C.red},
+                {l:"Mensualité",v:`${loan.repayPerHour.toFixed(0)} €/h`},
+                {l:"Taux",v:`${(loan.rate*100).toFixed(1)} %`},
+              ].map(r=>(
+                <div key={r.l} style={{background:C.surface,borderRadius:8,padding:"8px 10px"}}>
+                  <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginBottom:2}}>{r.l}</div>
+                  <div style={{fontSize:14,fontWeight:700,color:r.c||C.ink,fontFamily:F.title}}>{r.v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{height:8,background:C.border,borderRadius:99,overflow:"hidden",marginBottom:12}}>
+              <div style={{height:"100%",borderRadius:99,background:C.amber,
+                width:`${Math.max(0,100-(loan.remaining/loan.amount/(1+loan.rate))*100)}%`,
+                transition:"width 0.4s"}}/>
+            </div>
+            <Btn full v="primary" onClick={repayNow}
+              icon={cash>=loan.remaining?"💸":"🔒"}>
+              {cash>=loan.remaining?`Rembourser en avance (${loan.remaining.toFixed(2)} €)`:"Fonds insuffisants"}
+            </Btn>
+          </div>
+        ):(
+          <div style={{background:C.greenP,border:`1px solid ${C.green}33`,
+            borderRadius:10,padding:"10px 14px",fontSize:12,color:C.green,fontFamily:F.body}}>
+            ✅ Aucun emprunt actif — vous pouvez contracter un prêt.
+          </div>
+        )}
+
+        {/* Loan options */}
+        <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>Nouveaux prêts disponibles</div>
+        {LOAN_OPTIONS.map(opt=>{
+          const totalDue=+(opt.amount*(1+opt.rate)).toFixed(2);
+          const disabled=!!loan;
+          return(
+            <div key={opt.id} style={{background:disabled?C.bg:C.card,
+              border:`1.5px solid ${disabled?C.border:C.navy+"44"}`,
+              borderRadius:12,padding:"14px 16px",opacity:disabled?0.55:1,
+              display:"flex",alignItems:"center",gap:14}}>
+              <span style={{fontSize:28,flexShrink:0}}>{opt.icon}</span>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:3}}>
+                  {opt.label} — {opt.amount.toLocaleString("fr-FR")} €
+                </div>
+                <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
+                  Taux {(opt.rate*100).toFixed(1)}% · Mensualités {opt.monthly}€/h · Total dû {totalDue}€
+                </div>
+              </div>
+              <Btn v={disabled?"disabled":"primary"} onClick={()=>!disabled&&takeLoan(opt)}>
+                Emprunter
+              </Btn>
+            </div>
+          );
+        })}
+
+        {/* Fine print */}
+        <div style={{fontSize:10,color:C.muted,fontFamily:F.body,textAlign:"center",lineHeight:1.5}}>
+          Les mensualités sont déduites automatiquement chaque heure. En cas d'insolvabilité,
+          le remboursement est différé jusqu'à disponibilité des fonds.
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ─── HelpModal (inliné — fichier supprimé du repo) ─────── */
+function HelpModal({onClose}){
+  const [sec,setSec]=useState(0);
+  const s=HELP_SECTIONS[sec];
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",
+      zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+      onClick={onClose}>
+      <div style={{background:C.surface,borderRadius:20,width:"100%",maxWidth:780,
+        maxHeight:"88vh",display:"flex",flexDirection:"column",overflow:"hidden",
+        boxShadow:"0 24px 80px rgba(0,0,0,0.25)"}}
+        onClick={e=>e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+          padding:"20px 24px",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:38,height:38,background:C.green,borderRadius:10,
+              display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>
+              ❓
+            </div>
+            <div>
+              <div style={{fontSize:17,fontWeight:700,color:C.ink,fontFamily:F.title}}>Guide utilisateur</div>
+              <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>Toutes les fonctionnalités expliquées</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{background:C.border,border:"none",borderRadius:8,
+            width:32,height:32,cursor:"pointer",fontSize:16,color:C.muted,
+            display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+        </div>
+
+        <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+          {/* Sidebar */}
+          <div style={{width:170,borderRight:`1px solid ${C.border}`,padding:"12px 8px",
+            display:"flex",flexDirection:"column",gap:3,flexShrink:0,overflowY:"auto",
+            background:C.bg}}>
+            {HELP_SECTIONS.map((hs,i)=>(
+              <button key={i} onClick={()=>setSec(i)} style={{
+                background:sec===i?hs.color+"18":"transparent",
+                border:`1.5px solid ${sec===i?hs.color+"44":"transparent"}`,
+                borderRadius:9,padding:"9px 11px",cursor:"pointer",
+                display:"flex",alignItems:"center",gap:9,
+                color:sec===i?hs.color:C.muted,
+                fontWeight:sec===i?700:400,
+                fontSize:12,fontFamily:F.body,textAlign:"left",
+                transition:"all 0.15s"}}>
+                <span style={{fontSize:16,flexShrink:0}}>{hs.icon}</span>
+                <span>{hs.title}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Content */}
+          <div style={{flex:1,padding:"24px 28px",overflowY:"auto"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+              <span style={{fontSize:26}}>{s.icon}</span>
+              <div style={{fontSize:20,fontWeight:700,color:s.color,fontFamily:F.title}}>{s.title}</div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              {s.items.map((it,i)=>(
+                <div key={i} style={{background:C.card,border:`1.5px solid ${s.color}22`,
+                  borderLeft:`4px solid ${s.color}`,borderRadius:10,padding:"14px 16px"}}>
+                  <div style={{fontSize:13,fontWeight:700,color:s.color,
+                    fontFamily:F.body,marginBottom:6}}>
+                    {it.q}
+                  </div>
+                  <div style={{fontSize:12,color:C.ink,fontFamily:F.body,
+                    lineHeight:1.6}}>
+                    {it.a}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+/* ═══════════════════════════════════════════════════════
+   DAILY SUMMARY MODAL — Résumé de fin de journée (A)
+═══════════════════════════════════════════════════════ */
 
 function useBreakpoint(){
   const [bp,setBp]=useState(()=>({
