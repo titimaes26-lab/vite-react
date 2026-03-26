@@ -11,7 +11,7 @@
      full      {boolean}   width: 100%
      icon      {ReactNode?} affiché avant le label
 ═══════════════════════════════════════════════════════ */
-import { C, F } from "./theme";
+import { C, F } from "./theme.js";
 
 const VARIANTS = {
   primary  : { bg: C.green,       fg: "#fff",   bdr: C.green   },
