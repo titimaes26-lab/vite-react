@@ -9,7 +9,7 @@
      onClick   {Function?} rend la carte cliquable
      accent    {string?}   couleur d'accentuation (bordure + ombre)
 ═══════════════════════════════════════════════════════ */
-import { C } from "./theme";
+import { C } from "./theme.js";
 
 export const Card = ({ children, style = {}, onClick, accent }) => (
   <div
