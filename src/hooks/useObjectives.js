@@ -10,7 +10,7 @@
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
-import { OBJECTIVES_DEF } from "../constants/gameData";
+import { OBJECTIVES_DEF } from "../constants/gameData.js";
 
 /**
  * @param {{

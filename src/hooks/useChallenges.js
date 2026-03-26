@@ -18,8 +18,8 @@
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
-import { CHALLENGES_POOL } from "../constants/gameData";
-import { pickSeeded } from "../utils/randomUtils";
+import { CHALLENGES_POOL } from "../constants/gameData.js";
+import { pickSeeded } from "../utils/randomUtils.js";
 
 /**
  * @param {{

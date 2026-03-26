@@ -15,7 +15,7 @@
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect, useRef } from "react";
-import { rMood, rName, rSize } from "../utils/randomUtils";
+import { rMood, rName, rSize } from "../utils/randomUtils.js";
 
 /**
  * @param {{

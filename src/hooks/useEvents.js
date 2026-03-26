@@ -17,8 +17,8 @@
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
-import { GAME_EVENTS } from "../constants/gameData";
-import { rMood, rName, rSize } from "../utils/randomUtils";
+import { GAME_EVENTS } from "../constants/gameData.js";
+import { rMood, rName, rSize } from "../utils/randomUtils.js";
 
 /**
  * @param {{
