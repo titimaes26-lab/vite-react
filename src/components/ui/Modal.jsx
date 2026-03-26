@@ -8,7 +8,7 @@
      onClose {Function} appelé au clic sur ×
      children {ReactNode}
 ═══════════════════════════════════════════════════════ */
-import { C, F } from "./theme";
+import { C, F } from "./theme.js";
 
 export const Modal = ({ title, onClose, children }) => (
   <div style={{
