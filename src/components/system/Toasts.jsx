@@ -11,7 +11,7 @@
      onDismiss  {(id: string) => void}
      onNavigate {(tab: string) => void}
 ═══════════════════════════════════════════════════════ */
-import { C, F } from "../ui/theme";
+import { C, F } from "../ui/theme.js";
 
 export const Toasts = ({ list, onDismiss, onNavigate }) => (
   <div style={{
