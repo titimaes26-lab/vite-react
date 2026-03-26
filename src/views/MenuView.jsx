@@ -4,9 +4,9 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F } from "../constants/gameData";
-import { MENU_THEMES } from "../constants/gameConstants";
-import { Badge, Btn, Modal, Lbl, Inp, Sel } from "../components/ui";
+import { C, F } from "../constants/gameData.js";
+import { MENU_THEMES, FORMULA_PRESETS } from "../constants/gameConstants.js";
+import { Badge, Btn, Modal, Lbl, Inp, Sel } from "../components/ui/index.js";
 
 export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActiveTheme,dailyStats,bp={}}){
   const [mainTab,setMainTab]=useState("carte");

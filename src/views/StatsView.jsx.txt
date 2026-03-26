@@ -5,7 +5,7 @@
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
 import { C, F, RESTO_LVL, CHEF_LVL, OBJECTIVES_DEF } from "../constants/gameData.js";
-import { REP_THRESHOLDS } from "../constants/gameConstants.js";
+import { REP_THRESHOLDS, getRepTier } from "../constants/gameConstants.js";
 import { restoLv, chefLv } from "../utils/levelUtils.js";
 
 export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=50,transactions=[],menu=[],bp={}}){
