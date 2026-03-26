@@ -90,7 +90,7 @@ export const RESTO_LVL = [
 ];
 
 /* ─── Slots serveurs par niveau resto ────────────────── */
-export const SERVER_SLOTS_BY_LEVEL = { 0: 2, 1: 2, 2: 3, 3: 4, 4: 4, 5: 4 };
+export const SERVER_SLOTS_BY_LEVEL = { 0: 2, 1: 3, 2: 4, 3: 5, 4: 6, 5: 8 };
 
 /* ─── Agrandissements de tables ──────────────────────── */
 export const CAP_UPGRADES = [
@@ -126,8 +126,8 @@ export const TABLES0 = [
 
 /* ─── État initial : serveurs ────────────────────────── */
 export const SERVERS0 = [
-  { id: 1, name: "Marie Dupont",  status: "actif", totalXp: 320, rating: 4.8, salary: 14 },
-  { id: 2, name: "Pierre Martin", status: "actif", totalXp: 180, rating: 4.5, salary: 12 },
+  { id: 1, name: "Marie Dupont",  status: "actif", totalXp: 320, rating: 4.8, salary: 14, moral: 90, specialty: null },
+  { id: 2, name: "Pierre Martin", status: "actif", totalXp: 180, rating: 4.5, salary: 12, moral: 75, specialty: null },
 ];
 
 /* ─── État initial : stock (ingrédients bruts) ───────── */
