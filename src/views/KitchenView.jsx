@@ -3,12 +3,12 @@
    Extrait du monolithe restaurant-manager.jsx
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { C, F, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
-         KITCHEN_UPGRADES } from "../constants/gameData";
-import { Btn, XpBar, Badge } from "../components/ui";
-import { chefLv, commisLv, dishCookTimeWithUpgrades } from "../utils/levelUtils";
-import { consumeStock } from "../utils/orderUtils";
+         KITCHEN_UPGRADES } from "../constants/gameData.js";
+import { Btn, XpBar, Badge } from "../components/ui/index.js";
+import { chefLv, commisLv, dishCookTimeWithUpgrades } from "../utils/levelUtils.js";
+import { consumeStock } from "../utils/orderUtils.js";
 
 export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,addToast,cash,setCash,addTx,bp={}}){
   const chf=kitchen.chef;
