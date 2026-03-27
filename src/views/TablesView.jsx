@@ -262,16 +262,253 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,menuTheme,
 
 /* ═══════════════════════════════════════════════════════
    SvgFloorPlan — Plan de salle SVG animé
-   (stub — le vrai SVG est inline pour l'instant)
 ═══════════════════════════════════════════════════════ */
 function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
-  selectedTable,setSelectedTable,srvLv,SRV_LVL,menuTheme,
-  calcRating,ratingColor,ratingStars,calcTip,
-  quickPlace,openAssign,checkout,activeSrv}) {
-  return <div style={{width:"100%",height:"100%",background:"#faf7f0",
-    display:"flex",alignItems:"center",justifyContent:"center"}}>
-    <span style={{fontSize:13,color:"#a09080",fontFamily:"sans-serif"}}>Plan SVG</span>
-  </div>;
+  selectedTable,setSelectedTable,menuTheme,
+  srvLv,SRV_LVL}) {
+              const n = tables.length;
+
+              // ── 1. Grille dynamique ─────────────────────────
+              // Colonnes : adapté au nombre de tables
+              const cols = n<=2?n : n<=4?2 : n<=6?3 : n<=9?3 : 4;
+              const rows = Math.ceil(n / cols);
+
+              // ── 2. Taille de chaque cellule ─────────────────
+              // La plus grande table (6p) : tw=64, th=46
+              // Chaises : +14px gauche/droite, +14px haut/bas
+              // Espacement entre tables : 20px
+              const CELL_W = 110; // 64+14+14+18 de marge
+              const CELL_H = 90;  // 46+14+14+16 de marge
+
+              // ── 3. Marges du plan ───────────────────────────
+              const ML = 30;   // gauche (couloir cuisine)
+              const MT = 52;   // haut (déco + espace)
+              const MR = 80;   // droite (bar)
+              const MB = 36;   // bas (entrée)
+
+              // ── 4. ViewBox calculée ──────────────────────────
+              const VW = ML + cols * CELL_W + MR;
+              const VH = MT + rows * CELL_H + MB;
+
+              // ── 5. Position centre de chaque table ──────────
+              const getPos = (i) => ({
+                cx: ML + (i % cols) * CELL_W + CELL_W / 2,
+                cy: MT + Math.floor(i / cols) * CELL_H + CELL_H / 2,
+              });
+
+              return(
+                <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" style={{display:"block"}}>
+                  {/* Fond parquet */}
+                  <rect x="0" y="0" width={VW} height={VH} fill="#faf7f0"/>
+                  {Array.from({length:Math.ceil(VH/20)+1},(_,i)=>(
+                    <line key={`h${i}`} x1="0" y1={i*20} x2={VW} y2={i*20}
+                      stroke="#e8e0d0" strokeWidth="0.5"/>
+                  ))}
+                  {Array.from({length:Math.ceil(VW/20)+1},(_,i)=>(
+                    <line key={`v${i}`} x1={i*20} y1="0" x2={i*20} y2={VH}
+                      stroke="#e8e0d0" strokeWidth="0.5"/>
+                  ))}
+
+                  {/* Entrée — centrée en bas */}
+                  <rect x={VW/2-50} y={VH-20} width={100} height={20} rx="4"
+                    fill="#d4c9b0" opacity="0.8"/>
+                  <text x={VW/2} y={VH-8} textAnchor="middle" fontSize="9"
+                    fill="#8a7d6a" fontFamily="sans-serif">✦ ENTRÉE</text>
+
+                  {/* Bar — droite */}
+                  <rect x={VW-MR+6} y={MT} width={MR-10} height={Math.min(rows*CELL_H, 50)} rx="6"
+                    fill="#c4a882" opacity="0.7"/>
+                  <text x={VW-MR+MR/2+1} y={MT+18} textAnchor="middle" fontSize="9"
+                    fill="#5a3e20" fontFamily="sans-serif">🍺</text>
+                  <text x={VW-MR+MR/2+1} y={MT+30} textAnchor="middle" fontSize="8"
+                    fill="#5a3e20" fontFamily="sans-serif">Bar</text>
+
+                  {/* Cuisine — gauche */}
+                  <rect x={2} y={MT} width={ML-4} height={30} rx="4"
+                    fill="#b8d4c8" opacity="0.8"/>
+                  <text x={ML/2} y={MT+12} textAnchor="middle" fontSize="8"
+                    fill="#2a5c3f" fontFamily="sans-serif">🍳</text>
+                  <text x={ML/2} y={MT+23} textAnchor="middle" fontSize="7"
+                    fill="#2a5c3f" fontFamily="sans-serif">Cuisine</text>
+
+                  {/* Tables */}
+                  {tables.map((t,i)=>{
+                    const pos = getPos(i);
+                    const isMange=t.status==="mange";
+                    const isNettoyage=t.status==="nettoyage";
+                    const isOrdering=t.status==="occupée"&&t.svcUntil&&now<t.svcUntil;
+                    const isLibre=t.status==="libre";
+                    const myQ=queue.filter(g=>g.size<=t.capacity&&isLibre);
+
+                    const fill=isNettoyage?"#f5d878":isMange?"#4a9e78":isOrdering?"#3a5f8a":
+                      t.status==="occupée"?"#e07a45":myQ.length>0?"#5ab88a":"#c8e6d8";
+
+                    const stroke=t.id===selectedTable?.id?"#1a1612":
+                      t.group?.isVIP?"#d4af37":fill;
+                    const strokeW=t.id===selectedTable?.id?3:1.5;
+
+                    // Taille selon capacité — garantit que tw+chaises < CELL_W
+                    const tw=t.capacity<=2?40:t.capacity<=4?50:60;
+                    const th=t.capacity<=2?32:t.capacity<=4?38:44;
+
+                    const bill=isMange?t.order.reduce((s,o)=>s+o.price*o.qty,0):0;
+                    const themedBill=+(bill*menuTheme.priceMult).toFixed(2);
+                    const isEating=isMange&&t.eatUntil&&now<t.eatUntil;
+                    const eatPct=isEating?
+                      Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):
+                      isMange?100:0;
+
+                    // Cuisine : plat le plus long en cuisson pour cette table
+                    const isCooking=t.status==="occupée"&&!isOrdering;
+                    const cookingForT=kitchen.cooking.filter(d=>d.tableId===t.id);
+                    const slowestT=cookingForT.length>0
+                      ?cookingForT.reduce((a,b)=>(b.startedAt+b.timerMax*1000)>(a.startedAt+a.timerMax*1000)?b:a)
+                      :null;
+                    const cookPctSvg=slowestT
+                      ?Math.min(100,Math.round(((now-slowestT.startedAt)/(slowestT.timerMax*1000))*100))
+                      :0;
+                    const isActive=t.status==="occupée"||isMange||isNettoyage;
+                    // Phase courante : 0=commande 1=cuisine 2=repas 3=nettoyage
+                    const svgPhase=isOrdering?0:isCooking?1:isMange?2:isNettoyage?3:-1;
+                    // Pct de la phase active
+                    const svgPhasePct=
+                      svgPhase===0?Math.min(100,Math.round((1-(Math.max(0,(t.svcUntil-now))/((t.svcUntil-t.placedAt)||1)))*100)):
+                      svgPhase===1?cookPctSvg:
+                      svgPhase===2?eatPct:
+                      svgPhase===3?(t.cleanUntil?Math.min(100,Math.round(((t.cleanDur*1000-(t.cleanUntil-now))/(t.cleanDur*1000))*100)):0):
+                      0;
+                    const svgPhaseColor=
+                      svgPhase===0?"#3a5f8a":
+                      svgPhase===1?"#e07a45":
+                      svgPhase===2?"#4a9e78":
+                      svgPhase===3?"#f5a623":"#888";
+
+                    return(
+                      <g key={t.id} onClick={()=>setSelectedTable(t)} style={{cursor:"pointer"}}>
+
+                        {/* Halo sélection */}
+                        {t.id===selectedTable?.id&&(
+                          <rect x={pos.cx-tw/2-7} y={pos.cy-th/2-7}
+                            width={tw+14} height={th+14} rx="13"
+                            fill="none" stroke="#1a1612" strokeWidth="2.5"
+                            opacity="0.25" strokeDasharray="5 3"/>
+                        )}
+
+                        {/* Chaises latérales */}
+                        {[{dx:-(tw/2+7),dy:0},{dx:tw/2+7,dy:0}].map((ch,ci)=>(
+                          <ellipse key={`s${ci}`}
+                            cx={pos.cx+ch.dx} cy={pos.cy+ch.dy}
+                            rx="5" ry="7" fill="#d4c9b0" opacity="0.75"/>
+                        ))}
+                        {/* Chaises haut/bas si 4p+ */}
+                        {t.capacity>=4&&[{dx:0,dy:-(th/2+7)},{dx:0,dy:th/2+7}].map((ch,ci)=>(
+                          <ellipse key={`tb${ci}`}
+                            cx={pos.cx+ch.dx} cy={pos.cy+ch.dy}
+                            rx="7" ry="5" fill="#d4c9b0" opacity="0.75"/>
+                        ))}
+                        {/* Chaises supplémentaires si 6p */}
+                        {t.capacity>=6&&[
+                          {dx:-(tw/2+7),dy:-th/4},{dx:-(tw/2+7),dy:th/4},
+                          {dx:tw/2+7,     dy:-th/4},{dx:tw/2+7,     dy:th/4},
+                        ].map((ch,ci)=>(
+                          <ellipse key={`ex${ci}`}
+                            cx={pos.cx+ch.dx} cy={pos.cy+ch.dy}
+                            rx="4" ry="6" fill="#d4c9b0" opacity="0.65"/>
+                        ))}
+
+                        {/* Surface de la table */}
+                        <rect x={pos.cx-tw/2} y={pos.cy-th/2}
+                          width={tw} height={th} rx="8"
+                          fill={fill} stroke={stroke} strokeWidth={strokeW}
+                          opacity={isLibre&&myQ.length===0?0.85:1}/>
+
+                        {/* Barre de progression — 4 phases */}
+                        {isActive&&(
+                          <g>
+                            {/* Fond gris */}
+                            <rect x={pos.cx-tw/2+3} y={pos.cy+th/2-8}
+                              width={tw-6} height={5} rx="2.5" fill="rgba(0,0,0,0.25)"/>
+                            {/* 4 segments (commande / cuisine / repas / nettoyage) */}
+                            {[
+                              {col:"#6ab0e0", w:svgPhase>0?1:svgPhasePct/100, done:svgPhase>0},
+                              {col:"#f5a060", w:svgPhase>1?1:svgPhase===1?svgPhasePct/100:0, done:svgPhase>1},
+                              {col:"#70c990", w:svgPhase>2?1:svgPhase===2?svgPhasePct/100:0, done:svgPhase>2},
+                              {col:"#f5c842", w:svgPhase===3?svgPhasePct/100:0, done:false},
+                            ].map((seg,si)=>{
+                              const segW=(tw-6)/4;
+                              const fillW=Math.max(0,segW*seg.w);
+                              return fillW>0?(
+                                <rect key={si}
+                                  x={pos.cx-tw/2+3+si*segW} y={pos.cy+th/2-8}
+                                  width={fillW} height={5}
+                                  rx={si===0?"2.5 0 0 2.5":si===3?"0 2.5 2.5 0":"0"}
+                                  fill={seg.col} opacity="0.95"/>
+                              ):null;
+                            })}
+                            {/* Séparateurs entre segments */}
+                            {[1,2,3].map(si=>(
+                              <rect key={si}
+                                x={pos.cx-tw/2+3+si*(tw-6)/4} y={pos.cy+th/2-9}
+                                width={1} height={7} fill="rgba(0,0,0,0.3)"
+                                opacity={svgPhase>=si?0.5:0.2}/>
+                            ))}
+                          </g>
+                        )}
+
+                        {/* Numéro */}
+                        <text x={pos.cx} y={pos.cy-3}
+                          textAnchor="middle"
+                          fontSize={cols<=3?12:10} fontWeight="700"
+                          fill={isLibre&&myQ.length===0?"#2a5c3f":"white"}
+                          fontFamily="Georgia,serif">
+                          {t.name.replace("Table ","")}
+                        </text>
+
+                        {/* Icône statut + couverts */}
+                        <text x={pos.cx} y={pos.cy+10}
+                          textAnchor="middle"
+                          fontSize={cols<=3?9:8}
+                          fill={isLibre&&myQ.length===0?"#4a7c5f":"rgba(255,255,255,0.9)"}
+                          fontFamily="sans-serif">
+                          {isNettoyage?"🧹":isMange&&isEating?"🍴":isMange?"💰":
+                            isOrdering?"🛎":t.status==="occupée"?"🔥":
+                            myQ.length>0?"👥":"✓"} {t.capacity}p
+                        </text>
+
+                        {/* Badge montant prêt à encaisser */}
+                        {isMange&&!isEating&&(
+                          <g>
+                            <rect x={pos.cx-19} y={pos.cy-th/2-16}
+                              width={38} height={14} rx="7" fill={C.green} opacity="0.95"/>
+                            <text x={pos.cx} y={pos.cy-th/2-6}
+                              textAnchor="middle" fontSize="8" fontWeight="800"
+                              fill="white" fontFamily="sans-serif">
+                              💰{themedBill.toFixed(0)}€
+                            </text>
+                          </g>
+                        )}
+
+                        {/* Badge VIP */}
+                        {t.group?.isVIP&&(
+                          <text x={pos.cx+tw/2-5} y={pos.cy-th/2+10}
+                            textAnchor="middle" fontSize="10">🎩</text>
+                        )}
+
+                        {/* Pulse attente client */}
+                        {isLibre&&myQ.length>0&&(
+                          <rect x={pos.cx-tw/2} y={pos.cy-th/2}
+                            width={tw} height={th} rx="8"
+                            fill="none" stroke={C.green} strokeWidth="2.5"
+                            opacity="0.7">
+                            <animate attributeName="opacity"
+                              values="0.7;0.1;0.7" dur="1.8s" repeatCount="indefinite"/>
+                          </rect>
+                        )}
+                      </g>
+                    );
+                  })}
+                </svg>
+              );
 }
 
 export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,activeTheme,bp={}}) {
