@@ -16,6 +16,7 @@
 
 import { useEffect, useRef } from "react";
 import { rMood, rName, rSize } from "../utils/randomUtils.js";
+import { getRepTier } from "../constants/gameConstants.js";
 
 /**
  * @param {{
