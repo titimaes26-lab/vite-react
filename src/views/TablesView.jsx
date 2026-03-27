@@ -809,9 +809,9 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
       )}
 
       {/* Mobile — vue compacte plein écran */}
-              {bp.isMobile&&(
-          <div style={{position:"absolute",inset:0,overflowY:"auto",
-            padding:8,background:"rgba(250,247,240,0.97)",zIndex:15}}>
+      {bp.isMobile&&(
+        <div style={{flex:1,overflowY:"auto",
+          padding:8,background:"rgba(250,247,240,0.97)"}}>
             {tables.map(t=>{
               const isMm=t.status==="mange";const isNm=t.status==="nettoyage";
               const isOm=t.status==="occupée"&&t.svcUntil&&now<t.svcUntil;
@@ -857,10 +857,9 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                 </div>
               );
             })}
-          </div>
-        )}
+        </div>
+      )}
 
-      </div>
 
       {/* ══ 3. BARRE CUISINE — bas 64px ═══════════════════════ */}
       <div style={{height:64,flexShrink:0,background:C.surface,
