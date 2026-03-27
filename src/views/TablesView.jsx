@@ -1420,6 +1420,214 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════
+           VUE COMPACTE MOBILE — remplace le plan SVG
+      ═══════════════════════════════════════════════════ */}
+      {bp.isMobile&&(
+        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:80}}>
+          {tables.map(t=>{
+            const isMange2      = t.status==="mange";
+            const isNettoyage2  = t.status==="nettoyage";
+            const isOrdering2   = t.status==="occupée"&&t.svcUntil&&now<t.svcUntil;
+            const isLibre2      = t.status==="libre";
+            const isCooking2    = t.status==="occupée"&&!isOrdering2;
+            const isEating2     = isMange2&&t.eatUntil&&now<t.eatUntil;
+            const myQ2          = queue.filter(g=>g.size<=t.capacity&&isLibre2);
+            const activeSrv2    = servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
+
+            // Phase & couleur
+            const phase2 = isOrdering2?0:isCooking2?1:isMange2?2:isNettoyage2?3:-1;
+            const phaseColors2 = ["#3a5f8a","#e07a45","#4a9e78","#f5a623"];
+            const phaseIcons2  = ["🛎","🔥","🍴","🧹"];
+            const phaseLabels2 = ["Commande","Cuisine","Repas","Nettoyage"];
+            const pColor2 = phase2>=0?phaseColors2[phase2]:C.green;
+
+            // Pct phase
+            const cookingT2 = kitchen.cooking.filter(d=>d.tableId===t.id);
+            const slowest2  = cookingT2.length>0
+              ?cookingT2.reduce((a,b)=>(b.startedAt+b.timerMax*1000)>(a.startedAt+a.timerMax*1000)?b:a)
+              :null;
+            const pct2 =
+              phase2===0?Math.min(100,Math.round((1-(Math.max(0,(t.svcUntil-now))/((t.svcUntil-t.placedAt)||1)))*100)):
+              phase2===1?( slowest2?Math.min(100,Math.round(((now-slowest2.startedAt)/(slowest2.timerMax*1000))*100)):0 ):
+              phase2===2?( isEating2?Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):100 ):
+              phase2===3?( t.cleanUntil?Math.min(100,Math.round(((t.cleanDur*1000-(t.cleanUntil-now))/(t.cleanDur*1000))*100)):0 ):
+              0;
+
+            // Timer
+            const timer2 =
+              phase2===0&&t.svcUntil?Math.max(0,Math.ceil((t.svcUntil-now)/1000)):
+              phase2===1&&slowest2?Math.max(0,Math.ceil((slowest2.startedAt+slowest2.timerMax*1000-now)/1000)):
+              phase2===2&&t.eatUntil?Math.max(0,Math.ceil((t.eatUntil-now)/1000)):
+              phase2===3&&t.cleanUntil?Math.max(0,Math.ceil((t.cleanUntil-now)/1000)):
+              null;
+            const timerFmt2 = timer2!==null?(timer2>=60?Math.floor(timer2/60)+"m"+String(timer2%60).padStart(2,"0")+"s":timer2+"s"):null;
+
+            const bill2 = isMange2?+(t.order.reduce((s,o)=>s+o.price*o.qty,0)*menuTheme.priceMult).toFixed(2):0;
+
+            return(
+              <div key={t.id} style={{
+                background:C.surface,
+                border:`1.5px solid ${phase2>=0?pColor2+"55":C.border}`,
+                borderLeft:`4px solid ${phase2>=0?pColor2:C.green}`,
+                borderRadius:12,padding:"12px 14px",
+                boxShadow:`0 2px 8px ${phase2>=0?pColor2+"18":"rgba(0,0,0,0.05)"}`,
+                minHeight:80,
+              }}>
+                {/* Ligne 1 : nom + statut + timer */}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:16,fontWeight:800,color:C.ink,fontFamily:F.title}}>
+                      {t.name}
+                    </span>
+                    <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
+                      {t.capacity}p
+                    </span>
+                    {t.group?.isVIP&&<span style={{fontSize:12}}>🎩</span>}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    {timerFmt2&&(
+                      <span style={{fontSize:11,fontWeight:700,color:pColor2,fontFamily:F.body}}>
+                        {timerFmt2}
+                      </span>
+                    )}
+                    <span style={{
+                      fontSize:10,background:phase2>=0?pColor2+"18":C.greenP,
+                      color:phase2>=0?pColor2:C.green,
+                      border:`1px solid ${phase2>=0?pColor2+"33":C.green+"33"}`,
+                      borderRadius:20,padding:"2px 8px",fontFamily:F.body,fontWeight:600
+                    }}>
+                      {phase2>=0?phaseIcons2[phase2]+" "+phaseLabels2[phase2]:"✅ Libre"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Barre de progression */}
+                {phase2>=0&&(
+                  <div style={{height:5,background:pColor2+"22",borderRadius:99,overflow:"hidden",marginBottom:8}}>
+                    <div style={{
+                      height:"100%",width:`${pct2}%`,
+                      background:pColor2,borderRadius:99,
+                      transition:"width 0.5s linear"
+                    }}/>
+                  </div>
+                )}
+
+                {/* Groupe + serveur */}
+                {t.group&&(
+                  <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:6}}>
+                    {t.group.mood.e} {t.group.name} · {t.group.size}p
+                    {t.server&&<span> · 👔 {t.server}</span>}
+                  </div>
+                )}
+
+                {/* Bouton action */}
+                <div style={{marginTop:4}}>
+                  {isMange2&&!isEating2&&(
+                    <Btn full v="primary" sm onClick={()=>checkout(t.id)} icon="💰">
+                      Encaisser {bill2}€
+                    </Btn>
+                  )}
+                  {isLibre2&&myQ2.length>0&&activeSrv2.length>0&&(
+                    <Btn full v="terra" sm onClick={()=>quickPlace(myQ2[0])} icon="👥">
+                      Placer {myQ2[0].mood.e} {myQ2[0].name}
+                    </Btn>
+                  )}
+                  {isLibre2&&myQ2.length>0&&activeSrv2.length===0&&(
+                    <Btn full v="secondary" sm onClick={()=>openAssign(myQ2[0])} icon="👥">
+                      Placer (choisir serveur)
+                    </Btn>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════
+           FAB — Bouton d'action flottant (tous écrans)
+      ═══════════════════════════════════════════════════ */}
+      {(()=>{
+        const fabQueue = queue.filter(g=>tables.some(t=>t.status==="libre"&&t.capacity>=g.size));
+        const fabActiveSrv = servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
+        if(fabQueue.length===0||fabActiveSrv.length===0) return null;
+        const urgentCount = fabQueue.filter(g=>g.expiresAt-now<g.patMax*1000*0.3).length;
+        const fabColor = urgentCount>0?C.red:fabQueue.length>=3?C.amber:C.green;
+        return(
+          <div style={{
+            position:"fixed",bottom:bp.isMobile?90:24,right:20,
+            zIndex:900,
+            display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8,
+          }}>
+            {/* Mini-liste groupes urgents (si ouverte) */}
+            <div id="fab-list" style={{display:"none"}}>
+              {fabQueue.slice(0,4).map(g=>{
+                const pct3 = Math.max(0,(g.expiresAt-now)/(g.patMax*1000));
+                const pc3  = pct3>0.5?C.green:pct3>0.25?C.amber:C.red;
+                const ft3  = tables.find(t=>t.status==="libre"&&t.capacity>=g.size);
+                return(
+                  <div key={g.id}
+                    onClick={()=>{ft3&&(fabActiveSrv.length>0?quickPlace(g):openAssign(g));}}
+                    style={{
+                      background:C.surface,border:`1.5px solid ${pc3}44`,
+                      borderLeft:`3px solid ${pc3}`,borderRadius:10,
+                      padding:"8px 12px",marginBottom:6,cursor:"pointer",
+                      minWidth:180,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",
+                      display:"flex",alignItems:"center",gap:10,
+                    }}>
+                    <span style={{fontSize:18}}>{g.mood.e}</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:11,fontWeight:700,color:C.ink,fontFamily:F.body}}>
+                        {g.name} · {g.size}p
+                      </div>
+                      <div style={{height:3,background:pc3+"22",borderRadius:99,marginTop:4}}>
+                        <div style={{height:"100%",width:`${pct3*100}%`,
+                          background:pc3,borderRadius:99,transition:"width 0.5s"}}/>
+                      </div>
+                    </div>
+                    <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
+                      {ft3?ft3.name:"—"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bouton FAB principal */}
+            <button
+              onClick={()=>{
+                const list = document.getElementById("fab-list");
+                if(list) list.style.display = list.style.display==="none"?"flex":"none";
+                list.style.flexDirection="column";
+              }}
+              style={{
+                width:56,height:56,borderRadius:"50%",
+                background:fabColor,border:"none",cursor:"pointer",
+                boxShadow:`0 6px 20px ${fabColor}66`,
+                display:"flex",flexDirection:"column",
+                alignItems:"center",justifyContent:"center",
+                position:"relative",
+                transition:"transform 0.15s, box-shadow 0.15s",
+              }}>
+              <span style={{fontSize:20}}>👥</span>
+              {/* Badge compte */}
+              <div style={{
+                position:"absolute",top:-4,right:-4,
+                width:20,height:20,borderRadius:"50%",
+                background:urgentCount>0?"#c0392b":C.navy,
+                border:"2px solid white",
+                display:"flex",alignItems:"center",justifyContent:"center",
+              }}>
+                <span style={{fontSize:10,fontWeight:800,color:"white",fontFamily:F.body}}>
+                  {fabQueue.length}
+                </span>
+              </div>
+            </button>
+          </div>
+        );
+      })()}
+
       {/* Assign modal */}
       {modal&&(
         <Modal title="Placer le groupe" onClose={()=>setModal(null)}>
