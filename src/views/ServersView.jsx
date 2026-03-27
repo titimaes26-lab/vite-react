@@ -193,6 +193,11 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
   };
 
   const hireCandidate = (candidate) => {
+    const slotsAvailable = servers.length < maxSlots;
+    if(!slotsAvailable){
+      addToast&&addToast({icon:"🚫",title:"Équipe complète",msg:"Aucune place disponible — licenciez un serveur d'abord.",color:C.red,tab:"servers"});
+      return;
+    }
     if(cash < candidate.hireCost){
       addToast&&addToast({icon:"❌",title:"Fonds insuffisants",msg:`Recrutement : ${candidate.hireCost}€ requis`,color:C.red,tab:"servers"});
       return;
@@ -213,7 +218,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
     setCandidates(p=>p.filter(c=>c.id!==candidate.id));
     addToast&&addToast({icon:"👔",title:`${candidate.name} embauché·e !`,
       msg:`−${candidate.hireCost}€ · Salaire ${candidate.salary}€/h`,color:C.green,tab:"servers"});
-    if(candidates.length <= 1) setModal(false);
+    if(candidates.length <= 1 || servers.length + 1 >= maxSlots) setModal(false);
   };
   const openEdit = (sv) => {
     setEditId(sv.id);
@@ -714,7 +719,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                   👔 Candidats disponibles
                 </div>
                 <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:3}}>
-                  {candidates.length} candidat{candidates.length>1?"s":""} · Liste renouvelée chaque jour
+                  {candidates.length} candidat{candidates.length>1?"s":""} · {servers.length}/{maxSlots} postes · Liste renouvelée chaque jour
                 </div>
               </div>
               <button onClick={()=>setModal(false)}
@@ -816,11 +821,18 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                     )}
 
                     {/* Bouton embaucher */}
-                    <Btn full v={canAfford?"primary":"disabled"}
-                      onClick={()=>canAfford&&hireCandidate(c)}
-                      icon={canAfford?"👔":"🔒"}>
-                      {canAfford?`Embaucher — ${c.hireCost}€`:"Fonds insuffisants"}
-                    </Btn>
+                    {(()=>{
+                      const slotsOk = servers.length < maxSlots;
+                      const ok = canAfford && slotsOk;
+                      const label = !slotsOk?"Équipe complète":!canAfford?"Fonds insuffisants":`Embaucher — ${c.hireCost}€`;
+                      return(
+                        <Btn full v={ok?"primary":"disabled"}
+                          onClick={()=>ok&&hireCandidate(c)}
+                          icon={ok?"👔":"🔒"}>
+                          {label}
+                        </Btn>
+                      );
+                    })()}
                   </div>
                 );
               })}
