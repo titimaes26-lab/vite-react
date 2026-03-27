@@ -1137,13 +1137,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                   <div style={{fontSize:15,fontWeight:600,color:C.ink,fontFamily:F.title,marginBottom:5}}>
                     {t.name}
                   </div>
-                  <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:6}}>
-                    <Badge
-                      color={t.status==="libre"?C.green:isNettoyage?C.amber:isMange?C.green:isOrdering?C.navy:C.terra}
-                      bg={t.status==="libre"?C.greenP:isNettoyage?C.amberP:isMange?C.greenP:isOrdering?C.navyP:C.terraP} sm>
-                      {t.status==="libre"?"libre":isNettoyage?"🧹 nettoyage":isMange?(isEating?"🍴 repas en cours":"🍽 repas"):isOrdering?"🛎 prise de commande":"🔥 en cuisine"}
-                    </Badge>
-                  </div>
+
                   <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>👥 {t.capacity} couverts</div>
                   {t.status==="libre"&&t.freedAt&&(
                     <div style={{fontSize:10,color:C.green,fontWeight:600,fontFamily:F.body,marginTop:3}}>
@@ -1306,19 +1300,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                         )}
                       </div>
 
-                      {/* Commandes chips quand occupée */}
-                      {t.status==="occupée"&&t.order.length>0&&(
-                        <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:8}}>
-                          {t.order.map((o,i)=>(
-                            <span key={i} style={{fontSize:9,
-                              background:o.isSpecial?C.purpleP:C.terraP,
-                              color:o.isSpecial?C.purple:C.terra,
-                              borderRadius:4,padding:"1px 6px",fontFamily:F.body}}>
-                              {o.qty}× {o.item.length>12?o.item.slice(0,11)+"…":o.item}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+
 
                       {/* Encaisser section (phase repas terminé) */}
                       {isMange&&!isEating&&(()=>{
