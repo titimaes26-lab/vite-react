@@ -283,7 +283,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
       {/* ── Grille des serveurs ── */}
       <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"repeat(auto-fill,minmax(270px,1fr))",gap:bp.isMobile?10:13}}>
         {servers.map(sv=>{
-          const sl=srvLv(sv.totalXp);
+          const sl=srvLv(sv.totalXp||0);
           const slD=SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
           const asgn=tables.filter(t=>t.server===sv.name);
           const isWorking=sv.status==="service";
@@ -535,7 +535,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                     </div>
                     <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>
                       Niv.{sl.l} · {sv.totalXp} XP · Moral {sv.moral??100}/100
-                      {sv.specialty&&` · ${sv.specialty.icon} ${sv.specialty.name}`}
+                      {sv.specialty?.name&&` · ${sv.specialty.icon||""} ${sv.specialty.name}`}
                     </div>
                   </div>
                 </div>
@@ -832,11 +832,167 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
       {modal==="fire"&&(()=>{
         const sv=servers.find(s=>s.id===fireId);
         if(!sv)return null;
-        const sl=srvLv(sv.totalXp);
-        const slD=SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
-        const severance=(sv.salary||12)*24;
-        const canAffordFire=cash>=severance;
-        const assignedTables=tables.filter(t=>t.server===sv.name);
+        const totalXp    = sv.totalXp  ?? 0;
+        const salary     = sv.salary    ?? 12;
+        const moral      = sv.moral     ?? 100;
+        const rating     = sv.rating    ?? 4.0;
+        const specialty  = sv.specialty ?? null;
+        const sl         = srvLv(totalXp);
+        const slD        = SRV_LVL[Math.min(sl.l, SRV_LVL.length-1)];
+        const severance  = salary * 24;
+        const canAffordFire  = cash >= severance;
+        const assignedTables = tables.filter(t => t.server === sv.name);
+        return(
+
+
+      {/* ── Modale Licenciement ── */}
+      {/* ══ Modal embauche — 3 candidats ═════════════════════ */}
+      {modal==="hire"&&(
+        <div onClick={()=>setModal(false)}
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",
+            zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div onClick={e=>e.stopPropagation()}
+            style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:18,
+              width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",
+              boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
+
+            {/* Header */}
+            <div style={{padding:"18px 22px",borderBottom:`1px solid ${C.border}`,
+              display:"flex",justifyContent:"space-between",alignItems:"center",
+              position:"sticky",top:0,background:C.surface,zIndex:10}}>
+              <div>
+                <div style={{fontSize:16,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+                  👔 Candidats disponibles
+                </div>
+                <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:3}}>
+                  {candidates.length} candidat{candidates.length>1?"s":""} · Liste renouvelée chaque jour
+                </div>
+              </div>
+              <button onClick={()=>setModal(false)}
+                style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,
+                  width:32,height:32,cursor:"pointer",fontSize:16,color:C.muted,
+                  display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+            </div>
+
+            {/* Solde */}
+            <div style={{padding:"10px 22px",background:C.bg,borderBottom:`1px solid ${C.border}`,
+              display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Solde disponible :</span>
+              <span style={{fontSize:14,fontWeight:700,color:C.green,fontFamily:F.title}}>
+                {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+              </span>
+            </div>
+
+            {/* Liste des candidats */}
+            <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",gap:14}}>
+              {candidates.length===0?(
+                <div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:F.body}}>
+                  <div style={{fontSize:32,marginBottom:8}}>📅</div>
+                  <div style={{fontSize:13,fontWeight:600}}>Plus de candidats aujourd'hui</div>
+                  <div style={{fontSize:11,marginTop:4}}>Revenez demain pour de nouveaux profils</div>
+                </div>
+              ):candidates.map(c=>{
+                const sl = srvLv(c.totalXp);
+                const slD = SRV_LVL[Math.min(sl.l, SRV_LVL.length-1)];
+                const canAfford = cash >= c.hireCost;
+                return(
+                  <div key={c.id} style={{
+                    background: canAfford?C.card:C.bg,
+                    border: `1.5px solid ${canAfford?slD.color+"44":C.border}`,
+                    borderRadius:14,padding:"16px",
+                    opacity: canAfford?1:0.65,
+                  }}>
+                    {/* Ligne principale */}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                      <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                        {/* Avatar */}
+                        <div style={{width:46,height:46,background:slD.color+"1a",
+                          border:`2px solid ${slD.color}33`,borderRadius:12,
+                          display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>
+                          {slD.icon}
+                        </div>
+                        <div>
+                          <div style={{fontSize:14,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+                            {c.name}
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3}}>
+                            <span style={{fontSize:10,background:slD.color+"18",color:slD.color,
+                              border:`1px solid ${slD.color}33`,borderRadius:5,padding:"1px 7px",
+                              fontFamily:F.body,fontWeight:700}}>
+                              {slD.icon} {slD.name}
+                            </span>
+                            {c.specialty&&(
+                              <span style={{fontSize:10,background:C.purpleP,color:C.purple,
+                                border:`1px solid ${C.purple}33`,borderRadius:5,padding:"1px 7px",
+                                fontFamily:F.body,fontWeight:600}}>
+                                {c.specialty.icon} {c.specialty.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {/* Coût */}
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:16,fontWeight:800,color:canAfford?C.green:C.red,fontFamily:F.title}}>
+                          {c.hireCost}€
+                        </div>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>coût recrutement</div>
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:12}}>
+                      {[
+                        {icon:"💶",label:"Salaire",val:`${c.salary}€/h`},
+                        {icon:"😊",label:"Moral",  val:`${c.moral}/100`},
+                        {icon:"⭐",label:"Note",   val:`${c.rating}★`},
+                        {icon:"📈",label:"XP",     val:`${c.totalXp} XP`},
+                      ].map(stat=>(
+                        <div key={stat.label} style={{background:C.bg,borderRadius:8,
+                          padding:"7px 8px",textAlign:"center"}}>
+                          <div style={{fontSize:13}}>{stat.icon}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>{stat.val}</div>
+                          <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{stat.label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Spécialité détail */}
+                    {c.specialty&&(
+                      <div style={{background:C.purpleP,border:`1px solid ${C.purple}22`,
+                        borderRadius:8,padding:"7px 10px",marginBottom:10,fontSize:11,
+                        color:C.purple,fontFamily:F.body}}>
+                        {c.specialty.icon} <strong>{c.specialty.name}</strong> — {c.specialty.desc}
+                      </div>
+                    )}
+
+                    {/* Bouton embaucher */}
+                    <Btn full v={canAfford?"primary":"disabled"}
+                      onClick={()=>canAfford&&hireCandidate(c)}
+                      icon={canAfford?"👔":"🔒"}>
+                      {canAfford?`Embaucher — ${c.hireCost}€`:"Fonds insuffisants"}
+                    </Btn>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal==="fire"&&(()=>{
+        const sv=servers.find(s=>s.id===fireId);
+        if(!sv)return null;
+        const totalXp    = sv.totalXp  ?? 0;
+        const salary     = sv.salary    ?? 12;
+        const moral      = sv.moral     ?? 100;
+        const rating     = sv.rating    ?? 4.0;
+        const specialty  = sv.specialty ?? null;
+        const sl         = srvLv(totalXp);
+        const slD        = SRV_LVL[Math.min(sl.l, SRV_LVL.length-1)];
+        const severance  = salary * 24;
+        const canAffordFire  = cash >= severance;
+        const assignedTables = tables.filter(t => t.server === sv.name);
         return(
           <Modal title="👋 Licencier un serveur" onClose={()=>{setModal(false);setFireId(null);}}>
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -855,7 +1011,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                   </div>
                   <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:3}}>
                     {slD.name} · Niv.{sl.l}
-                    {sv.specialty&&` · ${sv.specialty.icon} ${sv.specialty.name}`}
+                    {specialty&&` · ${specialty.icon} ${specialty.name}`}
                   </div>
                 </div>
               </div>
@@ -863,10 +1019,10 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               {/* Stats */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8}}>
                 {[
-                  {icon:"📈",label:"XP",     val:`${sv.totalXp} XP`},
-                  {icon:"😊",label:"Moral",  val:`${sv.moral??100}/100`},
-                  {icon:"⭐",label:"Note",   val:`${sv.rating}/5`},
-                  {icon:"💶",label:"Salaire",val:`${sv.salary||12}€/h`},
+                  {icon:"📈",label:"XP",     val:`${totalXp} XP`},
+                  {icon:"😊",label:"Moral",  val:`${moral}/100`},
+                  {icon:"⭐",label:"Note",   val:`${(rating||0).toFixed(1)}/5`},
+                  {icon:"💶",label:"Salaire",val:`${salary}€/h`},
                 ].map(stat=>(
                   <div key={stat.label} style={{background:C.bg,borderRadius:8,
                     padding:"8px",textAlign:"center"}}>
@@ -886,8 +1042,8 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               )}
 
               {/* Indemnité */}
-              <div style={{background:canAffordFire?C.redP:C.bg,
-                border:`1.5px solid ${canAffordFire?C.red:C.border}44`,
+              <div style={{background:canAffordFire?C.bg:C.redP,
+                border:`1.5px solid ${canAffordFire?C.border:C.red}44`,
                 borderRadius:10,padding:"12px 16px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
@@ -895,11 +1051,11 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                       💸 Indemnité de licenciement
                     </div>
                     <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                      1 mois · {sv.salary||12}€/h × 24h
+                      1 mois · {salary}€/h × 24h
                     </div>
                   </div>
                   <div style={{fontSize:18,fontWeight:800,
-                    color:canAffordFire?C.red:C.muted,fontFamily:F.title}}>
+                    color:canAffordFire?C.ink:C.red,fontFamily:F.title}}>
                     {severance}€
                   </div>
                 </div>
@@ -914,7 +1070,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               <div style={{fontSize:11,color:C.muted,fontFamily:F.body,
                 textAlign:"center",lineHeight:1.5}}>
                 Cette action est <strong>irréversible</strong>.<br/>
-                Tout l'XP et les formations de {sv.name} seront perdus.
+                Tout le XP et les formations de {sv.name} seront perdus.
               </div>
 
               {/* Boutons */}
