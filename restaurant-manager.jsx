@@ -164,7 +164,7 @@ const buildGDevelopPayload = ({ cash, restoXp, stock, queue, tables, kitchen, ob
 // Nettoie les états liés aux timers qui ne sont plus valides après un rechargement
 const sanitizeSave = (save) => {
   const now = Date.now();
-  const tables = (save.tables || []).map(t => {
+  const savedTables = (save.tables || []).map(t => {
     if (t.status === "nettoyage") {
       if (!t.cleanUntil || now >= t.cleanUntil)
         return { ...t, status: "libre", server: null, cleanUntil: null, cleanDur: null, freedAt: now };
@@ -174,6 +174,8 @@ const sanitizeSave = (save) => {
     if (t.status === "occupée") return { ...t, svcUntil: null };
     return t;
   });
+  // Merge avec TABLES0 pour garantir que toutes les tables existent
+  const tables = TABLES0.map(t0 => savedTables.find(t => t.id === t0.id) || t0);
   const servers = (save.servers || []).map(s =>
     s.status === "service" ? { ...s, status: "actif", serviceUntil: null } : s
   );
