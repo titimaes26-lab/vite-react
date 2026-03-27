@@ -843,9 +843,99 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
         const canAffordFire  = cash >= severance;
         const assignedTables = tables.filter(t => t.server === sv.name);
         return(
+          <Modal title="👋 Licencier un serveur" onClose={()=>{setModal(false);setFireId(null);}}>
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
 
+              {/* Profil */}
+              <div style={{display:"flex",gap:14,alignItems:"center",
+                background:C.bg,borderRadius:12,padding:"14px 16px"}}>
+                <div style={{width:50,height:50,background:slD.color+"1a",
+                  border:`2px solid ${slD.color}33`,borderRadius:12,
+                  display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>
+                  {slD.icon}
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:16,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+                    {sv.name}
+                  </div>
+                  <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:3}}>
+                    {slD.name} · Niv.{sl.l}
+                    {specialty?.name&&` · ${specialty.icon||""} ${specialty.name}`}
+                  </div>
+                </div>
+              </div>
 
-      {/* ── Modale Licenciement ── */}
+              {/* Stats */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8}}>
+                {[
+                  {icon:"📈",label:"XP",     val:`${totalXp} XP`},
+                  {icon:"😊",label:"Moral",  val:`${moral}/100`},
+                  {icon:"⭐",label:"Note",   val:`${rating.toFixed(1)}/5`},
+                  {icon:"💶",label:"Salaire",val:`${salary}€/h`},
+                ].map(stat=>(
+                  <div key={stat.label} style={{background:C.bg,borderRadius:8,
+                    padding:"8px",textAlign:"center"}}>
+                    <div style={{fontSize:14}}>{stat.icon}</div>
+                    <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>{stat.val}</div>
+                    <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tables assignées */}
+              {assignedTables.length>0&&(
+                <div style={{background:C.amberP,border:`1px solid ${C.amber}33`,
+                  borderRadius:8,padding:"8px 12px",fontSize:11,color:C.amber,fontFamily:F.body}}>
+                  ⚠ En charge de {assignedTables.length} table{assignedTables.length>1?"s":""} : {assignedTables.map(t=>t.name).join(", ")}
+                </div>
+              )}
+
+              {/* Indemnité */}
+              <div style={{background:canAffordFire?C.bg:C.redP,
+                border:`1.5px solid ${canAffordFire?C.border:C.red}44`,
+                borderRadius:10,padding:"12px 16px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>
+                      💸 Indemnité de licenciement
+                    </div>
+                    <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>
+                      1 mois · {salary}€/h × 24h
+                    </div>
+                  </div>
+                  <div style={{fontSize:18,fontWeight:800,
+                    color:canAffordFire?C.ink:C.red,fontFamily:F.title}}>
+                    {severance}€
+                  </div>
+                </div>
+                {!canAffordFire&&(
+                  <div style={{marginTop:8,fontSize:10,color:C.red,fontFamily:F.body,fontWeight:600}}>
+                    ❌ Solde insuffisant — disponible : {cash.toFixed(2)}€ / requis : {severance}€
+                  </div>
+                )}
+              </div>
+
+              {/* Avertissement */}
+              <div style={{fontSize:11,color:C.muted,fontFamily:F.body,
+                textAlign:"center",lineHeight:1.5}}>
+                Cette action est <strong>irréversible</strong>.<br/>
+                Tout le XP et les formations de {sv.name} seront perdus.
+              </div>
+
+              {/* Boutons */}
+              <div style={{display:"flex",gap:10}}>
+                <Btn full v="ghost" onClick={()=>{setModal(false);setFireId(null);}}>
+                  Annuler
+                </Btn>
+                <Btn full v={canAffordFire?"danger":"disabled"} onClick={doFire} icon="👋">
+                  {canAffordFire?`Licencier — ${severance}€`:"Fonds insuffisants"}
+                </Btn>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
+
       {/* ══ Modal embauche — 3 candidats ═════════════════════ */}
       {modal==="hire"&&(
         <div onClick={()=>setModal(false)}
