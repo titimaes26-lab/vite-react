@@ -4,12 +4,11 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect } from "react";
-import { C, F, CAP_UPGRADES, SRV_LVL } from "../constants/gameData.js";
+import { C, F, CAP_UPGRADES, SRV_LVL, GAME_EVENTS } from "../constants/gameData.js";
 import { MENU_THEMES, getRepTier } from "../constants/gameConstants.js";
 import { REP_DELTA } from "../constants/gameConstants.js";
 import { Badge, Btn, Sel, Modal, XpBar, Lbl, Inp } from "../components/ui/index.js";
-import { calcRating, ratingColor, ratingStars, calcTip,
-         restoXpFromCheckout, srvXpFromCheckout } from "../utils/levelUtils.js";
+import { srvLv, calcRating, ratingColor, ratingStars, calcTip, restoXpFromCheckout, srvXpFromCheckout } from "../utils/levelUtils.js";
 import { generateOrderWithSpecials } from "../utils/randomUtils.js";
 import { buildKitchenTickets, svcDuration, eatDuration, calcBill } from "../utils/orderUtils.js";
 
