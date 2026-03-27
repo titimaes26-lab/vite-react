@@ -456,7 +456,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
 
         {/* ── Slots libres cliquables ── */}
         {canHire&&Array.from({length:maxSlots-servers.length},(_,i)=>(
-          <div key={`free-${i}`} onClick={openAdd}
+          <div key={`free-${i}`} onClick={openHire}
             className="hovcard"
             style={{background:C.bg,border:`1.5px dashed ${C.green}55`,
               borderRadius:14,padding:"18px 16px",
