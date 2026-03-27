@@ -269,36 +269,44 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
   quickPlace,openAssign,checkout,activeSrv}) {
               const n = tables.length;
 
-              // ── 1. Grille dynamique ─────────────────────────
-              // Colonnes : adapté au nombre de tables
-              const cols = n<=2?n : n<=4?2 : n<=6?3 : n<=9?3 : 4;
+              // ── 1. Grille adaptative ─────────────────────────
+              // Colonnes optimales selon le nombre de tables
+              const cols = n===1?1 : n<=3?n : n<=6?3 : n<=9?3 : 4;
               const rows = Math.ceil(n / cols);
 
-              // ── 2. Taille de chaque cellule ─────────────────
-              // La plus grande table (6p) : tw=64, th=46
-              // Chaises : +14px gauche/droite, +14px haut/bas
-              // Espacement entre tables : 20px
-              const CELL_W = 110; // 64+14+14+18 de marge
-              const CELL_H = 90;  // 46+14+14+16 de marge
+              // ── 2. Marges fixes du plan ──────────────────────
+              const ML = 30;   // gauche (cuisine)
+              const MT = 52;   // haut
+              const MR = 60;   // droite (bar)
+              const MB = 48;   // bas (entrée + groupes en attente)
 
-              // ── 3. Marges du plan ───────────────────────────
-              const ML = 30;   // gauche (couloir cuisine)
-              const MT = 52;   // haut (déco + espace)
-              const MR = 80;   // droite (bar)
-              const MB = 36;   // bas (entrée)
+              // ── 3. ViewBox proportionnelle 16:9 ─────────────
+              // On choisit un viewBox fixe large que le SVG remplit
+              // Les tables s'adaptent pour occuper tout l'espace
+              const VW = 800;
+              const VH = 500;
 
-              // ── 4. ViewBox calculée ──────────────────────────
-              const VW = ML + cols * CELL_W + MR;
-              const VH = MT + rows * CELL_H + MB;
+              // Espace disponible pour les tables
+              const gridW = VW - ML - MR;
+              const gridH = VH - MT - MB;
 
-              // ── 5. Position centre de chaque table ──────────
+              // Taille d'une cellule adaptée à l'espace
+              const CELL_W = Math.min(220, Math.floor(gridW / cols));
+              const CELL_H = Math.min(180, Math.floor(gridH / rows));
+
+              // Taille des tables proportionnelle à la cellule
+              // Table 2p: 60% de la cellule, table 4p: 70%, 6p: 78%
+              const getTW = (cap) => Math.round(CELL_W * (cap<=2?0.60 : cap<=4?0.68 : 0.76));
+              const getTH = (cap) => Math.round(CELL_H * (cap<=2?0.55 : cap<=4?0.62 : 0.70));
+
+              // ── 4. Position centre de chaque table ──────────
               const getPos = (i) => ({
                 cx: ML + (i % cols) * CELL_W + CELL_W / 2,
                 cy: MT + Math.floor(i / cols) * CELL_H + CELL_H / 2,
               });
 
               return(
-                <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" style={{display:"block"}}>
+                <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{display:"block",position:"absolute",inset:0}}>
                   {/* Fond parquet */}
                   <rect x="0" y="0" width={VW} height={VH} fill="#faf7f0"/>
                   {Array.from({length:Math.ceil(VH/20)+1},(_,i)=>(
@@ -349,8 +357,8 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                     const strokeW=t.id===selectedTable?.id?3:1.5;
 
                     // Taille selon capacité — garantit que tw+chaises < CELL_W
-                    const tw=t.capacity<=2?40:t.capacity<=4?50:60;
-                    const th=t.capacity<=2?32:t.capacity<=4?38:44;
+                    const tw=getTW(t.capacity);
+                    const th=getTH(t.capacity);
 
                     const bill=isMange?t.order.reduce((s,o)=>s+o.price*o.qty,0):0;
                     const themedBill=+(bill*menuTheme.priceMult).toFixed(2);
