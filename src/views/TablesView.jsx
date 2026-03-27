@@ -576,11 +576,37 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                       stroke="#e8e0d0" strokeWidth="0.5"/>
                   ))}
 
-                  {/* Entrée — centrée en bas */}
-                  <rect x={VW/2-50} y={VH-20} width={100} height={20} rx="4"
+                  {/* Entrée — avec silhouettes file d'attente */}
+                  <rect x={VW/2-50} y={VH-22} width={100} height={22} rx="4"
                     fill="#d4c9b0" opacity="0.8"/>
-                  <text x={VW/2} y={VH-8} textAnchor="middle" fontSize="9"
+                  <text x={VW/2} y={VH-10} textAnchor="middle" fontSize="9"
                     fill="#8a7d6a" fontFamily="sans-serif">✦ ENTRÉE</text>
+                  {/* Silhouettes groupes en attente */}
+                  {queue.slice(0,6).map((g,qi)=>{
+                    const x = VW/2 - 90 + qi * 30;
+                    const y = VH - 46;
+                    const pct = Math.max(0,(g.expiresAt-now)/(g.patMax*1000));
+                    const col = pct > 0.5 ? "#2a5c3f" : pct > 0.25 ? "#b87d10" : "#c0392b";
+                    return(
+                      <g key={g.id}>
+                        {/* Cercle patience */}
+                        <circle cx={x} cy={y} r="10" fill={col+"22"} stroke={col} strokeWidth="1.5"/>
+                        {/* Emoji humeur */}
+                        <text x={x} y={y+4} textAnchor="middle" fontSize="10" fontFamily="sans-serif">
+                          {g.mood.e}
+                        </text>
+                        {/* Taille groupe */}
+                        <text x={x} y={y+17} textAnchor="middle" fontSize="7"
+                          fill="#8a7d6a" fontFamily="sans-serif">{g.size}p</text>
+                      </g>
+                    );
+                  })}
+                  {queue.length > 6 && (
+                    <text x={VW/2+100} y={VH-40} textAnchor="middle" fontSize="8"
+                      fill="#c0392b" fontFamily="sans-serif" fontWeight="700">
+                      +{queue.length-6}
+                    </text>
+                  )}
 
                   {/* Bar — droite */}
                   <rect x={VW-MR+6} y={MT} width={MR-10} height={Math.min(rows*CELL_H, 50)} rx="6"
@@ -590,13 +616,39 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                   <text x={VW-MR+MR/2+1} y={MT+30} textAnchor="middle" fontSize="8"
                     fill="#5a3e20" fontFamily="sans-serif">Bar</text>
 
-                  {/* Cuisine — gauche */}
-                  <rect x={2} y={MT} width={ML-4} height={30} rx="4"
-                    fill="#b8d4c8" opacity="0.8"/>
-                  <text x={ML/2} y={MT+12} textAnchor="middle" fontSize="8"
-                    fill="#2a5c3f" fontFamily="sans-serif">🍳</text>
-                  <text x={ML/2} y={MT+23} textAnchor="middle" fontSize="7"
-                    fill="#2a5c3f" fontFamily="sans-serif">Cuisine</text>
+                  {/* Cuisine — gauche animée */}
+                  {(()=>{
+                    const cookCount = kitchen.cooking.length;
+                    const hasCook = cookCount > 0;
+                    return(
+                      <g>
+                        <rect x={2} y={MT-2} width={ML-4} height={hasCook?52:34} rx="6"
+                          fill={hasCook?"#e07a4518":"#b8d4c8"} opacity="0.95"
+                          stroke={hasCook?"#e07a45":"#b8d4c8"} strokeWidth="1"/>
+                        <text x={ML/2} y={MT+11} textAnchor="middle" fontSize="11"
+                          fontFamily="sans-serif">
+                          {hasCook?"🔥":"🍳"}
+                          {hasCook&&<animate attributeName="opacity" values="1;0.5;1" dur="0.8s" repeatCount="indefinite"/>}
+                        </text>
+                        <text x={ML/2} y={MT+22} textAnchor="middle" fontSize="7"
+                          fill={hasCook?"#e07a45":"#2a5c3f"} fontFamily="sans-serif" fontWeight={hasCook?"700":"400"}>
+                          Cuisine
+                        </text>
+                        {hasCook&&(
+                          <>
+                            <text x={ML/2} y={MT+33} textAnchor="middle" fontSize="9"
+                              fill="#e07a45" fontFamily="sans-serif" fontWeight="800">
+                              {cookCount}
+                            </text>
+                            <text x={ML/2} y={MT+43} textAnchor="middle" fontSize="6"
+                              fill="#e07a45" fontFamily="sans-serif">
+                              {cookCount>1?"plats":"plat"}
+                            </text>
+                          </>
+                        )}
+                      </g>
+                    );
+                  })()}
 
                   {/* Tables */}
                   {tables.map((t,i)=>{
@@ -759,6 +811,75 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                               values="0.7;0.1;0.7" dur="1.8s" repeatCount="indefinite"/>
                           </rect>
                         )}
+
+                        {/* Silhouettes clients sur table occupée */}
+                        {!isLibre&&t.group&&(()=>{
+                          const sz = Math.min(t.group.size, 6);
+                          const nc = sz<=2?sz:sz<=4?2:3;
+                          const nr = Math.ceil(sz/nc);
+                          const sW = (tw-8)/nc;
+                          const sH = (th-14)/nr;
+                          const emo = isMange&&isEating?"🍴":isMange?"😊":isCooking?"⏳":isOrdering?"🛎":"🧹";
+                          return Array.from({length:sz},(_,si)=>{
+                            const sc = si%nc;
+                            const sr = Math.floor(si/nc);
+                            const sx = pos.cx-tw/2+4+sc*sW+sW/2;
+                            const sy2 = pos.cy-th/2+4+sr*sH+sH/2;
+                            return(
+                              <text key={si} x={sx} y={sy2+4}
+                                textAnchor="middle"
+                                fontSize={sW>14?10:8}
+                                fontFamily="sans-serif"
+                                opacity="0.9">
+                                {emo}
+                              </text>
+                            );
+                          });
+                        })()}
+
+                        {/* Humeur groupe au-dessus */}
+                        {!isLibre&&t.group&&(
+                          <text x={pos.cx} y={pos.cy-th/2-4}
+                            textAnchor="middle" fontSize="9"
+                            fontFamily="sans-serif" opacity="0.9">
+                            {t.group.mood.e}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })}
+
+                  {/* ── Serveurs — points colorés animés ── */}
+                  {servers.filter(s=>s.status==="actif"||s.status==="service").map((srv,si)=>{
+                    const sl2  = srvLv(srv.totalXp);
+                    const slD2 = SRV_LVL[Math.min(sl2.l, SRV_LVL.length-1)];
+                    const assignedTable = tables.find(t=>t.server===srv.name&&t.status!=="libre");
+                    let sdx, sdy;
+                    if(assignedTable){
+                      const ai = tables.indexOf(assignedTable);
+                      const ap = getPos(ai);
+                      const atw = assignedTable.capacity<=2?40:assignedTable.capacity<=4?50:60;
+                      const ath = assignedTable.capacity<=2?32:assignedTable.capacity<=4?38:44;
+                      sdx = ap.cx + atw/2 + 8;
+                      sdy = ap.cy - ath/2 + 8;
+                    } else {
+                      const actIdx = servers.filter(s=>s.status==="actif"||s.status==="service").indexOf(srv);
+                      sdx = ML + 14 + actIdx * 22;
+                      sdy = MT - 16;
+                    }
+                    const moral2  = srv.moral ?? 100;
+                    const dotCol  = moral2 <= 10 ? "#c0392b" : slD2.color;
+                    return(
+                      <g key={"srv"+srv.id}>
+                        <circle cx={sdx} cy={sdy+2} r="7" fill="rgba(0,0,0,0.10)"/>
+                        <circle cx={sdx} cy={sdy} r="7" fill={dotCol} opacity="0.92"
+                          stroke="white" strokeWidth="1.5">
+                          {srv.status==="service"&&(
+                            <animate attributeName="r" values="7;9;7" dur="0.7s" repeatCount="indefinite"/>
+                          )}
+                        </circle>
+                        <text x={sdx} y={sdy+4} textAnchor="middle"
+                          fontSize="8" fontFamily="sans-serif">{slD2.icon}</text>
                       </g>
                     );
                   })}
