@@ -738,32 +738,36 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                         {/* Barre de progression — 4 phases */}
                         {isActive&&(
                           <g>
-                            {/* Fond gris */}
-                            <rect x={pos.cx-tw/2+3} y={pos.cy+th/2-8}
-                              width={tw-6} height={5} rx="2.5" fill="rgba(0,0,0,0.25)"/>
-                            {/* 4 segments (commande / cuisine / repas / nettoyage) */}
+                            {/* Barre fond */}
+                            <rect x={pos.cx-tw/2+3} y={pos.cy+th/2-9}
+                              width={tw-6} height={6} rx="3" fill="rgba(0,0,0,0.22)"/>
+                            {/* Barre de progression de la phase courante */}
+                            {svgPhase>=0&&(
+                              <rect
+                                x={pos.cx-tw/2+3}
+                                y={pos.cy+th/2-9}
+                                width={Math.max(0,(tw-6)*svgPhasePct/100)}
+                                height={6} rx="3"
+                                fill={svgPhaseColor}
+                                opacity="0.95"
+                              />
+                            )}
+                            {/* Indicateurs des 4 phases (petits points) */}
                             {[
-                              {col:"#6ab0e0", w:svgPhase>0?1:svgPhasePct/100, done:svgPhase>0},
-                              {col:"#f5a060", w:svgPhase>1?1:svgPhase===1?svgPhasePct/100:0, done:svgPhase>1},
-                              {col:"#70c990", w:svgPhase>2?1:svgPhase===2?svgPhasePct/100:0, done:svgPhase>2},
-                              {col:"#f5c842", w:svgPhase===3?svgPhasePct/100:0, done:false},
-                            ].map((seg,si)=>{
-                              const segW=(tw-6)/4;
-                              const fillW=Math.max(0,segW*seg.w);
-                              return fillW>0?(
-                                <rect key={si}
-                                  x={pos.cx-tw/2+3+si*segW} y={pos.cy+th/2-8}
-                                  width={fillW} height={5}
-                                  rx={si===0?"2.5 0 0 2.5":si===3?"0 2.5 2.5 0":"0"}
-                                  fill={seg.col} opacity="0.95"/>
-                              ):null;
-                            })}
-                            {/* Séparateurs entre segments */}
-                            {[1,2,3].map(si=>(
-                              <rect key={si}
-                                x={pos.cx-tw/2+3+si*(tw-6)/4} y={pos.cy+th/2-9}
-                                width={1} height={7} fill="rgba(0,0,0,0.3)"
-                                opacity={svgPhase>=si?0.5:0.2}/>
+                              {c:"#6ab0e0",done:svgPhase>0,active:svgPhase===0},
+                              {c:"#f5a060",done:svgPhase>1,active:svgPhase===1},
+                              {c:"#70c990",done:svgPhase>2,active:svgPhase===2},
+                              {c:"#f5c842",done:false,       active:svgPhase===3},
+                            ].map((dot,di)=>(
+                              <circle key={di}
+                                cx={pos.cx-tw/2+3+(tw-6)/4*(di+0.5)}
+                                cy={pos.cy+th/2-6}
+                                r={dot.active?3.5:dot.done?2.5:2}
+                                fill={dot.active||dot.done?dot.c:"rgba(255,255,255,0.25)"}
+                                stroke={dot.active?"rgba(255,255,255,0.6)":"none"}
+                                strokeWidth="1"
+                                opacity={dot.active?1:dot.done?0.85:0.35}
+                              />
                             ))}
                           </g>
                         )}
