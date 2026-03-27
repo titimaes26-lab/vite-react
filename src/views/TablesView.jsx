@@ -694,6 +694,16 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                       svgPhase===1?"#e07a45":
                       svgPhase===2?"#4a9e78":
                       svgPhase===3?"#f5a623":"#888";
+                    // Timer en secondes pour la phase courante
+                    const svgTimer=
+                      svgPhase===0&&t.svcUntil?Math.max(0,Math.ceil((t.svcUntil-now)/1000)):
+                      svgPhase===1&&slowestT?Math.max(0,Math.ceil((slowestT.startedAt+slowestT.timerMax*1000-now)/1000)):
+                      svgPhase===2&&t.eatUntil?Math.max(0,Math.ceil((t.eatUntil-now)/1000)):
+                      svgPhase===3&&t.cleanUntil?Math.max(0,Math.ceil((t.cleanUntil-now)/1000)):
+                      null;
+                    const svgTimerLabel=svgTimer!==null
+                      ?(svgTimer>=60?Math.floor(svgTimer/60)+"m"+String(svgTimer%60).padStart(2,"0")+"s":svgTimer+"s")
+                      :null;
 
                     return(
                       <g key={t.id} onClick={()=>setSelectedTable(t)} style={{cursor:"pointer"}}>
@@ -734,40 +744,35 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                           fill={fill} stroke={stroke} strokeWidth={strokeW}
                           opacity={isLibre&&myQ.length===0?0.85:1}/>
 
-                        {/* Barre de progression — 4 phases */}
-                        {isActive&&(
+                        {/* Barre de progression — phase unique (repart à 0 à chaque phase) */}
+                        {isActive&&svgPhase>=0&&(
                           <g>
-                            {/* Barre fond */}
-                            <rect x={pos.cx-tw/2+3} y={pos.cy+th/2-9}
-                              width={tw-6} height={6} rx="3" fill="rgba(0,0,0,0.22)"/>
-                            {/* Barre de progression de la phase courante */}
-                            {svgPhase>=0&&(
-                              <rect
-                                x={pos.cx-tw/2+3}
-                                y={pos.cy+th/2-9}
-                                width={Math.max(0,(tw-6)*svgPhasePct/100)}
-                                height={6} rx="3"
-                                fill={svgPhaseColor}
-                                opacity="0.95"
-                              />
+                            {/* Fond de la barre */}
+                            <rect
+                              x={pos.cx-tw/2+3} y={pos.cy+th/2-10}
+                              width={tw-6} height={7} rx="3.5"
+                              fill="rgba(0,0,0,0.28)"
+                            />
+                            {/* Barre de progression — couleur de la phase en cours */}
+                            <rect
+                              x={pos.cx-tw/2+3} y={pos.cy+th/2-10}
+                              width={Math.max(0,(tw-6)*svgPhasePct/100)}
+                              height={7} rx="3.5"
+                              fill={svgPhaseColor}
+                              opacity="0.95"
+                            />
+                            {/* Timer en secondes */}
+                            {svgTimerLabel&&(
+                              <text
+                                x={pos.cx} y={pos.cy+th/2-14}
+                                textAnchor="middle"
+                                fontSize="7" fontWeight="700"
+                                fill="rgba(255,255,255,0.90)"
+                                fontFamily="sans-serif"
+                              >
+                                {svgTimerLabel}
+                              </text>
                             )}
-                            {/* Indicateurs des 4 phases (petits points) */}
-                            {[
-                              {c:"#6ab0e0",done:svgPhase>0,active:svgPhase===0},
-                              {c:"#f5a060",done:svgPhase>1,active:svgPhase===1},
-                              {c:"#70c990",done:svgPhase>2,active:svgPhase===2},
-                              {c:"#f5c842",done:false,       active:svgPhase===3},
-                            ].map((dot,di)=>(
-                              <circle key={di}
-                                cx={pos.cx-tw/2+3+(tw-6)/4*(di+0.5)}
-                                cy={pos.cy+th/2-6}
-                                r={dot.active?3.5:dot.done?2.5:2}
-                                fill={dot.active||dot.done?dot.c:"rgba(255,255,255,0.25)"}
-                                stroke={dot.active?"rgba(255,255,255,0.6)":"none"}
-                                strokeWidth="1"
-                                opacity={dot.active?1:dot.done?0.85:0.35}
-                              />
-                            ))}
                           </g>
                         )}
 
