@@ -694,16 +694,6 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                       svgPhase===1?"#e07a45":
                       svgPhase===2?"#4a9e78":
                       svgPhase===3?"#f5a623":"#888";
-                    // Timer en secondes pour la phase courante
-                    const svgTimer=
-                      svgPhase===0&&t.svcUntil?Math.max(0,Math.ceil((t.svcUntil-now)/1000)):
-                      svgPhase===1&&slowestT?Math.max(0,Math.ceil((slowestT.startedAt+slowestT.timerMax*1000-now)/1000)):
-                      svgPhase===2&&t.eatUntil?Math.max(0,Math.ceil((t.eatUntil-now)/1000)):
-                      svgPhase===3&&t.cleanUntil?Math.max(0,Math.ceil((t.cleanUntil-now)/1000)):
-                      null;
-                    const svgTimerLabel=svgTimer!==null
-                      ?(svgTimer>=60?Math.floor(svgTimer/60)+"m"+String(svgTimer%60).padStart(2,"0")+"s":svgTimer+"s")
-                      :null;
 
                     return(
                       <g key={t.id} onClick={()=>setSelectedTable(t)} style={{cursor:"pointer"}}>
@@ -761,18 +751,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                               fill={svgPhaseColor}
                               opacity="0.95"
                             />
-                            {/* Timer en secondes */}
-                            {svgTimerLabel&&(
-                              <text
-                                x={pos.cx} y={pos.cy+th/2-14}
-                                textAnchor="middle"
-                                fontSize="7" fontWeight="700"
-                                fill="rgba(255,255,255,0.90)"
-                                fontFamily="sans-serif"
-                              >
-                                {svgTimerLabel}
-                              </text>
-                            )}
+
                           </g>
                         )}
 
@@ -793,7 +772,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                           fontFamily="sans-serif">
                           {isNettoyage?"🧹":isMange&&isEating?"🍴":isMange?"💰":
                             isOrdering?"🛎":t.status==="occupée"?"🔥":
-                            myQ.length>0?"👥":"✓"} {t.capacity}p
+                            myQ.length>0?"👥":`✓ ${t.capacity}p`}
                         </text>
 
                         {/* Badge montant prêt à encaisser */}
