@@ -722,7 +722,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                 color:C.muted,padding:"0 4px",lineHeight:1}}>✕</button>
             </div>
             <div style={{padding:10}}>
-                          {selectedTable?(()=>{
+                          {(()=>{
               const t=selectedTable;
               // Refresh from live tables
               const tLive=tables.find(x=>x.id===t.id)||t;
