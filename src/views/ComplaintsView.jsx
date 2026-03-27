@@ -4,8 +4,8 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F } from "../constants/gameData";
-import { Card, Badge, Modal, Lbl, Inp, Sel } from "../components/ui";
+import { C, F } from "../constants/gameData.js";
+import { Card, Badge, Modal, Lbl, Inp, Sel, Btn } from "../components/ui/index.js";
 
 export function ComplaintsView({complaints,setComplaints,tables,servers,seenIds}){
   const [modal,setModal]=useState(false);
