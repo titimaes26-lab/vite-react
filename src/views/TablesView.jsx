@@ -260,311 +260,57 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
   };
 
   return(
-    <div>
-      {/* Active event banner */}
-      {activeEvent&&(()=>{
-        const evt=GAME_EVENTS.find(e=>e.id===activeEvent);
-        if(!evt)return null;
-        return(
-          <div style={{background:C.amberP,border:`1.5px solid ${C.amber}`,
-            borderRadius:12,padding:"10px 16px",marginBottom:14,
-            display:"flex",alignItems:"center",gap:10,animation:"pulse 1s ease-in-out"}}>
-            <span style={{fontSize:22}}>{evt.icon}</span>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:700,color:C.amber,fontFamily:F.title}}>{evt.title}</div>
-              <div style={{fontSize:11,color:C.ink,fontFamily:F.body,marginTop:2}}>{evt.desc}</div>
+    <div style={{
+      display:"flex",flexDirection:"column",
+      height:"calc(100vh - 0px)",overflow:"hidden",
+      background:C.bg,
+    }}>
+
+      {/* ══ 1. BARRE STATUT — haut 42px ══════════════════════ */}
+      <div style={{height:42,flexShrink:0,background:C.surface,
+        borderBottom:`1px solid ${C.border}`,
+        display:"flex",alignItems:"center",
+        paddingLeft:14,paddingRight:14,gap:14,zIndex:10}}>
+        <span style={{fontSize:13,fontWeight:800,color:C.green,fontFamily:F.title}}>
+          💶 {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})}€
+        </span>
+        <div style={{width:1,height:18,background:C.border}}/>
+        <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
+          ✅ {tables.filter(t=>t.status==="libre").length}/{tables.length} libres
+        </span>
+        {queue.length>0&&(
+          <span style={{fontSize:11,fontWeight:700,
+            color:queue.length>=3?C.red:C.amber,fontFamily:F.body}}>
+            🚶 {queue.length} en attente
+          </span>
+        )}
+        {reputation!==undefined&&(
+          <div style={{display:"flex",alignItems:"center",gap:5,marginLeft:"auto"}}>
+            <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>Rép.</span>
+            <div style={{width:48,height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${reputation}%`,
+                background:reputation>=60?C.green:reputation>=30?C.amber:C.red,
+                borderRadius:99,transition:"width 0.5s"}}/>
             </div>
           </div>
-        );
-      })()}
-
-      {/* Stats row */}
-      <div style={{display:"flex",gap:bp.isMobile?8:12,marginBottom:bp.isMobile?14:20,flexWrap:"wrap",alignItems:"stretch"}}>
-
-        {/* Tables libres */}
-        <div style={{flex:"0 0 auto",minWidth:110,background:C.greenP,
-          border:`1.5px solid ${C.green}22`,borderRadius:14,padding:"13px 10px",
-          textAlign:"center",boxShadow:`0 2px 8px ${C.green}12`}}>
-          <div style={{fontSize:11,marginBottom:5}}>✅</div>
-          <div style={{fontSize:22,fontWeight:700,color:C.green,fontFamily:F.title,lineHeight:1}}>{st.libre}</div>
-          <div style={{fontSize:10,color:C.muted,marginTop:4,fontFamily:F.body}}>Tables libres</div>
-        </div>
-
-        {/* File d'attente */}
-        <div style={{flex:"0 0 auto",minWidth:110,
-          background:queue.length>3?C.redP:C.amberP,
-          border:`1.5px solid ${queue.length>3?C.red:C.amber}22`,
-          borderRadius:14,padding:"13px 10px",
-          textAlign:"center",boxShadow:`0 2px 8px ${queue.length>3?C.red:C.amber}12`}}>
-          <div style={{fontSize:11,marginBottom:5}}>🚶</div>
-          <div style={{fontSize:22,fontWeight:700,color:queue.length>3?C.red:C.amber,fontFamily:F.title,lineHeight:1}}>{queue.length}</div>
-          <div style={{fontSize:10,color:C.muted,marginTop:4,fontFamily:F.body}}>File d'attente</div>
-        </div>
-
-        {/* Nettoyage */}
-        {(()=>{const n=tables.filter(t=>t.status==="nettoyage").length;
-          return n>0?(
-            <div style={{flex:"0 0 auto",minWidth:110,background:C.amberP,
-              border:`1.5px solid ${C.amber}22`,borderRadius:14,padding:"13px 10px",
-              textAlign:"center",boxShadow:`0 2px 8px ${C.amber}12`}}>
-              <div style={{fontSize:11,marginBottom:5}}>🧹</div>
-              <div style={{fontSize:22,fontWeight:700,color:C.amber,fontFamily:F.title,lineHeight:1}}>{n}</div>
-              <div style={{fontSize:10,color:C.muted,marginTop:4,fontFamily:F.body}}>Nettoyage</div>
-            </div>
-          ):null;
-        })()}
-
-      </div>
-
-      {/* ── File d'attente intelligente ── */}
-      {(queue.length>0||waitlist.length>0)&&(
-        <div style={{marginBottom:20}}>
-
-          {/* Header file */}
-          {queue.length>0&&(
-            <div style={{background:C.navyP,border:`1.5px solid ${C.navy}22`,
-              borderRadius:14,padding:16,marginBottom:waitlist.length>0?12:0}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-                <span>🚶‍♂️</span>
-                <span style={{color:C.navy,fontWeight:700,fontSize:14,fontFamily:F.title}}>
-                  {queue.length} groupe{queue.length>1?"s":""} en attente
-                </span>
-                {queue.length>=5&&(
-                  <span style={{fontSize:10,background:C.redP,color:C.red,
-                    border:`1px solid ${C.red}33`,borderRadius:20,padding:"2px 8px",
-                    fontWeight:700,fontFamily:F.body,animation:"pulse 1.2s infinite"}}>
-                    🚨 Salle saturée
-                  </span>
-                )}
-                <span style={{marginLeft:"auto",fontSize:10,color:C.muted,fontFamily:F.body}}>
-                  ↑↓ pour réordonner
-                </span>
-              </div>
-
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {queue.map((g,idx)=>{
-                  const remaining=Math.max(0,Math.ceil((g.expiresAt-now)/1000));
-                  const pct=(remaining/g.patMax)*100;
-                  const pc=pct>60?C.green:pct>30?C.terra:C.red;
-                  const ft=freeTbl(g);
-                  const waitSec=estimatedWait(idx);
-                  return(
-                    <div key={g.id} style={{
-                      background:g.recalled?"#f0fff4":g.isVIP?"#fffbef":C.white,
-                      border:`1.5px solid ${g.isVIP?"#d4af37":g.recalled?C.green+"55":pc+"33"}`,
-                      borderRadius:12,padding:"10px 12px",
-                      boxShadow:pct<25?`0 0 10px ${C.red}33`:g.isVIP?"0 0 14px #d4af3744":"none",
-                      animation:pct<25?"breatheAmber 1.2s ease-in-out infinite":undefined,
-                      display:"flex",alignItems:"center",gap:10}}>
-
-                      {/* Boutons ↑↓ */}
-                      <div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}>
-                        <button onClick={()=>moveInQueue(idx,-1)} disabled={idx===0}
-                          style={{width:22,height:22,borderRadius:5,border:`1px solid ${C.border}`,
-                            background:idx===0?C.bg:C.navyP,color:idx===0?C.muted:C.navy,
-                            cursor:idx===0?"not-allowed":"pointer",fontSize:11,fontWeight:700,
-                            display:"flex",alignItems:"center",justifyContent:"center"}}>▲</button>
-                        <button onClick={()=>moveInQueue(idx,+1)} disabled={idx===queue.length-1}
-                          style={{width:22,height:22,borderRadius:5,border:`1px solid ${C.border}`,
-                            background:idx===queue.length-1?C.bg:C.navyP,color:idx===queue.length-1?C.muted:C.navy,
-                            cursor:idx===queue.length-1?"not-allowed":"pointer",fontSize:11,fontWeight:700,
-                            display:"flex",alignItems:"center",justifyContent:"center"}}>▼</button>
-                      </div>
-
-                      {/* Position */}
-                      <div style={{width:24,height:24,borderRadius:"50%",flexShrink:0,
-                        background:idx===0?C.green:C.navy,
-                        display:"flex",alignItems:"center",justifyContent:"center",
-                        fontSize:11,fontWeight:800,color:"#fff"}}>
-                        {idx+1}
-                      </div>
-
-                      {/* Infos groupe */}
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:2}}>
-                          {g.isVIP&&<span style={{fontSize:13}}>🎩</span>}
-                          {g.recalled&&<span style={{fontSize:11}}>📞</span>}
-                          <span style={{fontSize:13,fontWeight:700,
-                            color:g.isVIP?"#8a6a00":C.ink,fontFamily:F.body,
-                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                            {g.name}
-                          </span>
-                          <span style={{fontSize:10,background:pct<25?C.redP:pct<60?C.amberP:C.greenP,
-                            color:pct<25?C.red:pct<60?C.amber:C.green,
-                            borderRadius:4,padding:"0px 5px",fontWeight:600,flexShrink:0}}>
-                            {g.mood.e} {g.size}p
-                          </span>
-                        </div>
-                        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                          <div style={{flex:1,height:4,background:C.border,borderRadius:99,overflow:"hidden",minWidth:40}}>
-                            <div style={{height:"100%",borderRadius:99,
-                              background:`linear-gradient(90deg,${C.red},${pct>50?C.amber:C.red},${pct>70?C.green:C.red})`,
-                              width:`${pct}%`,transition:"width 0.5s linear"}}/>
-                          </div>
-                          <span style={{fontSize:10,color:pc,fontWeight:700,fontFamily:F.body,flexShrink:0}}>
-                            {remaining}s
-                          </span>
-                          {waitSec>0&&(
-                            <span style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0}}>
-                              ⏳ ~{waitSec>=60?`${Math.floor(waitSec/60)}min`:waitSec+"s"} att.
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Bouton placer */}
-                      <Btn sm v={ft.length>0?"primary":"ghost"}
-                        disabled={ft.length===0}
-                        onClick={()=>ft.length>0&&activeSrv.length>0?quickPlace(g):openAssign(g)}>
-                        {ft.length>0
-                          ?activeSrv.length>0?"▶ Placer":"Pas de serveur"
-                          :"Complet"
-                        }
-                      </Btn>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Liste d'attente (groupes partis rappelables) */}
-          {waitlist.length>0&&(
-            <div style={{background:C.terraP,border:`1.5px solid ${C.terra}33`,
-              borderRadius:14,padding:"12px 16px"}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                <span style={{fontSize:15}}>📞</span>
-                <span style={{fontSize:13,fontWeight:700,color:C.terra,fontFamily:F.title}}>
-                  {waitlist.length} groupe{waitlist.length>1?"s":""} — rappelable{waitlist.length>1?"s":""}
-                </span>
-                <span style={{fontSize:10,color:C.muted,fontFamily:F.body,marginLeft:"auto"}}>
-                  Sous 2 minutes · humeur améliorée
-                </span>
-              </div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {waitlist.map(g=>{
-                  const recallLeft=Math.max(0,Math.ceil((g.recallUntil-now)/1000));
-                  const pct=(recallLeft/120)*100;
-                  return(
-                    <div key={g.id} style={{
-                      background:C.surface,border:`1.5px solid ${C.terra}44`,
-                      borderRadius:10,padding:"10px 12px",minWidth:160,flex:"0 0 auto"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",
-                        alignItems:"center",marginBottom:6}}>
-                        <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>
-                          {g.mood.e} {g.name}
-                        </div>
-                        <span style={{fontSize:11,fontWeight:700,color:C.terra,fontFamily:F.title}}>
-                          {recallLeft}s
-                        </span>
-                      </div>
-                      <div style={{height:3,background:C.border,borderRadius:99,
-                        overflow:"hidden",marginBottom:8}}>
-                        <div style={{height:"100%",width:`${pct}%`,background:C.terra,
-                          borderRadius:99,transition:"width 0.5s"}}/>
-                      </div>
-                      <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:8}}>
-                        👥 {g.size}p · {g.mood.l}
-                      </div>
-                      <Btn sm full v="terra" onClick={()=>recallGroup(g)}>
-                        📞 Rappeler
-                      </Btn>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Bouton toggle vue ── */}
-      <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center"}}>
-        {[{k:"plan",icon:"🗺",label:"Plan de salle"},{k:"grid",icon:"⊞",label:"Grille"}].map(v=>(
-          <button key={v.k} onClick={()=>setViewMode(v.k)} style={{
-            padding:"6px 14px",borderRadius:8,fontSize:12,fontWeight:600,
-            background:viewMode===v.k?C.navy:"transparent",
-            color:viewMode===v.k?"#fff":C.muted,
-            border:`1.5px solid ${viewMode===v.k?C.navy:C.border}`,
-            cursor:"pointer",fontFamily:F.body,display:"flex",alignItems:"center",gap:5}}>
-            <span>{v.icon}</span><span>{v.label}</span>
-          </button>
-        ))}
-        {selectedTable&&viewMode==="plan"&&(
-          <button onClick={()=>setSelectedTable(null)}
-            style={{marginLeft:"auto",padding:"4px 10px",borderRadius:7,fontSize:11,
-              background:C.redP,color:C.red,border:`1px solid ${C.red}33`,
-              cursor:"pointer",fontFamily:F.body,fontWeight:600}}>
-            ✕ Fermer
-          </button>
         )}
+        {activeEvent&&(()=>{
+          const evt=GAME_EVENTS.find(e=>e.id===activeEvent);
+          return evt?(<div style={{display:"flex",alignItems:"center",gap:5,
+            background:C.amberP,border:`1px solid ${C.amber}44`,
+            borderRadius:8,padding:"2px 9px",flexShrink:0}}>
+            <span style={{fontSize:12}}>{evt.icon}</span>
+            <span style={{fontSize:10,color:C.amber,fontWeight:700,fontFamily:F.body}}>{evt.title}</span>
+          </div>):null;
+        })()}
       </div>
 
-      {viewMode==="plan"?(
-        /* ══════════════════════════════════════════════════
-           PLAN DE SALLE SVG
-        ══════════════════════════════════════════════════ */
-        <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
+      {/* ══ 2. ZONE CENTRALE — plan + overlays ═══════════════ */}
+      <div style={{flex:1,position:"relative",overflow:"hidden",minHeight:0}}>
 
-          {/* SVG Floor plan */}
-          <div style={{flex:"1 1 420px",background:"#faf7f0",
-            border:`1.5px solid ${C.border}`,borderRadius:16,
-            overflow:"hidden",position:"relative",minHeight:340}}>
-
-            {/* Légende */}
-            <div style={{position:"absolute",top:10,left:10,zIndex:5,
-              display:"flex",gap:6,flexWrap:"wrap"}}>
-              {[
-                {c:C.green,   label:"Libre"},
-                {c:C.terra,   label:"En cuisine"},
-                {c:"#2a7a5c", label:"Repas"},
-                {c:C.amber,   label:"Nettoyage"},
-                {c:C.navy,    label:"Commande"},
-              ].map(x=>(
-                <div key={x.label} style={{display:"flex",alignItems:"center",gap:4,
-                  background:"rgba(255,255,255,0.85)",borderRadius:5,padding:"2px 7px",
-                  fontSize:9,fontFamily:F.body,fontWeight:600,color:x.c,
-                  border:`1px solid ${x.c}33`}}>
-                  <div style={{width:7,height:7,borderRadius:2,background:x.c}}/>
-                  {x.label}
-                </div>
-              ))}
-            </div>
-
-            {/* SVG Floor plan — layout dynamique */}
-            {(()=>{
-              const n = tables.length;
-
-              // ── 1. Grille dynamique ─────────────────────────
-              // Colonnes : adapté au nombre de tables
-              const cols = n<=2?n : n<=4?2 : n<=6?3 : n<=9?3 : 4;
-              const rows = Math.ceil(n / cols);
-
-              // ── 2. Taille de chaque cellule ─────────────────
-              // La plus grande table (6p) : tw=64, th=46
-              // Chaises : +14px gauche/droite, +14px haut/bas
-              // Espacement entre tables : 20px
-              const CELL_W = 110; // 64+14+14+18 de marge
-              const CELL_H = 90;  // 46+14+14+16 de marge
-
-              // ── 3. Marges du plan ───────────────────────────
-              const ML = 30;   // gauche (couloir cuisine)
-              const MT = 52;   // haut (déco + espace)
-              const MR = 80;   // droite (bar)
-              const MB = 36;   // bas (entrée)
-
-              // ── 4. ViewBox calculée ──────────────────────────
-              const VW = ML + cols * CELL_W + MR;
-              const VH = MT + rows * CELL_H + MB;
-
-              // ── 5. Position centre de chaque table ──────────
-              const getPos = (i) => ({
-                cx: ML + (i % cols) * CELL_W + CELL_W / 2,
-                cy: MT + Math.floor(i / cols) * CELL_H + CELL_H / 2,
-              });
-
-              return(
-                <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" style={{display:"block"}}>
+        {/* Plan SVG fond */}
+        <div style={{position:"absolute",inset:0,background:"#faf7f0",overflow:"hidden"}}>
+                          <svg style={{width:"100%",height:"100%"}} viewBox={`0 0 ${VW} ${VH}`} width="100%" style={{display:"block"}}>
                   {/* Fond parquet */}
                   <rect x="0" y="0" width={VW} height={VH} fill="#faf7f0"/>
                   {Array.from({length:Math.ceil(VH/20)+1},(_,i)=>(
@@ -884,13 +630,99 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                     );
                   })}
                 </svg>
-              );
-            })()}
-          </div>
+        </div>
 
-          {/* Panneau de détail latéral */}
-          <div style={{width:260,flexShrink:0,minWidth:220}}>
-            {selectedTable?(()=>{
+        {/* Overlay gauche — File d'attente */}
+        {(queue.length>0||waitlist.length>0)&&(
+          <div style={{
+            position:"absolute",left:0,top:0,bottom:0,width:210,zIndex:20,
+            background:"rgba(255,255,255,0.93)",backdropFilter:"blur(8px)",
+            borderRight:`1px solid ${C.border}`,
+            display:"flex",flexDirection:"column",
+          }}>
+            <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,
+              fontWeight:700,fontSize:12,color:C.navy,fontFamily:F.title,
+              display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+              🚶 File d'attente
+              {queue.length>=5&&<span style={{fontSize:9,background:C.redP,color:C.red,
+                borderRadius:20,padding:"1px 6px",fontWeight:700,fontFamily:F.body,
+                animation:"pulse 1.2s infinite"}}>🚨</span>}
+            </div>
+            <div style={{overflowY:"auto",flex:1,padding:8,display:"flex",
+              flexDirection:"column",gap:6}}>
+              {queue.map(g=>{
+                const pct=Math.max(0,(g.expiresAt-now)/(g.patMax*1000));
+                const col=pct>0.5?C.green:pct>0.25?C.amber:C.red;
+                const freeT=tables.filter(t=>t.status==="libre"&&t.capacity>=g.size);
+                const actSrv=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
+                return(
+                  <div key={g.id} style={{background:C.surface,border:`1px solid ${col}33`,
+                    borderLeft:`3px solid ${col}`,borderRadius:9,padding:"8px 10px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
+                      <span style={{fontSize:18}}>{g.mood.e}</span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:11,fontWeight:700,color:C.ink,fontFamily:F.body,
+                          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</div>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{g.size}p · {g.mood.l}{g.isVIP?" 🎩":""}</div>
+                      </div>
+                    </div>
+                    <div style={{height:3,background:col+"22",borderRadius:99,overflow:"hidden",marginBottom:5}}>
+                      <div style={{height:"100%",width:`${pct*100}%`,background:col,borderRadius:99,transition:"width 0.3s"}}/>
+                    </div>
+                    {freeT.length>0&&actSrv.length>0
+                      ?<Btn full sm v="primary" onClick={()=>quickPlace(g)} icon="➡️">Placer</Btn>
+                      :freeT.length>0
+                      ?<Btn full sm v="secondary" onClick={()=>openAssign(g)} icon="🪑">Choisir serveur</Btn>
+                      :<div style={{fontSize:9,color:C.muted,fontFamily:F.body,textAlign:"center",padding:"2px 0"}}>{freeT.length===0?"Pas de table":"Pas de serveur"}</div>
+                    }
+                  </div>
+                );
+              })}
+              {waitlist.length>0&&(
+                <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8,marginTop:4}}>
+                  <div style={{fontSize:9,color:C.muted,fontFamily:F.body,fontWeight:600,
+                    textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:5}}>📞 Rappelables</div>
+                  {waitlist.map(g=>{
+                    const rem=Math.max(0,Math.ceil((g.recallUntil-now)/1000));
+                    return(
+                      <div key={"w"+g.id} style={{background:C.bg,borderRadius:8,
+                        padding:"5px 8px",marginBottom:3,display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:13}}>{g.mood.e}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:10,fontWeight:600,color:C.ink,fontFamily:F.body,
+                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</div>
+                          <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{g.size}p · {rem}s</div>
+                        </div>
+                        <Btn sm v="ghost" onClick={()=>recallGroup(g)}>📞</Btn>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Overlay droit — Détail table */}
+        {selectedTable&&(
+          <div style={{
+            position:"absolute",right:0,top:0,bottom:0,width:255,zIndex:20,
+            background:"rgba(255,255,255,0.95)",backdropFilter:"blur(8px)",
+            borderLeft:`1px solid ${C.border}`,
+            overflowY:"auto",boxShadow:"-4px 0 20px rgba(0,0,0,0.08)",
+          }}>
+            <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,
+              display:"flex",justifyContent:"space-between",alignItems:"center",
+              position:"sticky",top:0,background:"rgba(255,255,255,0.96)",zIndex:5}}>
+              <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+                📋 {selectedTable.name}
+              </span>
+              <button onClick={()=>setSelectedTable(null)} style={{
+                background:"none",border:"none",fontSize:16,cursor:"pointer",
+                color:C.muted,padding:"0 4px",lineHeight:1}}>✕</button>
+            </div>
+            <div style={{padding:10}}>
+                          {selectedTable?(()=>{
               const t=selectedTable;
               // Refresh from live tables
               const tLive=tables.find(x=>x.id===t.id)||t;
@@ -1419,216 +1251,133 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
           })}
         </div>
       )}
+            </div>
+          </div>
+        )}
 
-      {/* ═══════════════════════════════════════════════════
-           VUE COMPACTE MOBILE — remplace le plan SVG
-      ═══════════════════════════════════════════════════ */}
-      {bp.isMobile&&(
-        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:80}}>
-          {tables.map(t=>{
-            const isMange2      = t.status==="mange";
-            const isNettoyage2  = t.status==="nettoyage";
-            const isOrdering2   = t.status==="occupée"&&t.svcUntil&&now<t.svcUntil;
-            const isLibre2      = t.status==="libre";
-            const isCooking2    = t.status==="occupée"&&!isOrdering2;
-            const isEating2     = isMange2&&t.eatUntil&&now<t.eatUntil;
-            const myQ2          = queue.filter(g=>g.size<=t.capacity&&isLibre2);
-            const activeSrv2    = servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
-
-            // Phase & couleur
-            const phase2 = isOrdering2?0:isCooking2?1:isMange2?2:isNettoyage2?3:-1;
-            const phaseColors2 = ["#3a5f8a","#e07a45","#4a9e78","#f5a623"];
-            const phaseIcons2  = ["🛎","🔥","🍴","🧹"];
-            const phaseLabels2 = ["Commande","Cuisine","Repas","Nettoyage"];
-            const pColor2 = phase2>=0?phaseColors2[phase2]:C.green;
-
-            // Pct phase
-            const cookingT2 = kitchen.cooking.filter(d=>d.tableId===t.id);
-            const slowest2  = cookingT2.length>0
-              ?cookingT2.reduce((a,b)=>(b.startedAt+b.timerMax*1000)>(a.startedAt+a.timerMax*1000)?b:a)
-              :null;
-            const pct2 =
-              phase2===0?Math.min(100,Math.round((1-(Math.max(0,(t.svcUntil-now))/((t.svcUntil-t.placedAt)||1)))*100)):
-              phase2===1?( slowest2?Math.min(100,Math.round(((now-slowest2.startedAt)/(slowest2.timerMax*1000))*100)):0 ):
-              phase2===2?( isEating2?Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):100 ):
-              phase2===3?( t.cleanUntil?Math.min(100,Math.round(((t.cleanDur*1000-(t.cleanUntil-now))/(t.cleanDur*1000))*100)):0 ):
-              0;
-
-            // Timer
-            const timer2 =
-              phase2===0&&t.svcUntil?Math.max(0,Math.ceil((t.svcUntil-now)/1000)):
-              phase2===1&&slowest2?Math.max(0,Math.ceil((slowest2.startedAt+slowest2.timerMax*1000-now)/1000)):
-              phase2===2&&t.eatUntil?Math.max(0,Math.ceil((t.eatUntil-now)/1000)):
-              phase2===3&&t.cleanUntil?Math.max(0,Math.ceil((t.cleanUntil-now)/1000)):
-              null;
-            const timerFmt2 = timer2!==null?(timer2>=60?Math.floor(timer2/60)+"m"+String(timer2%60).padStart(2,"0")+"s":timer2+"s"):null;
-
-            const bill2 = isMange2?+(t.order.reduce((s,o)=>s+o.price*o.qty,0)*menuTheme.priceMult).toFixed(2):0;
-
-            return(
-              <div key={t.id} style={{
-                background:C.surface,
-                border:`1.5px solid ${phase2>=0?pColor2+"55":C.border}`,
-                borderLeft:`4px solid ${phase2>=0?pColor2:C.green}`,
-                borderRadius:12,padding:"12px 14px",
-                boxShadow:`0 2px 8px ${phase2>=0?pColor2+"18":"rgba(0,0,0,0.05)"}`,
-                minHeight:80,
-              }}>
-                {/* Ligne 1 : nom + statut + timer */}
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <span style={{fontSize:16,fontWeight:800,color:C.ink,fontFamily:F.title}}>
+        {/* Mobile overlay */}
+        {bp.isMobile&&(
+          <div style={{position:"absolute",inset:0,overflowY:"auto",
+            padding:8,background:"rgba(250,247,240,0.97)",zIndex:15}}>
+            {tables.map(t=>{
+              const isMm=t.status==="mange";const isNm=t.status==="nettoyage";
+              const isOm=t.status==="occupée"&&t.svcUntil&&now<t.svcUntil;
+              const isLm=t.status==="libre";const isCm=t.status==="occupée"&&!isOm;
+              const isEm=isMm&&t.eatUntil&&now<t.eatUntil;
+              const myQm=queue.filter(g=>g.size<=t.capacity&&isLm);
+              const aSm=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
+              const ph=isOm?0:isCm?1:isMm?2:isNm?3:-1;
+              const pCs=["#3a5f8a","#e07a45","#4a9e78","#f5a623"];
+              const pIs=["🛎","🔥","🍴","🧹"];const pLs=["Commande","Cuisine","Repas","Nettoyage"];
+              const pC=ph>=0?pCs[ph]:C.green;
+              const ckT=kitchen.cooking.filter(d=>d.tableId===t.id);
+              const slw=ckT.length>0?ckT.reduce((a,b)=>(b.startedAt+b.timerMax*1000)>(a.startedAt+a.timerMax*1000)?b:a):null;
+              const pc=ph===0?Math.min(100,Math.round((1-(Math.max(0,(t.svcUntil-now))/((t.svcUntil-t.placedAt)||1)))*100)):ph===1?(slw?Math.min(100,Math.round(((now-slw.startedAt)/(slw.timerMax*1000))*100)):0):ph===2?(isEm?Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):100):ph===3?(t.cleanUntil?Math.min(100,Math.round(((t.cleanDur*1000-(t.cleanUntil-now))/(t.cleanDur*1000))*100)):0):0;
+              const bl=isMm?+(t.order.reduce((s,o)=>s+o.price*o.qty,0)*menuTheme.priceMult).toFixed(2):0;
+              return(
+                <div key={t.id} style={{background:C.surface,
+                  border:`1.5px solid ${ph>=0?pC+"55":C.border}`,
+                  borderLeft:`4px solid ${ph>=0?pC:C.green}`,
+                  borderRadius:11,padding:"9px 11px",marginBottom:7}}>
+                  <div style={{display:"flex",justifyContent:"space-between",
+                    alignItems:"center",marginBottom:4}}>
+                    <span style={{fontSize:13,fontWeight:800,color:C.ink,fontFamily:F.title}}>
                       {t.name}
                     </span>
-                    <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-                      {t.capacity}p
-                    </span>
-                    {t.group?.isVIP&&<span style={{fontSize:12}}>🎩</span>}
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    {timerFmt2&&(
-                      <span style={{fontSize:11,fontWeight:700,color:pColor2,fontFamily:F.body}}>
-                        {timerFmt2}
-                      </span>
-                    )}
-                    <span style={{
-                      fontSize:10,background:phase2>=0?pColor2+"18":C.greenP,
-                      color:phase2>=0?pColor2:C.green,
-                      border:`1px solid ${phase2>=0?pColor2+"33":C.green+"33"}`,
-                      borderRadius:20,padding:"2px 8px",fontFamily:F.body,fontWeight:600
-                    }}>
-                      {phase2>=0?phaseIcons2[phase2]+" "+phaseLabels2[phase2]:"✅ Libre"}
+                    <span style={{fontSize:9,background:ph>=0?pC+"18":C.greenP,
+                      color:ph>=0?pC:C.green,borderRadius:20,padding:"1px 7px",
+                      fontWeight:600,fontFamily:F.body}}>
+                      {ph>=0?pIs[ph]+" "+pLs[ph]:"✅ Libre"}
                     </span>
                   </div>
+                  {ph>=0&&<div style={{height:3,background:pC+"22",borderRadius:99,
+                    overflow:"hidden",marginBottom:5}}>
+                    <div style={{height:"100%",width:`${pc}%`,background:pC,
+                      borderRadius:99,transition:"width 0.5s"}}/>
+                  </div>}
+                  {t.group&&<div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:5}}>
+                    {t.group.mood.e} {t.group.name} · {t.group.size}p{t.server?" · 👔 "+t.server:""}
+                  </div>}
+                  {isMm&&!isEm&&<Btn full v="primary" sm onClick={()=>checkout(t.id)} icon="💰">Encaisser {bl}€</Btn>}
+                  {isLm&&myQm.length>0&&aSm.length>0&&<Btn full v="terra" sm onClick={()=>quickPlace(myQm[0])} icon="👥">Placer</Btn>}
+                  {isLm&&myQm.length>0&&aSm.length===0&&<Btn full v="secondary" sm onClick={()=>openAssign(myQm[0])} icon="👥">Placer</Btn>}
                 </div>
-
-                {/* Barre de progression */}
-                {phase2>=0&&(
-                  <div style={{height:5,background:pColor2+"22",borderRadius:99,overflow:"hidden",marginBottom:8}}>
-                    <div style={{
-                      height:"100%",width:`${pct2}%`,
-                      background:pColor2,borderRadius:99,
-                      transition:"width 0.5s linear"
-                    }}/>
-                  </div>
-                )}
-
-                {/* Groupe + serveur */}
-                {t.group&&(
-                  <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:6}}>
-                    {t.group.mood.e} {t.group.name} · {t.group.size}p
-                    {t.server&&<span> · 👔 {t.server}</span>}
-                  </div>
-                )}
-
-                {/* Bouton action */}
-                <div style={{marginTop:4}}>
-                  {isMange2&&!isEating2&&(
-                    <Btn full v="primary" sm onClick={()=>checkout(t.id)} icon="💰">
-                      Encaisser {bill2}€
-                    </Btn>
-                  )}
-                  {isLibre2&&myQ2.length>0&&activeSrv2.length>0&&(
-                    <Btn full v="terra" sm onClick={()=>quickPlace(myQ2[0])} icon="👥">
-                      Placer {myQ2[0].mood.e} {myQ2[0].name}
-                    </Btn>
-                  )}
-                  {isLibre2&&myQ2.length>0&&activeSrv2.length===0&&(
-                    <Btn full v="secondary" sm onClick={()=>openAssign(myQ2[0])} icon="👥">
-                      Placer (choisir serveur)
-                    </Btn>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════
-           FAB — Bouton d'action flottant (tous écrans)
-      ═══════════════════════════════════════════════════ */}
-      {(()=>{
-        const fabQueue = queue.filter(g=>tables.some(t=>t.status==="libre"&&t.capacity>=g.size));
-        const fabActiveSrv = servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
-        if(fabQueue.length===0||fabActiveSrv.length===0) return null;
-        const urgentCount = fabQueue.filter(g=>g.expiresAt-now<g.patMax*1000*0.3).length;
-        const fabColor = urgentCount>0?C.red:fabQueue.length>=3?C.amber:C.green;
-        return(
-          <div style={{
-            position:"fixed",bottom:bp.isMobile?90:24,right:20,
-            zIndex:900,
-            display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8,
-          }}>
-            {/* Mini-liste groupes urgents (si ouverte) */}
-            <div id="fab-list" style={{display:"none"}}>
-              {fabQueue.slice(0,4).map(g=>{
-                const pct3 = Math.max(0,(g.expiresAt-now)/(g.patMax*1000));
-                const pc3  = pct3>0.5?C.green:pct3>0.25?C.amber:C.red;
-                const ft3  = tables.find(t=>t.status==="libre"&&t.capacity>=g.size);
-                return(
-                  <div key={g.id}
-                    onClick={()=>{ft3&&(fabActiveSrv.length>0?quickPlace(g):openAssign(g));}}
-                    style={{
-                      background:C.surface,border:`1.5px solid ${pc3}44`,
-                      borderLeft:`3px solid ${pc3}`,borderRadius:10,
-                      padding:"8px 12px",marginBottom:6,cursor:"pointer",
-                      minWidth:180,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",
-                      display:"flex",alignItems:"center",gap:10,
-                    }}>
-                    <span style={{fontSize:18}}>{g.mood.e}</span>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:11,fontWeight:700,color:C.ink,fontFamily:F.body}}>
-                        {g.name} · {g.size}p
-                      </div>
-                      <div style={{height:3,background:pc3+"22",borderRadius:99,marginTop:4}}>
-                        <div style={{height:"100%",width:`${pct3*100}%`,
-                          background:pc3,borderRadius:99,transition:"width 0.5s"}}/>
-                      </div>
-                    </div>
-                    <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-                      {ft3?ft3.name:"—"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Bouton FAB principal */}
-            <button
-              onClick={()=>{
-                const list = document.getElementById("fab-list");
-                if(list) list.style.display = list.style.display==="none"?"flex":"none";
-                list.style.flexDirection="column";
-              }}
-              style={{
-                width:56,height:56,borderRadius:"50%",
-                background:fabColor,border:"none",cursor:"pointer",
-                boxShadow:`0 6px 20px ${fabColor}66`,
-                display:"flex",flexDirection:"column",
-                alignItems:"center",justifyContent:"center",
-                position:"relative",
-                transition:"transform 0.15s, box-shadow 0.15s",
-              }}>
-              <span style={{fontSize:20}}>👥</span>
-              {/* Badge compte */}
-              <div style={{
-                position:"absolute",top:-4,right:-4,
-                width:20,height:20,borderRadius:"50%",
-                background:urgentCount>0?"#c0392b":C.navy,
-                border:"2px solid white",
-                display:"flex",alignItems:"center",justifyContent:"center",
-              }}>
-                <span style={{fontSize:10,fontWeight:800,color:"white",fontFamily:F.body}}>
-                  {fabQueue.length}
-                </span>
-              </div>
-            </button>
+              );
+            })}
           </div>
-        );
-      })()}
+        )}
 
-      {/* Assign modal */}
+      </div>
+
+      {/* ══ 3. BARRE CUISINE — bas 64px ═══════════════════════ */}
+      <div style={{height:64,flexShrink:0,background:C.surface,
+        borderTop:`1px solid ${C.border}`,
+        display:"flex",alignItems:"center",
+        overflowX:"auto",scrollbarWidth:"none",zIndex:10}}>
+        {kitchen.cooking.length===0&&tables.filter(t=>t.status==="nettoyage").length===0?(
+          <div style={{padding:"0 18px",fontSize:11,color:C.muted,
+            fontFamily:F.body,fontStyle:"italic",whiteSpace:"nowrap"}}>
+            🍽 Salle au calme
+          </div>
+        ):(
+          <>
+            {kitchen.cooking.map(d=>{
+              const rem=Math.max(0,Math.ceil((d.startedAt+d.timerMax*1000-now)/1000));
+              const pct=d.timerMax>0?Math.min(100,((d.timerMax-rem)/d.timerMax)*100):0;
+              const fmt=s=>s>=60?Math.floor(s/60)+"m"+String(s%60).padStart(2,"0")+"s":s+"s";
+              const done=pct>=100;
+              return(
+                <div key={d.id}
+                  onClick={()=>{const t=tables.find(x=>x.id===d.tableId);if(t)setSelectedTable(t);}}
+                  style={{flexShrink:0,padding:"0 13px",
+                    borderRight:`1px solid ${C.border}`,height:"100%",
+                    display:"flex",flexDirection:"column",justifyContent:"center",
+                    gap:3,cursor:"pointer",minWidth:120,
+                    background:done?"#eaf7ef":"transparent"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:11,fontWeight:600,color:done?C.green:C.terra,
+                      fontFamily:F.body,maxWidth:80,overflow:"hidden",
+                      textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {done?"✅ ":"🔥 "}{d.name}
+                    </span>
+                    <span style={{fontSize:10,color:done?C.green:C.terra,
+                      fontWeight:700,fontFamily:F.body,marginLeft:4}}>
+                      {done?"Prêt!":fmt(rem)}
+                    </span>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:4}}>
+                    <div style={{height:3,flex:1,background:C.terra+"22",borderRadius:99,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${pct}%`,
+                        background:done?C.green:C.terra,borderRadius:99,transition:"width 0.3s"}}/>
+                    </div>
+                    {d.tableName&&<span style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0}}>
+                      {d.tableName}
+                    </span>}
+                  </div>
+                </div>
+              );
+            })}
+            {tables.filter(t=>t.status==="nettoyage").map(t=>{
+              const rem=t.cleanUntil?Math.max(0,Math.ceil((t.cleanUntil-now)/1000)):0;
+              return(
+                <div key={"cl"+t.id} style={{flexShrink:0,padding:"0 12px",
+                  borderRight:`1px solid ${C.border}`,height:"100%",
+                  display:"flex",flexDirection:"column",justifyContent:"center",
+                  gap:2,minWidth:90}}>
+                  <span style={{fontSize:11,color:C.amber,fontWeight:600,fontFamily:F.body}}>
+                    🧹 {t.name}
+                  </span>
+                  <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
+                    {rem>0?rem+"s":"Prête !"}
+                  </span>
+                </div>
+              );
+            })}
+          </>
+        )}
+      </div>
+
+            {/* Assign modal */}
       {modal&&(
         <Modal title="Placer le groupe" onClose={()=>setModal(null)}>
           <div style={{display:"flex",flexDirection:"column",gap:18}}>
@@ -1671,92 +1420,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                           ✓ Libre depuis {new Date(t.freedAt).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
                         </div>
                       )}
-                    </div>
-                  );
-                })}
-                {freeTbl(modal).length===0&&(
-                  <div style={{color:C.red,fontSize:13,gridColumn:"1/-1",fontFamily:F.body,padding:"8px 0"}}>
-                    Aucune table disponible.
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Server picker */}
-            <div>
-              <Lbl>Choisir un serveur</Lbl>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {activeSrv.map(sv=>{
-                  const sl=srvLv(sv.totalXp);
-                  const slD=SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
-                  const sel=tgtS===sv.name;
-                  return(
-                    <div key={sv.id} onClick={()=>setTgtS(sv.name)}
-                      style={{background:sel?C.greenP:C.bg,
-                        border:`2px solid ${sel?C.green:C.border}`,
-                        borderRadius:10,padding:"11px 13px",cursor:"pointer",
-                        display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <div>
-                        <div style={{fontWeight:600,color:C.ink,fontSize:13,fontFamily:F.body}}>{sv.name}</div>
-                        <div style={{display:"flex",gap:6,marginTop:4}}>
-                          <Badge color={slD.color} sm>{slD.icon} {slD.name}</Badge>
-                          <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>⭐ {sv.rating}</span>
-                        </div>
-                      </div>
-                      <div style={{width:72}}>
-                        <div style={{fontSize:10,color:C.muted,textAlign:"right",marginBottom:3,fontFamily:F.body}}>
-                          {sl.r}/{sl.n}
-                        </div>
-                        <XpBar xp={sl.r} needed={sl.n} color={slD.color} h={3}/>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Order preview */}
-            {preview.length>0&&(
-              <div style={{background:C.terraP,border:`1.5px solid ${C.terra}33`,borderRadius:12,padding:14}}>
-                <div style={{fontSize:12,fontWeight:600,color:C.terra,marginBottom:10,fontFamily:F.body}}>
-                  📋 Commande du serveur (aperçu)
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  {preview.map((o,i)=>(
-                    <div key={i} style={{display:"flex",justifyContent:"space-between",
-                      alignItems:"center",fontSize:12,fontFamily:F.body}}>
-                      <div style={{display:"flex",gap:7,alignItems:"center"}}>
-                        <Badge color={catColors[o.cat]||C.navy} sm>{o.cat}</Badge>
-                        <span style={{color:C.ink}}>{o.qty}× {o.item}</span>
-                      </div>
-                      <span style={{color:C.terra,fontWeight:600}}>{(o.price*o.qty).toFixed(2)}€</span>
-                    </div>
-                  ))}
-                  <div style={{borderTop:`1px solid ${C.terra}33`,paddingTop:8,marginTop:2,
-                    display:"flex",justifyContent:"space-between",fontWeight:700,fontFamily:F.title}}>
-                    <span style={{fontSize:12,color:C.muted}}>Total estimé</span>
-                    <span style={{color:C.terra,fontSize:16}}>
-                      {preview.reduce((s,o)=>s+o.price*o.qty,0).toFixed(2)}€
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <Btn onClick={()=>setModal(null)} v="ghost">Annuler</Btn>
-              <Btn onClick={confirm} disabled={!tgtT||!tgtS||preview.length===0} v="terra" icon="🔥">
-                Envoyer en cuisine
-              </Btn>
-            </div>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }
-
-
-/* ═══════════════════════════════════════════════════════
-   SERVERS VIEW
-═══════════════════════════════════════════════════════ */
