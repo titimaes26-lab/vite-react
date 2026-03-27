@@ -314,51 +314,6 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
           ):null;
         })()}
 
-        {/* En cuisine — liste live */}
-        <div style={{flex:1,minWidth:220,background:C.terraP,
-          border:`1.5px solid ${C.terra}22`,borderRadius:14,padding:"13px 14px",
-          boxShadow:`0 2px 8px ${C.terra}12`}}>
-          <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:kitchen.cooking.length>0?10:0}}>
-            <span style={{fontSize:14}}>🔥</span>
-            <span style={{fontSize:13,fontWeight:700,color:C.terra,fontFamily:F.title}}>
-              En cuisine ({kitchen.cooking.length})
-            </span>
-          </div>
-          {kitchen.cooking.length===0?(
-            <div style={{fontSize:11,color:C.muted,fontStyle:"italic",fontFamily:F.body}}>Aucun plat en cuisson</div>
-          ):(
-            <div style={{display:"flex",flexDirection:"column",gap:5}}>
-              {kitchen.cooking.map(d=>{
-                const remaining=Math.max(0,Math.ceil((d.startedAt+d.timerMax*1000-now)/1000));
-                const pct=d.timerMax>0?Math.min(100,((d.timerMax-remaining)/d.timerMax)*100):0;
-                const fmt=s=>s>=60?`${Math.floor(s/60)}m${String(s%60).padStart(2,"0")}s`:s+"s";
-                return(
-                  <div key={d.id} style={{display:"flex",alignItems:"center",gap:8}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{display:"flex",justifyContent:"space-between",
-                        fontSize:11,fontFamily:F.body,marginBottom:2}}>
-                        <span style={{fontWeight:600,color:C.ink,overflow:"hidden",
-                          textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:150}}>
-                          {d.name}
-                          {d.tableName&&<span style={{color:C.muted,fontWeight:400}}> · {d.tableName}</span>}
-                        </span>
-                        <span style={{color:C.terra,fontWeight:700,flexShrink:0,marginLeft:6}}>
-                          {fmt(remaining)}
-                        </span>
-                      </div>
-                      <div style={{height:4,background:C.terra+"22",borderRadius:99,overflow:"hidden"}}>
-                        <div style={{height:"100%",width:`${pct}%`,
-                          background:pct>80?C.green:C.terra,
-                          borderRadius:99,transition:"width 0.3s"}}/>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
       </div>
 
       {/* ── File d'attente intelligente ── */}
