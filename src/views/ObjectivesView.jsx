@@ -9,7 +9,7 @@ import { Btn } from "../components/ui/index.js";
 import { restoLv } from "../utils/levelUtils.js";
 
 export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,todayChallenges,challengeProgress,challengeClaimed,setChallengeClaimed,challengeLostToday,setCash,addTx,addRestoXp,addToast,restoXp,restoLvN,bp={}}){
-  const series=["Revenus","Clients","Niveau","Salle"];
+  const series=[1,2,3,4];
 
   const claimChallenge=(ch)=>{
     if(challengeClaimed[ch.id])return;
