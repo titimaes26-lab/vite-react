@@ -1007,13 +1007,26 @@ export default function App(){
   /* ── Réputation ────────────────────────────────────── */
 
 
-  /* ── Sauvegarde automatique debounced (2s) ─────────── */
+  /* ── Sauvegarde automatique : dirty flag + interval 5s ─ */
+  const isDirtyRef = useRef(false);
+
+  // Marquer dirty dès qu'une variable significative change
   useEffect(()=>{
-    // Ne pas sauvegarder avant que la partie soit entièrement chargée
     if(!isLoaded) return;
-    setSaveStatus("saving");
-    if(saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current=setTimeout(()=>{
+    isDirtyRef.current = true;
+  },[isLoaded,tables,servers,menu,stock,complaints,kitchen,
+     restoXp,cash,loan,supplierMode,pendingDeliveries,
+     completedIds,challengeProgress,challengeClaimed,
+     challengeLostToday,pendingClaim,objStats,dailyStats,reputation,
+     formulas,activeTheme]);
+
+  // Toutes les 5s : sauvegarder si dirty
+  useEffect(()=>{
+    if(!isLoaded) return;
+    const interval = setInterval(()=>{
+      if(!isDirtyRef.current) return;
+      isDirtyRef.current = false;
+      setSaveStatus("saving");
       saveGame({
         tables,servers,menu,stock,complaints,kitchen,
         restoXp,cash,transactions,loan,supplierMode,
@@ -1024,13 +1037,10 @@ export default function App(){
       });
       setSaveStatus("saved");
       setTimeout(()=>setSaveStatus("idle"),2000);
-    },2000);
-    return()=>{if(saveTimerRef.current)clearTimeout(saveTimerRef.current);};
-  },[isLoaded,tables,servers,menu,stock,complaints,kitchen,
-     restoXp,cash,loan,supplierMode,pendingDeliveries,
-     completedIds,challengeProgress,challengeClaimed,
-     challengeLostToday,pendingClaim,objStats,dailyStats,reputation,
-     formulas,activeTheme]);
+    }, 5000);
+    return()=>clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[isLoaded]);
 
   /* ── GDevelop : écoute du message d'initialisation ─── */
   useEffect(()=>{
