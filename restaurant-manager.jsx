@@ -1086,25 +1086,29 @@ export default function App(){
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ── GDevelop : sync debounced (1s) sur les états clés ── */
-  const gdSyncTimerRef = useRef(null);
+  /* ── GDevelop : sync interval 2s (ref toujours à jour) ── */
+  const gdSyncStateRef = useRef({});
   useEffect(()=>{
-    if (!isLoaded) return;
-    if (gdSyncTimerRef.current) clearTimeout(gdSyncTimerRef.current);
-    gdSyncTimerRef.current = setTimeout(()=>{
-      const payload = buildGDevelopPayload({
-        cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats,
-        reputation, transactions, loan, pendingDeliveries,
-        completedIds, pendingClaim, todayChallenges, challengeProgress,
-        challengeClaimed, challengeLostToday, activeTheme, activeEvent,
-      });
-      sendToGDevelop({ type: "SYNC", ...payload });
-    }, 1000);
-    return () => { if (gdSyncTimerRef.current) clearTimeout(gdSyncTimerRef.current); };
-  },[isLoaded, cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats,
+    gdSyncStateRef.current = {
+      cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats,
+      reputation, transactions, loan, pendingDeliveries,
+      completedIds, pendingClaim, todayChallenges, challengeProgress,
+      challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+    };
+  },[cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats,
      reputation, transactions, loan, pendingDeliveries,
      completedIds, pendingClaim, todayChallenges, challengeProgress,
      challengeClaimed, challengeLostToday, activeTheme, activeEvent]);
+
+  useEffect(()=>{
+    if (!isLoaded) return;
+    const interval = setInterval(()=>{
+      const payload = buildGDevelopPayload(gdSyncStateRef.current);
+      sendToGDevelop({ type: "SYNC", ...payload });
+    }, 2000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[isLoaded]);
 
 
   /* ── Refs pour hooks asynchrones ─────────────────── */
