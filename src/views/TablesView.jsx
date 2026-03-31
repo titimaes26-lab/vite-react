@@ -4,7 +4,7 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect } from "react";
-import { C, F, CAP_UPGRADES, SRV_LVL, GAME_EVENTS } from "../constants/gameData.js";
+import { C, F, CAP_UPGRADES, SRV_LVL, GAME_EVENTS, RESTO_LVL } from "../constants/gameData.js";
 import { MENU_THEMES, getRepTier } from "../constants/gameConstants.js";
 import { REP_DELTA } from "../constants/gameConstants.js";
 import { Badge, Btn, Sel, Modal, XpBar, Lbl, Inp } from "../components/ui/index.js";
@@ -266,8 +266,8 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,menuTheme,
 function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
   selectedTable,setSelectedTable,menuTheme,
   srvLv,SRV_LVL,calcRating,ratingColor,ratingStars,calcTip,
-  quickPlace,openAssign,checkout,activeSrv}) {
-              const n = tables.length;
+  quickPlace,openAssign,checkout,activeSrv,lockedSlots=[]}) {
+              const n = tables.length + lockedSlots.length;
 
               // ── 1. Grille adaptative ─────────────────────────
               // Colonnes optimales selon le nombre de tables
@@ -523,11 +523,30 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                       </g>
                     );
                   })}
+
+                  {/* Tables verrouillées */}
+                  {lockedSlots.map((slot, li) => {
+                    const pos = getPos(tables.length + li);
+                    const tw = getTW(2); const th = getTH(2);
+                    return (
+                      <g key={"locked"+slot.num} opacity="0.45">
+                        <rect x={pos.cx-tw/2} y={pos.cy-th/2} width={tw} height={th}
+                          rx="8" fill="#ddd4c0" stroke="#b0a090" strokeWidth="1.2"
+                          strokeDasharray="5,3"/>
+                        <text x={pos.cx} y={pos.cy-4} textAnchor="middle"
+                          fontSize="13" fontFamily="sans-serif">🔒</text>
+                        <text x={pos.cx} y={pos.cy+10} textAnchor="middle"
+                          fontSize="7" fill="#8a7d6a" fontFamily="sans-serif">
+                          {slot.unlocksAt.icon} Niv.{slot.unlocksAt.l}
+                        </text>
+                      </g>
+                    );
+                  })}
                 </svg>
               );
 }
 
-export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,activeTheme,bp={}}) {
+export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,activeTheme,restoLvN=0,bp={}}) {
 
   const menuTheme = MENU_THEMES.find(m=>m.id===activeTheme)||MENU_THEMES[0];
   const now = clockNow;
@@ -628,6 +647,16 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
   };
 
   const activeTables = tables;
+
+  const lockedSlots = (() => {
+    const slots = [];
+    let prev = tables.length;
+    for (const lv of RESTO_LVL.filter(l => l.l > restoLvN)) {
+      for (let i = prev; i < lv.tables; i++) slots.push({ num: i + 1, unlocksAt: lv });
+      prev = lv.tables;
+    }
+    return slots;
+  })();
 
   return(
     <div style={{
@@ -762,6 +791,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
               ratingStars={ratingStars} calcTip={calcTip}
               quickPlace={quickPlace} openAssign={openAssign}
               checkout={checkout} activeSrv={activeSrv}
+              lockedSlots={lockedSlots}
             />
           </div>
 
@@ -865,6 +895,27 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                 </div>
               );
             })}
+            {lockedSlots.map(slot=>(
+              <div key={"locked"+slot.num} style={{
+                background:C.bg,border:`1px dashed ${C.border}`,
+                borderRadius:12,padding:"10px 14px",opacity:0.55,
+                display:"flex",alignItems:"center",gap:10,marginBottom:6
+              }}>
+                <span style={{fontSize:22}}>🔒</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12,fontWeight:700,color:C.muted,fontFamily:F.body}}>
+                    Table {slot.num}
+                  </div>
+                  <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
+                    Disponible niveau {slot.unlocksAt.l} — {slot.unlocksAt.name}
+                  </div>
+                </div>
+                <span style={{fontSize:11,color:slot.unlocksAt.color,
+                  fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap"}}>
+                  {slot.unlocksAt.icon} Niv.{slot.unlocksAt.l}
+                </span>
+              </div>
+            ))}
         </div>
       )}
 
