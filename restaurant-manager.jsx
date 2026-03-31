@@ -113,7 +113,12 @@ const sendToGDevelop = (payload) => {
 };
 
 // Construit le payload standardisé depuis les états React
-const buildGDevelopPayload = ({ cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats }) => {
+const buildGDevelopPayload = ({
+  cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats,
+  reputation, transactions, loan, pendingDeliveries,
+  completedIds, pendingClaim, todayChallenges, challengeProgress,
+  challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+}) => {
   const rl = restoLv(restoXp);
   const cl = chefLv(kitchen?.chef?.totalXp || 0);
   return {
@@ -157,7 +162,29 @@ const buildGDevelopPayload = ({ cash, restoXp, stock, queue, tables, kitchen, ob
       tableId : d.tableId || null,
       cat     : d.cat || "",
     })),
-    savedAt: Date.now(),
+    // Nouvelles variables
+    reputation,
+    transactions   : (transactions || []).slice(0, 50), // 50 dernières
+    pret           : loan,
+    livraisons     : (pendingDeliveries || []).map(d => ({
+      id: d.id, nom: d.name, quantite: d.qty, arriveeAt: d.arrivesAt,
+    })),
+    objectifs: {
+      completedIds,
+      pendingClaim,
+      stats       : objStats,
+      defisJour   : (todayChallenges || []).map(ch => ({
+        id: ch.id, titre: ch.title, icone: ch.icon,
+        recompense: ch.reward,
+        reclame   : !!(challengeClaimed || {})[ch.id],
+      })),
+      progression : challengeProgress,
+      clientPerduAujourdhui: challengeLostToday,
+    },
+    statsJournalieres: dailyStats,
+    theme        : activeTheme,
+    evenement    : activeEvent,
+    savedAt      : Date.now(),
   };
 };
 
@@ -1025,6 +1052,14 @@ export default function App(){
         if (payload.completedIds)          setCompletedIds(payload.completedIds);
         if (payload.challengeProgress)     setChallengeProgress(payload.challengeProgress);
         if (payload.loan         != null)  setLoan(payload.loan);
+        if (payload.reputation   != null)  setReputation(payload.reputation);
+        if (payload.transactions)          setTransactions(payload.transactions);
+        if (payload.pendingDeliveries)     setPendingDeliveries(payload.pendingDeliveries);
+        if (payload.pendingClaim)          setPendingClaim(payload.pendingClaim);
+        if (payload.challengeClaimed)      setChallengeClaimed(payload.challengeClaimed);
+        if (payload.challengeLostToday != null) setChallengeLostToday(payload.challengeLostToday);
+        if (payload.activeTheme)           setActiveTheme(payload.activeTheme);
+        if (payload.activeEvent  != null)  setActiveEvent(payload.activeEvent);
         console.info("[GDevelop Bridge] Init reçu ✓", payload);
         // Confirmer la réception à GDevelop
         sendToGDevelop({ type: "INIT_ACK", ok: true });
@@ -1047,11 +1082,19 @@ export default function App(){
     if (!isLoaded) return;
     if (gdSyncTimerRef.current) clearTimeout(gdSyncTimerRef.current);
     gdSyncTimerRef.current = setTimeout(()=>{
-      const payload = buildGDevelopPayload({ cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats });
+      const payload = buildGDevelopPayload({
+        cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats,
+        reputation, transactions, loan, pendingDeliveries,
+        completedIds, pendingClaim, todayChallenges, challengeProgress,
+        challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+      });
       sendToGDevelop({ type: "SYNC", ...payload });
     }, 1000);
     return () => { if (gdSyncTimerRef.current) clearTimeout(gdSyncTimerRef.current); };
-  },[isLoaded, cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats]);
+  },[isLoaded, cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats,
+     reputation, transactions, loan, pendingDeliveries,
+     completedIds, pendingClaim, todayChallenges, challengeProgress,
+     challengeClaimed, challengeLostToday, activeTheme, activeEvent]);
 
 
   /* ── Refs pour hooks asynchrones ─────────────────── */
