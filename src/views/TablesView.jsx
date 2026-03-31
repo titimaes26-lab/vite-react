@@ -595,10 +595,10 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     const speedMult = srv.specialty?.id==="speed"?(srv.specialty.speedMult||1.0):1.0;
     const svcDur = Math.round((g.size<=2?30000:g.size<=4?60000:90000)*speedMult);
     const svcUntil = Date.now()+svcDur;
-    const orderLines = generateOrderWithSpecials(menu, dailySpecials, g, srv);
-    const kitchenTickets = buildKitchenTickets(orderLines, table, svcDur);
-    const drinkTickets = kitchenTickets.filter(d=>d.isDrink);
-    const foodTickets  = kitchenTickets.filter(d=>!d.isDrink);
+    const orderLines = generateOrderWithSpecials(g, menu);
+    const kitchenTickets = buildKitchenTickets(orderLines, table);
+    const drinkTickets = kitchenTickets.filter(d=>d.cat==="Boissons");
+    const foodTickets  = kitchenTickets.filter(d=>d.cat!=="Boissons");
     setServers(p=>p.map(s=>s.id!==srv.id?s:{...s,status:"service",serviceUntil:svcUntil}));
     setTables(p=>p.map(t=>t.id!==table.id?t:
       {...t,status:"occupée",server:srv.name,group:g,order:orderLines,svcTimer:0,svcMax:0,svcUntil,
