@@ -599,7 +599,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
       const xp = srvXpFromCheckout(r, t.group.size);
       setServers(p=>p.map(s=>s.id===srvObj.id?{...s,totalXp:s.totalXp+xp,rating:+(s.rating*0.9+r*0.1).toFixed(1)}:s));
     }
-    addRestoXp(restoXpFromCheckout(r, themedBill));
+    addRestoXp(restoXpFromCheckout(t.group.size, t.group.mood.b, t.group.isVIP||false));
     if (updateReputation) updateReputation(REP_DELTA.goodService,"bon service");
     setTables(p=>p.map(x=>x.id!==tid?x:{...x,
       status:"nettoyage",group:null,order:[],server:null,
