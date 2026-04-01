@@ -262,8 +262,8 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
     setFireId(null);
   };
 
-  const sColor={actif:C.green,pause:C.terra,repos:C.muted,service:C.amber};
-  const sBg   ={actif:C.greenP,pause:C.terraP,repos:C.bg,service:C.amberP};
+  const sColor={actif:C.green,pause:C.terra,repos:C.muted,service:C.amber,nettoyage:C.amber};
+  const sBg   ={actif:C.greenP,pause:C.terraP,repos:C.bg,service:C.amberP,nettoyage:C.amberP};
 
   return(
     <div>
@@ -292,6 +292,9 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
           const slD=SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
           const asgn=tables.filter(t=>t.server===sv.name);
           const isWorking=sv.status==="service";
+          const isNettoyage=sv.status==="nettoyage";
+          const cleaningTable=isNettoyage?tables.find(t=>t.cleanServer===sv.id):null;
+          const cleanRemSecs=isNettoyage&&sv.cleanUntil?Math.max(0,Math.ceil((sv.cleanUntil-clockNow)/1000)):0;
           const moral=sv.moral??100;
           const mc=moralColor(moral);
           const mi=moralIcon(moral);
@@ -327,7 +330,9 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                       <Badge color={sColor[sv.status]||C.muted} bg={sBg[sv.status]||C.bg} sm>
                         {isWorking
                           ?`🛎 (${Math.max(0,Math.ceil((sv.serviceUntil-clockNow)/1000))}s)`
-                          :sv.status}
+                          :isNettoyage
+                            ?`🧹 ${cleaningTable?cleaningTable.name:"..."}${cleanRemSecs>0?" · "+cleanRemSecs+"s":""}`
+                            :sv.status}
                       </Badge>
                     </div>
                   </div>
