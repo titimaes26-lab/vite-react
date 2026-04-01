@@ -193,8 +193,10 @@ const sanitizeSave = (save) => {
   const now = Date.now();
   const savedTables = (save.tables || []).map(t => {
     if (t.status === "nettoyage") {
-      if (!t.cleanUntil || now >= t.cleanUntil)
-        return { ...t, status: "libre", server: null, cleanUntil: null, cleanDur: null, freedAt: now };
+      // Si le timer est déjà démarré et expiré → libérer la table
+      if (t.cleanUntil && now >= t.cleanUntil)
+        return { ...t, status: "libre", server: null, cleanUntil: null, cleanDur: null, cleanServer: null, freedAt: now };
+      // Sinon (en attente d'un serveur ou en cours) → conserver l'état
       return t;
     }
     if (t.status === "mange") return { ...t, eatUntil: null, eatDur: null };
@@ -204,7 +206,9 @@ const sanitizeSave = (save) => {
   // Merge avec TABLES0 pour garantir que toutes les tables existent
   const tables = TABLES0.map(t0 => savedTables.find(t => t.id === t0.id) || t0);
   const servers = (save.servers || []).map(s =>
-    s.status === "service" ? { ...s, status: "actif", serviceUntil: null } : s
+    (s.status === "service" || s.status === "nettoyage")
+      ? { ...s, status: "actif", serviceUntil: null, cleanUntil: null }
+      : s
   );
   const kitchen = save.kitchen ? {
     ...save.kitchen,
@@ -1117,6 +1121,7 @@ export default function App(){
   const complaintsRef = useRef(complaints);
   const repRef        = useRef(reputation);
   const tablesRef     = useRef(tables);
+  const serversRef    = useRef(servers);
   const lastSpawnRef  = useRef(Date.now());
 
   useEffect(() => { stockRef.current      = stock;      }, [stock]);
@@ -1124,12 +1129,31 @@ export default function App(){
   useEffect(() => { complaintsRef.current = complaints; }, [complaints]);
   useEffect(() => { repRef.current        = reputation; }, [reputation]);
   useEffect(() => { tablesRef.current     = tables;     }, [tables]);
+  useEffect(() => { serversRef.current    = servers;    }, [servers]);
 
   /* ── Hooks métier (remplacent 13 useEffect inline) ── */
   const clockNow = useGameClock();
 
   useSpawner    ({ setQueue, tablesRef, lastSpawnRef, repRef, getRepTier });
   useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat });
+
+  /* ── Auto-assign serveur pour le nettoyage des tables ── */
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const curTables  = tablesRef.current;
+      const curServers = serversRef.current;
+      const waiting = curTables.filter(t => t.status === "nettoyage" && !t.cleanUntil);
+      if (waiting.length === 0) return;
+      const freeSrv = curServers.find(s => s.status === "actif" && (s.moral ?? 100) > 10);
+      if (!freeSrv) return;
+      const tbl = waiting[0];
+      const cleanDur = tbl.cleanDur || 60;
+      const cleanEnd = Date.now() + cleanDur * 1000;
+      setTables(p => p.map(t => t.id !== tbl.id ? t : { ...t, cleanUntil: cleanEnd, cleanServer: freeSrv.id }));
+      setServers(p => p.map(s => s.id !== freeSrv.id ? s : { ...s, status: "nettoyage", cleanUntil: cleanEnd }));
+    }, 500);
+    return () => clearInterval(iv);
+  }, [setTables, setServers]);
   useSalary     ({ setServers, setKitchen, setCash, setLoan, addTx, addToast });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useEvents     ({
@@ -1603,7 +1627,7 @@ export default function App(){
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
         {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} restoLvN={rl.l} bp={bp}/>}
         {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} bp={bp}/>}
-        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} bp={bp}/>}
+        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} bp={bp}/>}
         {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats} bp={bp}/>}
         {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
         {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}

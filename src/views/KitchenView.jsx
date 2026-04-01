@@ -10,7 +10,7 @@ import { Btn, XpBar, Badge } from "../components/ui/index.js";
 import { chefLv, commisLv, dishCookTimeWithUpgrades } from "../utils/levelUtils.js";
 import { consumeStock } from "../utils/orderUtils.js";
 
-export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,addToast,cash,setCash,addTx,bp={}}){
+export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,bp={}}){
   const chf=kitchen.chef;
   const cl=chefLv(chf.totalXp);
   const clD=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
@@ -138,7 +138,11 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
   };
 
   // Serve all done dishes for a table → table becomes "mange" with eating timer
+  // Requires an available server to carry the dishes
+  const freeSrvForServing = servers.find(s => s.status === "actif" && (s.moral ?? 100) > 10);
+
   const serveTable=(tableId,tableName)=>{
+    if (!freeSrvForServing) return;
     setKitchen(k=>{
       const dishes=k.done.filter(d=>d.tableId===tableId);
       const maxPrep=Math.max(...dishes.map(d=>d.prepTime||60),60);
@@ -146,8 +150,11 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
       setTables(p=>p.map(t=>t.id!==tableId?t:{...t,status:"mange",eatUntil:Date.now()+eatSec*1000,eatDur:eatSec}));
       return {...k,done:k.done.filter(d=>d.tableId!==tableId)};
     });
+    // Le serveur est occupé 20s le temps d'apporter les plats
+    if (setServers) setServers(p=>p.map(s=>s.id!==freeSrvForServing.id?s:
+      {...s,status:"service",serviceUntil:Date.now()+20000}));
     addToast({icon:"🍽",title:"Plats servis !",
-      msg:`${tableName} · bon appétit !`,color:C.green,tab:"tables"});
+      msg:`${tableName} · ${freeSrvForServing.name} apporte les plats`,color:C.green,tab:"tables"});
   };
 
   // Group done dishes by table
@@ -560,9 +567,17 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                           borderRadius:20,padding:"1px 6px",animation:"pulse 1.5s infinite"}}>
                           ✦ PRÊT
                         </span>
-                        <Btn v="primary" sm onClick={()=>serveTable(tbl.tableId,tbl.tableName)} icon="🍽">
-                          Servir
-                        </Btn>
+                        {freeSrvForServing?(
+                          <Btn v="primary" sm onClick={()=>serveTable(tbl.tableId,tbl.tableName)} icon="🍽">
+                            Servir
+                          </Btn>
+                        ):(
+                          <div style={{fontSize:9,color:C.muted,fontFamily:F.body,
+                            background:C.border,borderRadius:6,padding:"4px 8px",
+                            opacity:0.7,whiteSpace:"nowrap"}}>
+                            🚫 Pas de serveur
+                          </div>
+                        )}
                       </div>
                     ):(
                       <span style={{fontSize:10,color:C.amber,fontFamily:F.body,fontWeight:600}}>⏳</span>

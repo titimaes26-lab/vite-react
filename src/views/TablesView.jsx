@@ -604,7 +604,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     setTables(p=>p.map(x=>x.id!==tid?x:{...x,
       status:"nettoyage",group:null,order:[],server:null,
       patienceLeftRatio:null,svcUntil:null,placedAt:null,
-      cleanUntil:Date.now()+60000,cleanDur:60,freedAt:null
+      cleanUntil:null,cleanDur:60,cleanServer:null,freedAt:null
     }));
     setChallengeProgress&&setChallengeProgress(p=>({...p,revenue:p.revenue+total,servings:p.servings+1}));
     if (selectedTable?.id===tid) setSelectedTable(null);

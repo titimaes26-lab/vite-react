@@ -94,13 +94,15 @@ export const useExpiry = ({
         );
       });
 
-      /* ── 4. Fin de service → serveurs actifs ──────── */
+      /* ── 4. Fin de service / nettoyage → serveurs actifs ──────── */
       setServers(prev =>
-        prev.map(s =>
-          s.status === "service" && s.serviceUntil && Date.now() >= s.serviceUntil
-            ? { ...s, status: "actif", serviceUntil: null }
-            : s
-        )
+        prev.map(s => {
+          if (s.status === "service" && s.serviceUntil && t >= s.serviceUntil)
+            return { ...s, status: "actif", serviceUntil: null };
+          if (s.status === "nettoyage" && s.cleanUntil && t >= s.cleanUntil)
+            return { ...s, status: "actif", cleanUntil: null };
+          return s;
+        })
       );
     }, 500);
 
