@@ -1122,6 +1122,8 @@ export default function App(){
   const repRef        = useRef(reputation);
   const tablesRef     = useRef(tables);
   const serversRef    = useRef(servers);
+  const queueRef      = useRef(queue);
+  const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
 
   useEffect(() => { stockRef.current      = stock;      }, [stock]);
@@ -1130,11 +1132,13 @@ export default function App(){
   useEffect(() => { repRef.current        = reputation; }, [reputation]);
   useEffect(() => { tablesRef.current     = tables;     }, [tables]);
   useEffect(() => { serversRef.current    = servers;    }, [servers]);
+  useEffect(() => { queueRef.current      = queue;      }, [queue]);
+  useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
   /* ── Hooks métier (remplacent 13 useEffect inline) ── */
   const clockNow = useGameClock();
 
-  useSpawner    ({ setQueue, tablesRef, lastSpawnRef, repRef, getRepTier });
+  useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast });
   useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat });
 
   /* ── Auto-assign serveur pour le nettoyage des tables ── */
