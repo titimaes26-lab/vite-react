@@ -89,7 +89,7 @@ export const useExpiry = ({
 
         return prev.map(tb =>
           done.find(d => d.id === tb.id)
-            ? { ...tb, status: "libre", server: null, cleanUntil: null, cleanDur: null, freedAt: t }
+            ? { ...tb, status: "libre", server: null, cleanServer: null, cleanUntil: null, cleanDur: null, freedAt: t }
             : tb
         );
       });

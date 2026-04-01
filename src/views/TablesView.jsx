@@ -31,6 +31,7 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,menuTheme,
               const eatSecsLeft=isEating?Math.ceil((tLive.eatUntil-now)/1000):0;
               const cleanSecsLeft=isNettoyage&&tLive.cleanUntil?Math.max(0,Math.ceil((tLive.cleanUntil-now)/1000)):0;
               const cleanPct=isNettoyage&&tLive.cleanUntil?Math.min(100,Math.round(((tLive.cleanDur*1000-(tLive.cleanUntil-now))/(tLive.cleanDur*1000))*100)):0;
+              const cleanSrvDetail=isNettoyage&&tLive.cleanServer?(servers||[]).find(s=>s.id===tLive.cleanServer):null;
               const eatPct=isEating?Math.min(100,Math.round(((tLive.eatDur*1000-(tLive.eatUntil-now))/(tLive.eatDur*1000))*100)):100;
               const secsLeft=isOrdering?Math.max(0,Math.ceil((tLive.svcUntil-now)/1000)):0;
               const myQ=queue.filter(g=>g.size<=tLive.capacity&&tLive.status==="libre");
@@ -56,6 +57,13 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,menuTheme,
                             isMange?"💰 Prêt à encaisser":isOrdering?"🛎 Prise de commande":
                             tLive.status==="occupée"?"🔥 En cuisine":"✅ Libre"}
                         </div>
+                        {isNettoyage&&(
+                          <div style={{fontSize:11,color:accentColor,fontFamily:F.body,marginTop:2}}>
+                            {cleanSrvDetail
+                              ?`👔 ${cleanSrvDetail.name}${cleanSecsLeft>0?" · "+cleanSecsLeft+"s":""}`
+                              :"⏳ En attente d'un serveur"}
+                          </div>
+                        )}
                       </div>
                       <div style={{textAlign:"right"}}>
                         <div style={{fontSize:22,fontWeight:800,color:accentColor,fontFamily:F.title}}>
