@@ -114,13 +114,15 @@ const sendToGDevelop = (payload) => {
 
 // Construit le payload standardisé depuis les états React
 const buildGDevelopPayload = ({
-  cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats,
-  reputation, transactions, loan, pendingDeliveries,
+  cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
+  reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
+  formulas, dailySpecials, challengeDate,
   completedIds, pendingClaim, todayChallenges, challengeProgress,
   challengeClaimed, challengeLostToday, activeTheme, activeEvent,
 }) => {
-  const rl = restoLv(restoXp);
-  const cl = chefLv(kitchen?.chef?.totalXp || 0);
+  const rl       = restoLv(restoXp);
+  const cl       = chefLv(kitchen?.chef?.totalXp || 0);
+  const themeObj = MENU_THEMES.find(t => t.id === activeTheme) || MENU_THEMES[0];
   return {
     argent: cash,
     niveaux: {
@@ -132,29 +134,76 @@ const buildGDevelopPayload = ({
         pct       : rl.pct,
       },
       chef: {
-        niveau : cl.l,
-        nom    : CHEF_LVL[Math.min(cl.l, CHEF_LVL.length-1)]?.name || "",
-        xp     : kitchen?.chef?.totalXp || 0,
-        vitesse: CHEF_LVL[Math.min(cl.l, CHEF_LVL.length-1)]?.speed || 1,
+        niveau  : cl.l,
+        nom     : CHEF_LVL[Math.min(cl.l, CHEF_LVL.length-1)]?.name || "",
+        prenom  : kitchen?.chef?.name || "",
+        xp      : kitchen?.chef?.totalXp || 0,
+        vitesse : CHEF_LVL[Math.min(cl.l, CHEF_LVL.length-1)]?.speed || 1,
+        salaire : kitchen?.chef?.salary || 0,
       },
       serveurs: (servers || []).map(s => {
         const sl = srvLv(s.totalXp);
-        return { id: s.id, nom: s.name, niveau: sl.l, xp: s.totalXp, statut: s.status, salaire: s.salary };
+        return {
+          id           : s.id,
+          nom          : s.name,
+          niveau       : sl.l,
+          xp           : s.totalXp,
+          statut       : s.status,
+          salaire      : s.salary,
+          moral        : s.moral ?? 100,
+          note         : s.rating ?? 0,
+          specialite   : s.specialty ? { id: s.specialty.id, nom: s.specialty.name } : null,
+          serviceJusqua: s.serviceUntil || null,
+          nettoyageJusqua: s.cleanUntil || null,
+        };
+      }),
+      commis: (kitchen?.commis || []).map(c => {
+        const cLv = commisLv(c.totalXp);
+        return { id: c.id, nom: c.name, niveau: cLv.l, xp: c.totalXp, statut: c.status, salaire: c.salary };
       }),
     },
     inventaire: (stock || []).map(s => ({
       id: s.id, nom: s.name, quantite: s.qty, unite: s.unit,
       alerte: s.qty <= s.alert, prix: s.price, categorie: s.cat,
     })),
+    menu: (menu || []).map(m => ({
+      id: m.id, nom: m.name, prix: m.price, categorie: m.cat,
+      actif: m.active !== false, special: m.isSpecial || false,
+    })),
+    formules: (formulas || []).map(f => ({
+      id: f.id, nom: f.name, actif: f.active, remise: f.discount,
+    })),
+    platsSpeciaux: (dailySpecials || []).map(s => ({
+      id: s.id, nom: s.name, prix: s.price, categorie: s.cat,
+    })),
     clients: {
       enAttente      : (queue || []).length,
+      enRappel       : (waitlist || []).length,
       tablesOccupees : (tables || []).filter(t => t.status === "occupée" || t.status === "mange").length,
       tablesLibres   : (tables || []).filter(t => t.status === "libre").length,
+      tablesNettoyage: (tables || []).filter(t => t.status === "nettoyage").length,
       totalServis    : objStats?.totalServed    || 0,
       totalPerdus    : (dailyStats || []).reduce((s, d) => s + (d.lost || 0), 0),
       chiffreAffaires: objStats?.totalRevenue   || 0,
     },
-    // Timers : finishAt (timestamp absolu) pour précision cross-plateforme
+    tables: (tables || []).map(t => ({
+      id      : t.id,
+      nom     : t.name,
+      statut  : t.status,
+      capacite: t.capacity,
+      serveur : t.server || null,
+      groupe  : t.group ? { taille: t.group.size, nom: t.group.name, humeur: t.group.mood?.l, vip: t.group.isVIP || false } : null,
+      commande: (t.order || []).length,
+      nettoyageJusqua: t.cleanUntil || null,
+      serveurNettoyage: t.cleanServer || null,
+    })),
+    cuisine: {
+      platsEnCuisson : (kitchen?.cooking || []).length,
+      platsEnAttente : (kitchen?.queue   || []).length,
+      platsPretsNb   : (kitchen?.done    || []).length,
+      totalCuisines  : kitchen?.totalDishes || 0,
+      ameliorations  : kitchen?.upgrades || {},
+    },
     timers: (kitchen?.cooking || []).map(d => ({
       id      : String(d.id),
       finishAt: d.startedAt + d.timerMax * 1000,
@@ -162,13 +211,19 @@ const buildGDevelopPayload = ({
       tableId : d.tableId || null,
       cat     : d.cat || "",
     })),
-    // Nouvelles variables
+    platsPretsAServir: (kitchen?.done || []).map(d => ({
+      id: String(d.id), nom: d.name, tableId: d.tableId, tableName: d.tableName || "", cat: d.cat || "",
+    })),
     reputation,
-    transactions   : (transactions || []).slice(0, 50), // 50 dernières
+    transactions   : (transactions || []).slice(0, 50),
     pret           : loan,
     livraisons     : (pendingDeliveries || []).map(d => ({
       id: d.id, nom: d.name, quantite: d.qty, arriveeAt: d.arrivesAt,
     })),
+    plaintes: (complaints || []).slice(0, 20).map(c => ({
+      id: c.id, message: c.message, date: c.date,
+    })),
+    fournisseur: supplierMode || "premium",
     objectifs: {
       completedIds,
       pendingClaim,
@@ -178,11 +233,18 @@ const buildGDevelopPayload = ({
         recompense: ch.reward,
         reclame   : !!(challengeClaimed || {})[ch.id],
       })),
+      dateDefis   : challengeDate || "",
       progression : challengeProgress,
       clientPerduAujourdhui: challengeLostToday,
     },
     statsJournalieres: dailyStats,
-    theme        : activeTheme,
+    theme: {
+      id       : themeObj.id,
+      nom      : themeObj.name,
+      prixMult : themeObj.priceMult,
+      repBonus : themeObj.repBonus,
+      xpMult   : themeObj.xpMult,
+    },
     evenement    : activeEvent,
     savedAt      : Date.now(),
   };
@@ -1094,13 +1156,15 @@ export default function App(){
   const gdSyncStateRef = useRef({});
   useEffect(()=>{
     gdSyncStateRef.current = {
-      cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats,
-      reputation, transactions, loan, pendingDeliveries,
+      cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
+      reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
+      formulas, dailySpecials, challengeDate,
       completedIds, pendingClaim, todayChallenges, challengeProgress,
       challengeClaimed, challengeLostToday, activeTheme, activeEvent,
     };
-  },[cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats,
-     reputation, transactions, loan, pendingDeliveries,
+  },[cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
+     reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
+     formulas, dailySpecials, challengeDate,
      completedIds, pendingClaim, todayChallenges, challengeProgress,
      challengeClaimed, challengeLostToday, activeTheme, activeEvent]);
 
