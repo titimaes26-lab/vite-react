@@ -608,7 +608,10 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
       setServers(p=>p.map(s=>s.id===srvObj.id?{...s,totalXp:s.totalXp+xp,rating:+(s.rating*0.9+r*0.1).toFixed(1)}:s));
     }
     addRestoXp(restoXpFromCheckout(t.group.size, t.group.mood.b, t.group.isVIP||false));
-    if (updateReputation) updateReputation(REP_DELTA.goodService,"bon service");
+    if (updateReputation) {
+      const repKey = r>=4.5?"rating5":r>=3.5?"rating4":r>=2.5?"rating3":r>=1.5?"rating2":"rating1";
+      updateReputation(REP_DELTA[repKey], `note ${r.toFixed(1)}/5`);
+    }
     setTables(p=>p.map(x=>x.id!==tid?x:{...x,
       status:"nettoyage",group:null,order:[],server:null,
       patienceLeftRatio:null,svcUntil:null,placedAt:null,
