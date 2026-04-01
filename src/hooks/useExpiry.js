@@ -89,18 +89,20 @@ export const useExpiry = ({
 
         return prev.map(tb =>
           done.find(d => d.id === tb.id)
-            ? { ...tb, status: "libre", server: null, cleanUntil: null, cleanDur: null, freedAt: t }
+            ? { ...tb, status: "libre", server: null, cleanServer: null, cleanUntil: null, cleanDur: null, freedAt: t }
             : tb
         );
       });
 
-      /* ── 4. Fin de service → serveurs actifs ──────── */
+      /* ── 4. Fin de service / nettoyage → serveurs actifs ──────── */
       setServers(prev =>
-        prev.map(s =>
-          s.status === "service" && s.serviceUntil && Date.now() >= s.serviceUntil
-            ? { ...s, status: "actif", serviceUntil: null }
-            : s
-        )
+        prev.map(s => {
+          if (s.status === "service" && s.serviceUntil && t >= s.serviceUntil)
+            return { ...s, status: "actif", serviceUntil: null };
+          if (s.status === "nettoyage" && s.cleanUntil && t >= s.cleanUntil)
+            return { ...s, status: "actif", cleanUntil: null };
+          return s;
+        })
       );
     }, 500);
 

@@ -31,6 +31,7 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,menuTheme,
               const eatSecsLeft=isEating?Math.ceil((tLive.eatUntil-now)/1000):0;
               const cleanSecsLeft=isNettoyage&&tLive.cleanUntil?Math.max(0,Math.ceil((tLive.cleanUntil-now)/1000)):0;
               const cleanPct=isNettoyage&&tLive.cleanUntil?Math.min(100,Math.round(((tLive.cleanDur*1000-(tLive.cleanUntil-now))/(tLive.cleanDur*1000))*100)):0;
+              const cleanSrvDetail=isNettoyage&&tLive.cleanServer?(servers||[]).find(s=>s.id===tLive.cleanServer):null;
               const eatPct=isEating?Math.min(100,Math.round(((tLive.eatDur*1000-(tLive.eatUntil-now))/(tLive.eatDur*1000))*100)):100;
               const secsLeft=isOrdering?Math.max(0,Math.ceil((tLive.svcUntil-now)/1000)):0;
               const myQ=queue.filter(g=>g.size<=tLive.capacity&&tLive.status==="libre");
@@ -56,6 +57,13 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,menuTheme,
                             isMange?"💰 Prêt à encaisser":isOrdering?"🛎 Prise de commande":
                             tLive.status==="occupée"?"🔥 En cuisine":"✅ Libre"}
                         </div>
+                        {isNettoyage&&(
+                          <div style={{fontSize:11,color:accentColor,fontFamily:F.body,marginTop:2}}>
+                            {cleanSrvDetail
+                              ?`👔 ${cleanSrvDetail.name}${cleanSecsLeft>0?" · "+cleanSecsLeft+"s":""}`
+                              :"⏳ En attente d'un serveur"}
+                          </div>
+                        )}
                       </div>
                       <div style={{textAlign:"right"}}>
                         <div style={{fontSize:22,fontWeight:800,color:accentColor,fontFamily:F.title}}>
@@ -600,11 +608,14 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
       setServers(p=>p.map(s=>s.id===srvObj.id?{...s,totalXp:s.totalXp+xp,rating:+(s.rating*0.9+r*0.1).toFixed(1)}:s));
     }
     addRestoXp(restoXpFromCheckout(t.group.size, t.group.mood.b, t.group.isVIP||false));
-    if (updateReputation) updateReputation(REP_DELTA.goodService,"bon service");
+    if (updateReputation) {
+      const repKey = r>=4.5?"rating5":r>=3.5?"rating4":r>=2.5?"rating3":r>=1.5?"rating2":"rating1";
+      updateReputation(REP_DELTA[repKey], `note ${r.toFixed(1)}/5`);
+    }
     setTables(p=>p.map(x=>x.id!==tid?x:{...x,
       status:"nettoyage",group:null,order:[],server:null,
       patienceLeftRatio:null,svcUntil:null,placedAt:null,
-      cleanUntil:Date.now()+60000,cleanDur:60,freedAt:null
+      cleanUntil:null,cleanDur:60,cleanServer:null,freedAt:null
     }));
     setChallengeProgress&&setChallengeProgress(p=>({...p,revenue:p.revenue+total,servings:p.servings+1}));
     if (selectedTable?.id===tid) setSelectedTable(null);
@@ -889,6 +900,16 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                   {t.group&&<div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:5}}>
                     {t.group.mood.e} {t.group.name} · {t.group.size}p{t.server?" · 👔 "+t.server:""}
                   </div>}
+                  {isNm&&(()=>{
+                    const cleanSrv=t.cleanServer?servers.find(s=>s.id===t.cleanServer):null;
+                    const rem=t.cleanUntil?Math.max(0,Math.ceil((t.cleanUntil-now)/1000)):null;
+                    return(
+                      <div style={{fontSize:10,color:C.amber,fontFamily:F.body,marginBottom:5}}>
+                        {cleanSrv?`👔 ${cleanSrv.name}`:"⏳ En attente d'un serveur"}
+                        {rem!==null&&` · ${rem}s`}
+                      </div>
+                    );
+                  })()}
                   {isMm&&!isEm&&<Btn full v="primary" sm onClick={()=>checkout(t.id)} icon="💰">Encaisser {bl}€</Btn>}
                   {isLm&&myQm.length>0&&aSm.length>0&&<Btn full v="terra" sm onClick={()=>quickPlace(myQm[0])} icon="👥">Placer</Btn>}
                   {isLm&&myQm.length>0&&aSm.length===0&&<Btn full v="secondary" sm onClick={()=>openAssign(myQm[0])} icon="👥">Placer</Btn>}
@@ -970,17 +991,21 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
             })}
             {tables.filter(t=>t.status==="nettoyage").map(t=>{
               const rem=t.cleanUntil?Math.max(0,Math.ceil((t.cleanUntil-now)/1000)):0;
+              const cleanSrv=t.cleanServer?servers.find(s=>s.id===t.cleanServer):null;
               return(
                 <div key={"cl"+t.id} style={{flexShrink:0,padding:"0 12px",
                   borderRight:`1px solid ${C.border}`,height:"100%",
                   display:"flex",flexDirection:"column",justifyContent:"center",
-                  gap:2,minWidth:90}}>
+                  gap:2,minWidth:110}}>
                   <span style={{fontSize:11,color:C.amber,fontWeight:600,fontFamily:F.body}}>
                     🧹 {t.name}
                   </span>
                   <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-                    {rem>0?rem+"s":"Prête !"}
+                    {cleanSrv?`👔 ${cleanSrv.name}`:"⏳ Attente serveur"}
                   </span>
+                  {cleanSrv&&<span style={{fontSize:9,color:C.amber,fontFamily:F.body}}>
+                    {rem>0?rem+"s":"Prête !"}
+                  </span>}
                 </div>
               );
             })}
