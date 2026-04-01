@@ -889,6 +889,16 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                   {t.group&&<div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:5}}>
                     {t.group.mood.e} {t.group.name} · {t.group.size}p{t.server?" · 👔 "+t.server:""}
                   </div>}
+                  {isNm&&(()=>{
+                    const cleanSrv=t.cleanServer?servers.find(s=>s.id===t.cleanServer):null;
+                    const rem=t.cleanUntil?Math.max(0,Math.ceil((t.cleanUntil-now)/1000)):null;
+                    return(
+                      <div style={{fontSize:10,color:C.amber,fontFamily:F.body,marginBottom:5}}>
+                        {cleanSrv?`👔 ${cleanSrv.name}`:"⏳ En attente d'un serveur"}
+                        {rem!==null&&` · ${rem}s`}
+                      </div>
+                    );
+                  })()}
                   {isMm&&!isEm&&<Btn full v="primary" sm onClick={()=>checkout(t.id)} icon="💰">Encaisser {bl}€</Btn>}
                   {isLm&&myQm.length>0&&aSm.length>0&&<Btn full v="terra" sm onClick={()=>quickPlace(myQm[0])} icon="👥">Placer</Btn>}
                   {isLm&&myQm.length>0&&aSm.length===0&&<Btn full v="secondary" sm onClick={()=>openAssign(myQm[0])} icon="👥">Placer</Btn>}
@@ -970,17 +980,21 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
             })}
             {tables.filter(t=>t.status==="nettoyage").map(t=>{
               const rem=t.cleanUntil?Math.max(0,Math.ceil((t.cleanUntil-now)/1000)):0;
+              const cleanSrv=t.cleanServer?servers.find(s=>s.id===t.cleanServer):null;
               return(
                 <div key={"cl"+t.id} style={{flexShrink:0,padding:"0 12px",
                   borderRight:`1px solid ${C.border}`,height:"100%",
                   display:"flex",flexDirection:"column",justifyContent:"center",
-                  gap:2,minWidth:90}}>
+                  gap:2,minWidth:110}}>
                   <span style={{fontSize:11,color:C.amber,fontWeight:600,fontFamily:F.body}}>
                     🧹 {t.name}
                   </span>
                   <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-                    {rem>0?rem+"s":"Prête !"}
+                    {cleanSrv?`👔 ${cleanSrv.name}`:"⏳ Attente serveur"}
                   </span>
+                  {cleanSrv&&<span style={{fontSize:9,color:C.amber,fontFamily:F.body}}>
+                    {rem>0?rem+"s":"Prête !"}
+                  </span>}
                 </div>
               );
             })}
