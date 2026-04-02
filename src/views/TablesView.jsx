@@ -617,7 +617,14 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
       patienceLeftRatio:null,svcUntil:null,placedAt:null,
       cleanUntil:null,cleanDur:60,cleanServer:null,freedAt:null
     }));
-    setChallengeProgress&&setChallengeProgress(p=>({...p,revenue:p.revenue+total,servings:p.servings+1}));
+    setChallengeProgress&&setChallengeProgress(p=>({
+      ...p,
+      served: (p.served||0)+1,
+      revenue: p.revenue+total,
+      tips: +((p.tips||0)+tip).toFixed(2),
+      highRating: r>=4?(p.highRating||0)+1:(p.highRating||0),
+      vip: t.group?.isVIP?Math.max(p.vip||0,1):p.vip||0,
+    }));
     if (selectedTable?.id===tid) setSelectedTable(null);
   };
 

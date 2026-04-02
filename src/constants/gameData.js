@@ -393,9 +393,10 @@ export const OBJECTIVES_DEF = [
   { id: "three_upgrades",series: 3, title: "Salle de prestige",  desc: "Agrandissez 3 tables",                     icon: "✨", reward: { cash: 1200, xp: 300 }, condition: (s) => s.tablesUpgraded >= 3  },
   { id: "brasserie",     series: 3, title: "Brasserie",          desc: "Atteignez le niveau Brasserie",            icon: "🍽", reward: { cash: 1500, xp: 400 }, condition: (s) => s.restoLevel   >= 2    },
   // Série 4 — Légende
-  { id: "hundred_tables",series: 4, title: "Centenaire",         desc: "Servez 100 tables",                        icon: "🏆", reward: { cash: 3000, xp: 800 }, condition: (s) => s.totalServed  >= 100  },
-  { id: "fifty_k",       series: 4, title: "Empire",             desc: "Atteignez 50 000 € de chiffre d'affaires", icon: "👑", reward: { cash: 5000, xp: 1000}, condition: (s) => s.totalRevenue >= 50000},
-  { id: "palace",        series: 4, title: "Le Palace",          desc: "Atteignez le niveau Palace",               icon: "👑", reward: { cash: 5000, xp: 1200}, condition: (s) => s.restoLevel   >= 5    },
+  { id: "hundred_tables",series: 4, title: "Centenaire",         desc: "Servez 100 tables",                          icon: "🏆", reward: { cash: 3000, xp: 800  }, condition: (s) => s.totalServed  >= 100  },
+  { id: "fifty_k",       series: 4, title: "Empire",             desc: "Atteignez 50 000 € de chiffre d'affaires",   icon: "💎", reward: { cash: 5000, xp: 1000 }, condition: (s) => s.totalRevenue >= 50000},
+  { id: "flawless_5",    series: 4, title: "Service légendaire", desc: "Terminez 5 journées sans perdre un client",  icon: "✨", reward: { cash: 4000, xp: 900  }, condition: (s) => (s.perfectDays||0) >= 5},
+  { id: "palace",        series: 4, title: "Le Palace",          desc: "Atteignez le niveau Palace",                 icon: "👑", reward: { cash: 5000, xp: 1200 }, condition: (s) => s.restoLevel   >= 5    },
 ];
 
 /* ─── Étiquettes & couleurs des séries d'objectifs ───── */
