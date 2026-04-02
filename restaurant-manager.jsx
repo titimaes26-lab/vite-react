@@ -1674,7 +1674,7 @@ export default function App(){
       }}>
         {TABS.map(t=>{
           const readyChallenges=(todayChallenges||[]).filter(ch=>{
-            const val=ch.key==="noLoss"?(challengeLostToday?0:1):
+            const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):
               ch.key==="fullHouse"||ch.key==="vip"?(challengeProgress[ch.key]||0):
               (challengeProgress[ch.key]||0);
             return val>=ch.target&&!(challengeClaimed||{})[ch.id];
@@ -1743,7 +1743,7 @@ export default function App(){
       }}>
         {TABS.map(t=>{
           const readyChallenges=(todayChallenges||[]).filter(ch=>{
-            const val=ch.key==="noLoss"?(challengeLostToday?0:1):(challengeProgress[ch.key]||0);
+            const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):(challengeProgress[ch.key]||0);
             return val>=ch.target&&!(challengeClaimed||{})[ch.id];
           }).length;
           const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:0;
