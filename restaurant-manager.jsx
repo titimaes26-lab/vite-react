@@ -953,6 +953,8 @@ export default function App(){
       const today=dailyStats[dailyStats.length-1];
       const isRecord=today&&today.revenue>prevRevenueRef.current&&today.revenue>0;
       setSummaryIsRecord(isRecord);
+      // Journée parfaite si aucun client perdu
+      setObjStats(s=>s._hadLoss?s:{...s,perfectDays:(s.perfectDays||0)+1});
       setShowSummary(true);
     },600000); // 10 minutes
     return()=>clearTimeout(t);
@@ -1351,6 +1353,7 @@ export default function App(){
         @keyframes popIn        { 0%{transform:scale(0.82);opacity:0} 65%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
         @keyframes breathe      { 0%,100%{box-shadow:0 0 0 0 rgba(30,92,56,0)} 50%{box-shadow:0 0 0 7px rgba(30,92,56,0.16)} }
         @keyframes breatheAmber { 0%,100%{box-shadow:0 0 0 0 rgba(160,108,8,0)} 50%{box-shadow:0 0 0 6px rgba(160,108,8,0.20)} }
+        @keyframes bankPulse    { 0%,100%{box-shadow:0 2px 10px rgba(160,108,8,0.4);transform:scale(1)} 50%{box-shadow:0 2px 18px rgba(160,108,8,0.7);transform:scale(1.04)} }
         @keyframes toastBar     { from{width:100%} to{width:0%} }
         @keyframes ledPulse     { 0%,100%{opacity:1} 50%{opacity:0.35} }
         @keyframes shimmer      { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
@@ -1615,12 +1618,14 @@ export default function App(){
               </div>
             )}
             <button onClick={()=>setShowBank(true)} title="Banque" style={{
-              padding:"4px 10px",fontSize:11,fontWeight:600,
-              background:loan?C.amberP:C.navyP,
-              border:`1.5px solid ${loan?C.amber:C.navy}44`,
-              borderRadius:7,color:loan?C.amber:C.navy,cursor:"pointer",
-              fontFamily:F.body,display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap"}}>
-              🏦
+              padding:"6px 12px",fontSize:12,fontWeight:700,
+              background:loan?C.amber:C.navy,
+              border:"none",
+              borderRadius:8,color:"#fff",cursor:"pointer",
+              fontFamily:F.body,display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",
+              boxShadow:loan?`0 2px 10px ${C.amber}66`:`0 2px 10px ${C.navy}44`,
+              animation:loan?"bankPulse 2s ease-in-out infinite":"none"}}>
+              🏦 Banque
             </button>
           </div>
 
