@@ -20,6 +20,10 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
   const [sortMode,setSortMode]=useState("urgence"); // "urgence"|"alpha"|"cat"
 
   const alerts=stock.filter(s=>s.qty<=s.alert);
+  const staleItems=stock.filter(s=>(s.freshness??100)<20&&s.qty>0);
+
+  const freshnessColor=(f)=>f<=0?"#7f0000":f<20?C.red:f<60?C.amber:C.green;
+  const freshnessLabel=(f)=>f<=0?"Périmé":f<20?"Critique":f<60?"À utiliser":"Frais";
   const sup=SUPPLIERS[supplierMode||"premium"];
 
   /* ── Calcul prédictif : portions restantes par ingrédient ── */
@@ -54,7 +58,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
       const qty=+(target-it.qty).toFixed(3);
       if(qty>0){
         deductCost(it,qty);
-        setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(target,+(s.qty+qty).toFixed(3))}:s));
+        setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(target,+(s.qty+qty).toFixed(3)),freshness:100}:s));
       }
     });
   };
@@ -88,7 +92,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
     const item=stock.find(s=>s.id===id);
     let doAdd=true;
     if(v>0&&item){const instant=deductCost(item,v);if(!instant)doAdd=false;}
-    if(doAdd)setStock(p=>p.map(s=>s.id===id?{...s,qty:Math.max(0,+(s.qty+v).toFixed(3))}:s));
+    if(doAdd)setStock(p=>p.map(s=>s.id===id?{...s,qty:Math.max(0,+(s.qty+v).toFixed(3)),freshness:v>0?100:(s.freshness??100)}:s));
     setAdjId(null);setAdjV("");
   };
   const quickAmounts=unit=>{
@@ -100,7 +104,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
   const restockAll=()=>{
     stock.filter(s=>s.qty<=s.alert).forEach(s=>{
       const added=+(s.alert*4-s.qty).toFixed(3);
-      if(added>0){const inst=deductCost(s,added);if(inst)setStock(p=>p.map(x=>x.id===s.id?{...x,qty:+(s.alert*4).toFixed(2)}:x));}
+      if(added>0){const inst=deductCost(s,added);if(inst)setStock(p=>p.map(x=>x.id===s.id?{...x,qty:+(s.alert*4).toFixed(2),freshness:100}:x));}
     });
   };
 
@@ -131,10 +135,10 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
       {/* ── KPI Header ── */}
       <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(140px,1fr))",gap:bp.isMobile?8:10,marginBottom:14}}>
         {[
-          {label:"Alertes stock",  val:alerts.length,              icon:"⚠️",c:alerts.length>0?C.red:C.green,    bg:alerts.length>0?C.redP:C.greenP},
+          {label:"Alertes stock",   val:alerts.length,               icon:"⚠️",c:alerts.length>0?C.red:C.green,       bg:alerts.length>0?C.redP:C.greenP},
           {label:"Valeur inventaire",val:inventoryValue.toFixed(0)+"€",icon:"💶",c:C.amber,bg:C.amberP},
-          {label:"Ruptures prévues",val:criticalIngredients.length, icon:"🔮",c:criticalIngredients.length>0?C.terra:C.green, bg:criticalIngredients.length>0?C.terraP:C.greenP},
-          {label:"Articles en stock",val:stock.length,              icon:"📦",c:C.navy, bg:C.navyP},
+          {label:"Ruptures prévues",val:criticalIngredients.length,  icon:"🔮",c:criticalIngredients.length>0?C.terra:C.green,bg:criticalIngredients.length>0?C.terraP:C.greenP},
+          {label:"Fraîcheur critique",val:staleItems.length,          icon:"🕐",c:staleItems.length>0?C.red:C.green,     bg:staleItems.length>0?C.redP:C.greenP},
         ].map(s=>(
           <div key={s.label} style={{background:s.bg,border:`1.5px solid ${s.c}22`,borderRadius:12,padding:"12px 14px",textAlign:"center"}}>
             <div style={{fontSize:18,marginBottom:3}}>{s.icon}</div>
@@ -359,7 +363,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                         <button key={n} onClick={()=>{
                           if(wouldExceed)return;
                           deductCost(it,n);
-                          setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap2,+(s.qty+n).toFixed(3))}:s));
+                          setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap2,+(s.qty+n).toFixed(3)),freshness:100}:s));
                         }} disabled={wouldExceed} style={{
                           padding:"2px 6px",fontSize:9,fontWeight:700,borderRadius:4,
                           background:wouldExceed?C.bg:C.greenP,color:wouldExceed?C.muted:C.green,
@@ -550,6 +554,30 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                         <span style={{color:C.red}}>⚑ {it.alert}</span>
                         <span>{cap} {it.unit}</span>
                       </div>
+
+                      {/* Fraîcheur */}
+                      {(()=>{
+                        const f=it.freshness??100;
+                        const fc=freshnessColor(f);
+                        const fl=freshnessLabel(f);
+                        return(
+                          <div style={{marginBottom:7}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                              <span style={{fontSize:9,color:C.muted,fontFamily:F.body}}>Fraîcheur</span>
+                              <span style={{fontSize:9,fontWeight:700,color:fc,fontFamily:F.body,
+                                background:fc+"18",borderRadius:99,padding:"1px 6px",
+                                border:`1px solid ${fc}33`}}>
+                                {f<=0?"⛔ Périmé":`${fl} · ${Math.round(f)}%`}
+                              </span>
+                            </div>
+                            <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:`${Math.max(0,f)}%`,
+                                background:fc,borderRadius:99,transition:"width 1s"}}/>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginBottom:8}}>
                         💶 {(it.price||0).toFixed(2)} € / {it.unit}
                       </div>
@@ -570,7 +598,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                               <button key={n} onClick={()=>{
                                 if(wouldExceed)return;
                                 deductCost(it,n);
-                                setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap,+(s.qty+n).toFixed(3))}:s));
+                                setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap,+(s.qty+n).toFixed(3)),freshness:100}:s));
                               }} disabled={wouldExceed} style={{
                                 flex:1,padding:"4px 0",fontSize:10,fontWeight:700,
                                 background:wouldExceed?C.bg:C.greenP,border:`1px solid ${wouldExceed?C.border:C.green}33`,

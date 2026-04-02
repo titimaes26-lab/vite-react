@@ -31,7 +31,7 @@ export const useDeliveries = ({ setPendingDeliveries, setStock, addToast }) => {
             s.map(item => {
               const match = d.items.find(x => x.stockId === item.id);
               return match
-                ? { ...item, qty: +(item.qty + match.qty).toFixed(3) }
+                ? { ...item, qty: +(item.qty + match.qty).toFixed(3), freshness: 100 }
                 : item;
             })
           );

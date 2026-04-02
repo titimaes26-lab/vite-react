@@ -48,6 +48,7 @@ import { useSalary }      from "./src/hooks/useSalary.js";
 import { useDeliveries }  from "./src/hooks/useDeliveries.js";
 import { useEvents }      from "./src/hooks/useEvents.js";
 import { useServerMoral } from "./src/hooks/useServerMoral.js";
+import { useFreshness }   from "./src/hooks/useFreshness.js";
 import { useChallenges }  from "./src/hooks/useChallenges.js";
 import { useObjectives }  from "./src/hooks/useObjectives.js";
 
@@ -302,7 +303,10 @@ const sanitizeSave = (save) => {
     cooking: [],
     done: save.kitchen.done || [],
   } : null;
-  return { ...save, tables, servers, kitchen, queue: [] };
+  const stock = (save.stock || STOCK0).map(item => ({
+    ...item, freshness: item.freshness ?? 100,
+  }));
+  return { ...save, tables, servers, kitchen, stock, queue: [] };
 };
 
 /* ─── Palette ─────────────────────────────────────────── */
@@ -1211,6 +1215,7 @@ export default function App(){
   const tablesRef     = useRef(tables);
   const serversRef    = useRef(servers);
   const queueRef      = useRef(queue);
+  const kitchenRef    = useRef(kitchen);
   const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
 
@@ -1221,6 +1226,7 @@ export default function App(){
   useEffect(() => { tablesRef.current     = tables;     }, [tables]);
   useEffect(() => { serversRef.current    = servers;    }, [servers]);
   useEffect(() => { queueRef.current      = queue;      }, [queue]);
+  useEffect(() => { kitchenRef.current    = kitchen;    }, [kitchen]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
   /* ── Hooks métier (remplacent 13 useEffect inline) ── */
@@ -1248,6 +1254,7 @@ export default function App(){
   }, [setTables, setServers]);
   useSalary     ({ setServers, setKitchen, setCash, setLoan, addTx, addToast });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
+  useFreshness  ({ stockRef, kitchenRef, setStock, setComplaints, addToast });
   useEvents     ({
     stockRef, cashRef, complaintsRef, tablesRef, serversRef,
     setStock, setComplaints, setQueue, setCash,
@@ -1722,7 +1729,7 @@ export default function App(){
       {/* Content */}
       <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
-        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} restoLvN={rl.l} bp={bp}/>}
+        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} restoLvN={rl.l} stock={stock} bp={bp}/>}
         {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} bp={bp}/>}
         {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} bp={bp}/>}
         {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats} bp={bp}/>}
