@@ -1657,7 +1657,8 @@ export default function App(){
               animation:saveStatus==="saving"?"pulse 0.8s ease-in-out infinite":undefined}}>
               {saveStatus==="saved"?"✅":saveStatus==="saving"?"⏳":"💾"}
             </span>
-            <span style={{fontSize:11,fontWeight:700,color:"#fff",whiteSpace:"nowrap"}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#fff",whiteSpace:"nowrap",
+              display:"inline-block",minWidth:"72px",textAlign:"center"}}>
               {saveStatus==="saved"?"Sauvé !":saveStatus==="saving"?"…":"Sauvegarder"}
             </span>
           </button>
