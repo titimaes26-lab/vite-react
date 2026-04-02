@@ -246,6 +246,28 @@ const buildGDevelopPayload = ({
       xpMult   : themeObj.xpMult,
     },
     evenement    : activeEvent,
+    // Données brutes prêtes à renvoyer via INIT pour restaurer l'état React
+    saveData: {
+      argent             : cash,
+      restoXp,
+      stock,
+      servers,
+      tables,
+      kitchen,
+      objStats,
+      dailyStats,
+      completedIds,
+      challengeProgress,
+      challengeClaimed,
+      challengeLostToday,
+      loan,
+      reputation,
+      transactions,
+      pendingDeliveries,
+      pendingClaim,
+      activeTheme,
+      activeEvent,
+    },
     savedAt      : Date.now(),
   };
 };
