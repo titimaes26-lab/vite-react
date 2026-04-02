@@ -22,7 +22,7 @@ export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,today
   };
 
   const getChallengeValue=(ch)=>{
-    if(ch.key==="noLoss")return challengeLostToday?0:1;
+    if(ch.key==="noLoss")return !challengeLostToday&&(challengeProgress.served||0)>=1?1:0;
     return challengeProgress[ch.key]||0;
   };
 

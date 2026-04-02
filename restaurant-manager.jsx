@@ -1657,7 +1657,8 @@ export default function App(){
               animation:saveStatus==="saving"?"pulse 0.8s ease-in-out infinite":undefined}}>
               {saveStatus==="saved"?"✅":saveStatus==="saving"?"⏳":"💾"}
             </span>
-            <span style={{fontSize:11,fontWeight:700,color:"#fff",whiteSpace:"nowrap"}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#fff",whiteSpace:"nowrap",
+              display:"inline-block",minWidth:"72px",textAlign:"center"}}>
               {saveStatus==="saved"?"Sauvé !":saveStatus==="saving"?"…":"Sauvegarder"}
             </span>
           </button>
@@ -1673,7 +1674,7 @@ export default function App(){
       }}>
         {TABS.map(t=>{
           const readyChallenges=(todayChallenges||[]).filter(ch=>{
-            const val=ch.key==="noLoss"?(challengeLostToday?0:1):
+            const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):
               ch.key==="fullHouse"||ch.key==="vip"?(challengeProgress[ch.key]||0):
               (challengeProgress[ch.key]||0);
             return val>=ch.target&&!(challengeClaimed||{})[ch.id];
@@ -1742,7 +1743,7 @@ export default function App(){
       }}>
         {TABS.map(t=>{
           const readyChallenges=(todayChallenges||[]).filter(ch=>{
-            const val=ch.key==="noLoss"?(challengeLostToday?0:1):(challengeProgress[ch.key]||0);
+            const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):(challengeProgress[ch.key]||0);
             return val>=ch.target&&!(challengeClaimed||{})[ch.id];
           }).length;
           const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:0;
