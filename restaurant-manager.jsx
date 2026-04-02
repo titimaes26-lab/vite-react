@@ -1249,8 +1249,9 @@ export default function App(){
   useSalary     ({ setServers, setKitchen, setCash, setLoan, addTx, addToast });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useEvents     ({
-    stockRef, cashRef, complaintsRef, tablesRef,
+    stockRef, cashRef, complaintsRef, tablesRef, serversRef,
     setStock, setComplaints, setQueue, setCash,
+    setTables, setServers, setKitchen,
     setActiveEvent, addToast, addTx, updateReputation,
   });
   useServerMoral({ setServers, addToast });

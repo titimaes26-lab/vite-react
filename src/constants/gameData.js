@@ -475,6 +475,111 @@ export const GAME_EVENTS = [
       addToast({ icon: "🎩", title: "Client VIP !", msg: "Un critique Michelin attend — servez-le vite !", color: "#6b3fa0", tab: "tables" });
     },
   },
+  {
+    id: "anniversaire", icon: "🎉", title: "Anniversaire surprise !",
+    desc: "Un groupe fête un anniversaire — bonne humeur générale dans toute la salle.",
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables) => {
+      // Étendre la patience de tous les groupes en attente de +30%
+      setQueue(q => q.map(g => ({
+        ...g,
+        expiresAt: g.expiresAt + Math.round(g.patMax * 1000 * 0.3),
+      })));
+      // Étendre le temps de repas des tables en train de manger
+      setTables(t => t.map(tbl => {
+        if (tbl.status === "mange" && tbl.eatUntil)
+          return { ...tbl, eatUntil: tbl.eatUntil + 30000 };
+        return tbl;
+      }));
+      const bonus = 60;
+      setCash(c => +(c + bonus).toFixed(2));
+      addTx("revenu", "Ambiance anniversaire — bonus ambiance", bonus);
+      addToast({ icon: "🎉", title: "Anniversaire surprise !", msg: "Patience +30% pour tous · +60€ bonus ambiance", color: "#6b3fa0", tab: "tables" });
+    },
+  },
+  {
+    id: "buzz", icon: "📱", title: "Buzz sur les réseaux !",
+    desc: "Une story virale attire du monde. File d'attente et réputation en hausse.",
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation) => {
+      const maxCap = Math.max(...(tables.filter(t => t.status === "libre").map(t => t.capacity)), 2);
+      const groups = Array.from({ length: 2 }, () => {
+        const mood = rMood();
+        return { id: Date.now() + Math.random(), name: rName(), size: Math.min(rSize(), maxCap), mood, expiresAt: Date.now() + mood.p * 1000, patMax: mood.p };
+      });
+      const vip = {
+        id: Date.now() + Math.random(), name: rName(), size: 2,
+        mood: { e: "🎩", l: "VIP", p: 50, b: 2.0 }, isVIP: true,
+        expiresAt: Date.now() + 50000, patMax: 50,
+      };
+      setQueue(q => [...q, ...groups, vip]);
+      if (updateReputation) updateReputation(5, "buzz réseaux sociaux");
+      addToast({ icon: "📱", title: "Buzz sur les réseaux !", msg: "3 groupes en file · Réputation +5", color: "#6b3fa0", tab: "tables" });
+    },
+  },
+  {
+    id: "blackout", icon: "🌑", title: "Coupure électrique !",
+    desc: "Panne partielle — la cuisine tourne au ralenti pendant 3 minutes.",
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen) => {
+      const now = Date.now();
+      // Allonger le temps restant de cuisson de 50%
+      setKitchen(k => ({
+        ...k,
+        cooking: k.cooking.map(d => {
+          const finishAt = d.startedAt + d.timerMax * 1000;
+          const remaining = Math.max(0, finishAt - now);
+          // Nouveau startedAt pour que finishAt = now + remaining * 1.5
+          const newStartedAt = now + remaining * 1.5 - d.timerMax * 1000;
+          return { ...d, startedAt: newStartedAt };
+        }),
+      }));
+      addToast({ icon: "🌑", title: "Coupure électrique !", msg: "Cuisson ralentie +50% · Retour normal dans 3 min", color: "#1c3352", tab: "cuisine" });
+      setTimeout(() => {
+        addToast({ icon: "💡", title: "Électricité rétablie !", msg: "La cuisine reprend son rythme normal", color: "#2a5c3f", tab: "cuisine" });
+      }, 180_000);
+    },
+  },
+  {
+    id: "livraison_cadeau", icon: "🚚", title: "Livraison cadeau fournisseur !",
+    desc: "Votre fournisseur offre un réapprovisionnement gratuit sur vos stocks les plus bas.",
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock) => {
+      // Trouver les 5 articles les plus bas (ratio qty/alert)
+      const sorted = [...stock]
+        .filter(s => s.alert > 0)
+        .sort((a, b) => (a.qty / a.alert) - (b.qty / b.alert))
+        .slice(0, 5);
+      const ids = new Set(sorted.map(s => s.id));
+      setStock(prev => prev.map(s => {
+        if (!ids.has(s.id)) return s;
+        const restock = +(s.alert * 5).toFixed(3);
+        return { ...s, qty: +(s.qty + restock).toFixed(3) };
+      }));
+      addToast({ icon: "🚚", title: "Livraison cadeau !", msg: `${sorted.map(s => s.name).join(", ")} réapprovisionnés gratuitement`, color: "#2a5c3f", tab: "stock" });
+    },
+  },
+  {
+    id: "serveur_malade", icon: "🤧", title: "Serveur malade !",
+    desc: "Un serveur se sent mal et doit s'arrêter 4 minutes.",
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef) => {
+      const actifs = (serversRef || []).filter(s => s.status === "actif");
+      if (actifs.length === 0) return;
+      const victim = actifs[Math.floor(Math.random() * actifs.length)];
+      const pauseUntil = Date.now() + 240_000;
+      setServers(prev => prev.map(s =>
+        s.id !== victim.id ? s : { ...s, status: "pause", moral: 10, pauseUntil }
+      ));
+      addToast({ icon: "🤧", title: "Serveur malade !", msg: `${victim.name} est indisponible pendant 4 minutes`, color: "#c4622d", tab: "servers" });
+      setTimeout(() => {
+        setServers(prev => prev.map(s =>
+          s.id !== victim.id ? s : { ...s, status: "actif", pauseUntil: null }
+        ));
+        addToast({ icon: "💪", title: `${victim.name} de retour !`, msg: "Le serveur a repris son service", color: "#2a5c3f", tab: "servers" });
+      }, 240_000);
+    },
+  },
 ];
 
 /* ─── Onglets de navigation ──────────────────────────── */
