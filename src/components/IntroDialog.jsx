@@ -73,7 +73,7 @@ const SPEAKERS = {
     // Bulle Élodie : haut-droit, queue en bas-gauche
     bubble: {
       left:   "45%",   // départ horizontal (% image)
-      top:    "1%",    // départ vertical   (% image)
+      top:    "50%",    // départ vertical   (% image)
       width:  "52%",   // largeur zone texte
       height: "44%",   // hauteur zone texte
     },
@@ -87,7 +87,7 @@ const SPEAKERS = {
     // Bulle Gustave : haut-droit, queue en bas-gauche
     bubble: {
       left:   "43%",
-      top:    "1%",
+      top:    "30%",
       width:  "54%",
       height: "44%",
     },
