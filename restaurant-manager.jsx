@@ -55,7 +55,7 @@ import { useObjectives }  from "./src/hooks/useObjectives.js";
 // ── Composants UI ──────────────────────────────────────
 import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/ui/index.js";
 import { Toasts } from "./src/components/system/Toasts.jsx";
-import { IntroDialog, TablesDialog } from "./src/components/IntroDialog.jsx";
+import { IntroDialog, TablesDialog, ServersDialog } from "./src/components/IntroDialog.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./src/views/TablesView.jsx";
@@ -921,6 +921,23 @@ export default function App(){
   const handleTablesTutorialDone = () => {
     try { localStorage.setItem("tables_tutorial_seen", "1"); } catch(e) {}
     setShowTablesTutorial(false);
+  };
+
+  /* ── Tutoriel Serveurs (déclenché à la première visite de l'onglet) ── */
+  const [showServersTutorial, setShowServersTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "servers" && isLoaded){
+      try {
+        if(!localStorage.getItem("servers_tutorial_seen")){
+          setShowServersTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleServersTutorialDone = () => {
+    try { localStorage.setItem("servers_tutorial_seen", "1"); } catch(e) {}
+    setShowServersTutorial(false);
   };
 
   /* ── États principaux — initialisés avec les valeurs par défaut ── */
@@ -1987,8 +2004,9 @@ export default function App(){
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
 
       {/* Dialogues tutoriels — affichés une seule fois chacun */}
-      {showIntro          && isLoaded && <IntroDialog   onDone={handleIntroDone}/>}
-      {showTablesTutorial && isLoaded && <TablesDialog  onDone={handleTablesTutorialDone}/>}
+      {showIntro            && isLoaded && <IntroDialog   onDone={handleIntroDone}/>}
+      {showTablesTutorial   && isLoaded && <TablesDialog  onDone={handleTablesTutorialDone}/>}
+      {showServersTutorial  && isLoaded && <ServersDialog onDone={handleServersTutorialDone}/>}
     </div>
   );
 }

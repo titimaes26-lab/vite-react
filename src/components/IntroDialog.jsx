@@ -419,3 +419,58 @@ export function TablesDialog({ onDone }) {
     />
   );
 }
+
+/* ═══════════════════════════════════════════════════════
+   DIALOGUE 3 — Tutoriel : L'onglet Serveurs
+═══════════════════════════════════════════════════════ */
+const SERVERS_DIALOG = [
+  {
+    speaker: "elodie",
+    section: "Brigade et Burnout",
+    text: "Parlons ressources humaines. Pour l'instant, nous avons 2 serveurs — le strict minimum pour ne pas ressembler à un self-service. D'autres slots se débloqueront avec le niveau du restaurant.",
+  },
+  {
+    speaker: "gustave",
+    text: "Mes plats sont des poèmes, Patron ! Il faut des messagers dignes de ce nom pour les porter. Mais regardez-les… ils ont l'air fatigués.",
+  },
+  {
+    speaker: "elodie",
+    text: "C'est normal, Gustave. Un serveur actif perd 1 point de moral toutes les 5 minutes. S'ils tombent sous 10, c'est le 💀 Burnout : inutiles et indisponibles. Seuls les serveurs au moral solide sont assignés automatiquement.",
+  },
+  {
+    speaker: "gustave",
+    text: "Sacrilège ! On ne peut pas servir un homard avec une mine déconfite ! Qu'ils fassent des pauses pour que leur moral remonte. Un artiste a besoin de repos !",
+  },
+  {
+    speaker: "elodie",
+    text: "Et le propriétaire a besoin d'économies. Les serveurs sont payés toutes les heures réelles, mais seulement s'ils sont actifs. En pause ou au repos, ils ne coûtent rien. C'est le moment d'être un manager efficace.",
+  },
+  {
+    speaker: "gustave",
+    section: "Formation et Évolution",
+    text: "Et si on les transformait en véritables maîtres ? Sommellerie, Prestige VIP, Rapidité pour qu'ils courent aussi vite que mon inspiration !",
+  },
+  {
+    speaker: "elodie",
+    text: "Les formations en Accueil ou en Bien-être sont aussi cruciales. Elles améliorent leurs spécialités et augmentent leur moral maximal. Plus ils sont formés, moins ils craquent.",
+  },
+  {
+    speaker: "gustave",
+    text: "L'expérience, Patron ! À chaque encaissement, ils gagnent de l'XP. Et plus ils montent de niveau, plus les clients sont généreux sur les pourboires.",
+  },
+  {
+    speaker: "elodie",
+    text: "En résumé : gérez leur fatigue, investissez dans leur formation, et surveillez votre masse salariale. À vous de jouer, Patron.",
+    isLast: true,
+  },
+];
+
+export function ServersDialog({ onDone }) {
+  return (
+    <DialogScene
+      dialogData={SERVERS_DIALOG}
+      ctaLabel="Gérer l'équipe !"
+      onDone={onDone}
+    />
+  );
+}
