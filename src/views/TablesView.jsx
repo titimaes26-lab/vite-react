@@ -554,7 +554,7 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
               );
 }
 
-export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,activeTheme,restoLvN=0,bp={}}) {
+export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,activeTheme,restoLvN=0,stock=[],bp={}}) {
 
   const menuTheme = MENU_THEMES.find(m=>m.id===activeTheme)||MENU_THEMES[0];
   const now = clockNow;
@@ -594,7 +594,15 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     if (!t?.group) return;
     const bill = t.order.reduce((s,o)=>s+o.price*o.qty,0);
     const themedBill = +(bill*menuTheme.priceMult).toFixed(2);
-    const r = calcRating(t.patienceLeftRatio??0.5, t.group.mood.b);
+    const hasStaleIngredient = t.order.some(o=>{
+      const mi=menu.find(m=>m.id===o.id);
+      if(!mi)return false;
+      return (mi.ingredients||[]).some(ing=>{
+        const si=stock.find(s=>s.id===ing.stockId);
+        return si&&(si.freshness??100)<20;
+      });
+    });
+    const r = Math.max(1, calcRating(t.patienceLeftRatio??0.5, t.group.mood.b) - (hasStaleIngredient?0.5:0));
     const tip = +(themedBill*(r-1)*0.04).toFixed(2);
     const total = +(themedBill+tip).toFixed(2);
     const srvObj = servers.find(s=>s.name===t.server);

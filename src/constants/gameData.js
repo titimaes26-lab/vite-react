@@ -130,6 +130,18 @@ export const SERVERS0 = [
   { id: 2, name: "Pierre Martin", status: "actif", totalXp: 180, rating: 4.5, salary: 12, moral: 75, specialty: null },
 ];
 
+/* ─── Taux de dégradation de la fraîcheur (%/min) ───── */
+export const FRESHNESS_DECAY = {
+  Poissons: 0.417,  // 25 %/h → périmé en ~4h
+  Viandes:  0.250,  // 15 %/h → ~6h
+  Laitiers: 0.167,  // 10 %/h → ~10h
+  Légumes:  0.133,  //  8 %/h → ~12h
+  Herbes:   0.133,
+  Fins:     0.033,  //  2 %/h → ~50h (quasi stable)
+  Épicerie: 0.033,
+  Boissons: 0.033,
+};
+
 /* ─── État initial : stock (ingrédients bruts) ───────── */
 // price = coût d'achat unitaire en €
 export const STOCK0 = [
@@ -160,7 +172,7 @@ export const STOCK0 = [
   { id: 20, name: "Vin blanc",     qty: 18,  unit: "btl",    alert: 4,    cat: "Boissons", price: 6    },
   { id: 21, name: "Bordeaux",      qty: 24,  unit: "btl",    alert: 8,    cat: "Boissons", price: 12   },
   { id: 22, name: "Eau minérale",  qty: 48,  unit: "btl",    alert: 12,   cat: "Boissons", price: 0.5  },
-];
+].map(item => ({ ...item, freshness: 100 }));
 
 /* ─── État initial : menu (plats définis par recette) ── */
 // prepTime : temps de préparation de base en secondes (avant bonus chef)
@@ -322,10 +334,10 @@ export const KITCHEN_UPGRADES = [
   },
   {
     id: "stockage", icon: "🧊", name: "Chambre froide",
-    desc: "Double la capacité maximale de chaque ingrédient en stock.",
+    desc: "Double la capacité de stock et ralentit la dégradation de la fraîcheur des aliments.",
     levels: [
-      { l: 1, cost: 1000, bonus: { storage: 1 }, label: "Capacité stock ×2" },
-      { l: 2, cost: 2500, bonus: { storage: 1 }, label: "Capacité stock ×3" },
+      { l: 1, cost: 1000, bonus: { storage: 1 }, label: "Capacité ×2 · Fraîcheur −50%" },
+      { l: 2, cost: 2500, bonus: { storage: 1 }, label: "Capacité ×3 · Fraîcheur −75%" },
     ],
   },
   {
@@ -455,10 +467,10 @@ export const GAME_EVENTS = [
     apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock) => {
       setStock(s => s.map(item => {
         if (["kg", "L"].includes(item.unit) && ["Viandes", "Poissons", "Laitiers"].includes(item.cat))
-          return { ...item, qty: +(item.qty * 0.4).toFixed(3) };
+          return { ...item, qty: +(item.qty * 0.4).toFixed(3), freshness: Math.min(item.freshness ?? 100, 15) };
         return item;
       }));
-      addToast({ icon: "🧊", title: "Panne frigo !", msg: "Stocks viandes/poissons réduits de 60%", color: "#1c3352", tab: "stock" });
+      addToast({ icon: "🧊", title: "Panne frigo !", msg: "Stocks viandes/poissons réduits de 60% · Fraîcheur à 15%", color: "#1c3352", tab: "stock" });
     },
   },
   {
@@ -554,7 +566,7 @@ export const GAME_EVENTS = [
       setStock(prev => prev.map(s => {
         if (!ids.has(s.id)) return s;
         const restock = +(s.alert * 5).toFixed(3);
-        return { ...s, qty: +(s.qty + restock).toFixed(3) };
+        return { ...s, qty: +(s.qty + restock).toFixed(3), freshness: 100 };
       }));
       addToast({ icon: "🚚", title: "Livraison cadeau !", msg: `${sorted.map(s => s.name).join(", ")} réapprovisionnés gratuitement`, color: "#2a5c3f", tab: "stock" });
     },
