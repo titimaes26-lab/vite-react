@@ -109,11 +109,23 @@ export const MOODS = [
 
 /* ─── Banque de prénoms (génération aléatoire) ───────── */
 export const NAMES1 = [
-  "Alice","Bruno","Clara","Denis","Elena","Félix","Gina","Hugo",
-  "Iris","Jean","Katia","Luc","Mona","Noé","Olivia","Paul","Rosa","Sam","Tina","Vera"
+  "Gabriel", "Emma", "Kenji", "Fatoumata", "Mateo", "Yuki", "Sofia", "Amine", "Elena", "Sven", 
+   "Priya", "Liam", "Zaynab", "Diego", "Chloé", "Hiroshi", "Anais", "Raj", "Valentina", "Malik", 
+   "Ingrid", "Santiago", "Mei", "Omar", "Alessandra", "Kwamé", "Soraya", "Lars", "Théo", "Ji-woo", 
+   "Luca", "Inès", "Dimitri", "Aïcha", "Pablo", "Sakura", "Matteo", "Fatima", "Nikolai", "Yasmine", 
+   "Björn", "Isabella", "Ravi", "Clara", "Ahmed", "Freya", "Carlos", "Leila", "Aris", "Noémie", "Keita", 
+   "Xiuying", "Marco", "Amina", "Finn", "Lucia", "Hassan", "Camille", "Sanjay", "Beatriz", "Khalil", 
+   "Mathilda", "Kenza", "Alejandro", "Sunita", "Hugo", "Nala", "Stefan", "Maria", "Idriss", "Olga", 
+   "Javier", "Zahra", "Mikael", "Siobhan", "Ali", "Francesca", "Tenzin", "Manuel", "Inaya", "Soren", "Paolo", 
+   "Latifa", "Erik", "Luna", "Ismaël", "Brigitte", "Kwesi", "Natasha", "Kim", "Bodhi", "Salma", "Hans", "Aya", 
+   "Rodrigo", "Malia", "Vlad", "Zara", "Ousmane", "Camille"
 ];
 export const NAMES2 = [
-  "Martin","Dupont","Bernard","Thomas","Robert","Petit","Moreau","Simon","Laurent","Michel"
+   "Aleksei", "Amani", "Bao", "Callista", "Dante", "Eliana", "Farrah", "Giacomo", "Hana", "Indira", "Jovan", 
+   "Kanya", "Lior", "Muna", "Nadir", "Odessa", "Pavel", "Qasim", "Rayan", "Saskia", "Tariq", "Ursula", "Vanya", 
+   "Willem", "Ximena", "Yosef", "Zaina", "Alaric", "Basile", "Cassian", "Dahlia", "Elowen", "Fadi", "Gita", "Hamza", 
+   "Ione", "Jiro", "Kael", "Lumi", "Miran", "Niamh", "Odin", "Petra", "Quinn", "Rohan", "Selene", "Thalia", "Umar", 
+   "Veda", "Xavier"
 ];
 
 /* ─── État initial : tables (12 max) ─────────────────── */
