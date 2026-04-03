@@ -923,6 +923,11 @@ export default function App(){
     setShowTablesTutorial(false);
   };
 
+  /* ── États principaux — initialisés avec les valeurs par défaut ── */
+  /* La sauvegarde est chargée de façon asynchrone dans le useEffect  */
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [tab,setTab]=useState("tables");
+
   /* ── Tutoriel Serveurs (déclenché à la première visite de l'onglet) ── */
   const [showServersTutorial, setShowServersTutorial] = useState(false);
   useEffect(()=>{
@@ -939,11 +944,6 @@ export default function App(){
     try { localStorage.setItem("servers_tutorial_seen", "1"); } catch(e) {}
     setShowServersTutorial(false);
   };
-
-  /* ── États principaux — initialisés avec les valeurs par défaut ── */
-  /* La sauvegarde est chargée de façon asynchrone dans le useEffect  */
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [tab,setTab]=useState("tables");
   const [tables,setTables]=useState(TABLES0);
   const [servers,setServers]=useState(SERVERS0);
   const [queue,setQueue]=useState(()=>{
