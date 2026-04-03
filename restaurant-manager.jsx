@@ -55,7 +55,7 @@ import { useObjectives }  from "./src/hooks/useObjectives.js";
 // ── Composants UI ──────────────────────────────────────
 import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/ui/index.js";
 import { Toasts } from "./src/components/system/Toasts.jsx";
-import { IntroDialog } from "./src/components/IntroDialog.jsx";
+import { IntroDialog, TablesDialog } from "./src/components/IntroDialog.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./src/views/TablesView.jsx";
@@ -901,13 +901,26 @@ export default function App(){
   const bp=useBreakpoint();
   const _today = new Date().toLocaleDateString("fr-FR");
 
-  /* ── Dialogue d'introduction (premier lancement) ── */
+  /* ── Dialogues tutoriels (premier lancement) ── */
   const [showIntro, setShowIntro] = useState(()=>{
     try { return !localStorage.getItem("intro_seen"); } catch(e) { return false; }
   });
+  const [showTablesTutorial, setShowTablesTutorial] = useState(false);
+
   const handleIntroDone = () => {
     try { localStorage.setItem("intro_seen", "1"); } catch(e) {}
     setShowIntro(false);
+    // Enchaîner avec le tutoriel Tables si jamais vu
+    try {
+      if (!localStorage.getItem("tables_tutorial_seen")) {
+        setTimeout(() => setShowTablesTutorial(true), 400);
+      }
+    } catch(e) {}
+  };
+
+  const handleTablesTutorialDone = () => {
+    try { localStorage.setItem("tables_tutorial_seen", "1"); } catch(e) {}
+    setShowTablesTutorial(false);
   };
 
   /* ── États principaux — initialisés avec les valeurs par défaut ── */
@@ -1973,8 +1986,9 @@ export default function App(){
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
 
-      {/* Dialogue d'introduction — affiché une seule fois */}
-      {showIntro && isLoaded && <IntroDialog onDone={handleIntroDone}/>}
+      {/* Dialogues tutoriels — affichés une seule fois chacun */}
+      {showIntro          && isLoaded && <IntroDialog   onDone={handleIntroDone}/>}
+      {showTablesTutorial && isLoaded && <TablesDialog  onDone={handleTablesTutorialDone}/>}
     </div>
   );
 }

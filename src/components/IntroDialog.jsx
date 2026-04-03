@@ -1,7 +1,6 @@
 /* ═══════════════════════════════════════════════════════
    src/components/IntroDialog.jsx
-   Dialogue d'introduction — Élodie & Gustave
-   Affiché une seule fois au premier lancement du jeu.
+   Dialogues d'introduction et tutoriels — Élodie & Gustave
 
    IMAGES attendues dans /public/ :
      /elodie.png   — ratio 16:9  (~1400×788)
@@ -10,8 +9,28 @@
 import { useState, useEffect } from "react";
 import { C, F } from "../constants/gameData.js";
 
-/* ─── Données du dialogue ────────────────────────────── */
-const DIALOG = [
+/* ─── Config des personnages ─────────────────────────── */
+const SPEAKERS = {
+  elodie: {
+    name: "Élodie",
+    title: "Assistante de gestion",
+    img: "/elodie.png",
+    color: "#1c3352",
+    bubble: { left: "45%", top: "3%", width: "52%", height: "44%" },
+  },
+  gustave: {
+    name: "Gustave",
+    title: "Chef de cuisine",
+    img: "/gustave.png",
+    color: "#b85520",
+    bubble: { left: "43%", top: "3%", width: "54%", height: "44%" },
+  },
+};
+
+/* ═══════════════════════════════════════════════════════
+   DIALOGUE 1 — Introduction
+═══════════════════════════════════════════════════════ */
+const INTRO_DIALOG = [
   {
     speaker: "elodie",
     text: "Bonjour ! Je suis Élodie, votre assistante de gestion. J'ai analysé les chiffres de ce lieu… Disons que « potentiel » est un mot poli pour « catastrophe financière imminente ».",
@@ -57,69 +76,81 @@ const DIALOG = [
   },
 ];
 
-/* ─── Config des personnages ─────────────────────────── */
-/* bubble : zone de texte sur la bulle dessinée dans l'image
-   Coordonnées en % de la largeur/hauteur de l'image (ratio 16:9)
-
-   Pour ajuster : modifier left/top/width/height jusqu'à
-   ce que le texte soit centré dans la bulle blanche. */
-const SPEAKERS = {
-  elodie: {
-    name: "Élodie",
-    title: "Assistante de gestion",
-    img: "/elodie.png",
-    color: "#1c3352",
-    nameColor: "#1c3352",
-    // Bulle Élodie : haut-droit, queue en bas-gauche
-    bubble: {
-      left:   "45%",   // départ horizontal (% image)
-      top:    "0%",    // départ vertical   (% image)
-      width:  "52%",   // largeur zone texte
-      height: "44%",   // hauteur zone texte
-    },
+/* ═══════════════════════════════════════════════════════
+   DIALOGUE 2 — Tutoriel : L'onglet Tables
+═══════════════════════════════════════════════════════ */
+const TABLES_DIALOG = [
+  {
+    speaker: "elodie",
+    section: "L'Art de l'Accueil",
+    text: "Patron, ouvrez l'onglet Tables. C'est ici que la théorie rencontre la réalité du terrain. Les clients arrivent en groupes toutes les 30 secondes — avec 65 % de chance de franchir la porte.",
   },
-  gustave: {
-    name: "Gustave",
-    title: "Chef de cuisine",
-    img: "/gustave.png",
-    color: "#b85520",
-    nameColor: "#b85520",
-    // Bulle Gustave : haut-droit, queue en bas-gauche
-    bubble: {
-      left:   "43%",
-      top:    "0%",
-      width:  "54%",
-      height: "44%",
-    },
+  {
+    speaker: "gustave",
+    text: "Et quand ils entrent, c'est pour l'extase ! Mais voyez cette barre de patience ? Si elle vire au rouge et tombe à zéro, ils partent… et mon génie est gaspillé sur des ingrats qui n'ont pas su attendre !",
   },
-};
+  {
+    speaker: "elodie",
+    text: "Surtout, ils partent sans payer. Pour éviter ce drame : cliquez sur une table pour ouvrir son panneau de détails. C'est votre tour de contrôle.",
+  },
+  {
+    speaker: "elodie",
+    section: "Le Cycle du Service",
+    text: "Le processus est une horloge suisse. Le serveur prend la commande, puis dès que vous servez les assiettes, la table passe en mode 🍴 Repas.",
+  },
+  {
+    speaker: "gustave",
+    text: "C'est le moment sacré ! Le silence de la dégustation… interrompu uniquement par le bruit des couverts.",
+  },
+  {
+    speaker: "elodie",
+    text: "Puis vient le moment que je préfère : l'encaissement. Mais ne vous reposez pas ! Un serveur doit nettoyer la table avant qu'un nouveau groupe puisse s'installer.",
+  },
+  {
+    speaker: "gustave",
+    section: "Optimisation de l'Espace",
+    text: "Patron, j'ai des visions de banquets royaux ! Deux chaises, c'est pour les rendez-vous timides. Il nous faut de la place pour la grandeur !",
+  },
+  {
+    speaker: "elodie",
+    text: "Pour une fois, il n'a pas tort. Sur chaque table libre, un bouton permet d'augmenter la capacité. Plus de sièges = des groupes plus grands = plus de chiffre d'affaires.",
+  },
+  {
+    speaker: "elodie",
+    text: "Gardez un œil sur l'espace : les groupes qui arrivent ne dépasseront jamais votre capacité maximale. Des tables de deux seulement ? Vous raterez les grandes tablées qui rapportent gros.",
+  },
+  {
+    speaker: "gustave",
+    text: "Allez, Patron ! Poussez les murs, installez du monde, et laissez-moi les éblouir !",
+    isLast: true,
+  },
+];
 
-/* ─── Composant ──────────────────────────────────────── */
-export function IntroDialog({ onDone }) {
+/* ═══════════════════════════════════════════════════════
+   COMPOSANT GÉNÉRIQUE — DialogScene
+═══════════════════════════════════════════════════════ */
+function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
   const [step,     setStep]     = useState(0);
   const [visible,  setVisible]  = useState(false);
   const [textAnim, setTextAnim] = useState(true);
-  const [imgKey,   setImgKey]   = useState(0); // force re-mount image à chaque changement de speaker
+  const [imgKey,   setImgKey]   = useState(0);
 
-  const prevSpeaker = DIALOG[step > 0 ? step - 1 : 0].speaker;
-
-  // Fade-in à l'ouverture
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 80);
     return () => clearTimeout(t);
   }, []);
 
-  // Animation texte à chaque changement de réplique
   useEffect(() => {
     setTextAnim(false);
     const t = setTimeout(() => setTextAnim(true), 60);
     return () => clearTimeout(t);
   }, [step]);
 
-  const line   = DIALOG[step];
+  const line   = dialogData[step];
   const sp     = SPEAKERS[line.speaker];
-  const isLast = line.isLast || step === DIALOG.length - 1;
-  const nextSp = !isLast ? SPEAKERS[DIALOG[step + 1]?.speaker] : null;
+  const isLast = line.isLast || step === dialogData.length - 1;
+  const nextSp = !isLast ? SPEAKERS[dialogData[step + 1]?.speaker] : null;
+  const bub    = sp.bubble;
 
   const next = () => {
     if (isLast) {
@@ -127,8 +158,7 @@ export function IntroDialog({ onDone }) {
       setTimeout(onDone, 350);
       return;
     }
-    // Si changement de personnage → animer l'image
-    if (DIALOG[step + 1].speaker !== line.speaker) {
+    if (dialogData[step + 1].speaker !== line.speaker) {
       setImgKey(k => k + 1);
     }
     setStep(s => s + 1);
@@ -139,8 +169,6 @@ export function IntroDialog({ onDone }) {
     setVisible(false);
     setTimeout(onDone, 350);
   };
-
-  const bub = sp.bubble;
 
   return (
     <div
@@ -156,7 +184,7 @@ export function IntroDialog({ onDone }) {
         cursor: "pointer",
       }}
     >
-      {/* ── Bouton Passer ── */}
+      {/* Bouton Passer */}
       <button
         onClick={skip}
         style={{
@@ -165,8 +193,7 @@ export function IntroDialog({ onDone }) {
           background: "rgba(255,255,255,0.1)",
           border: "1px solid rgba(255,255,255,0.2)",
           borderRadius: 20, color: "rgba(255,255,255,0.6)",
-          fontSize: 11, cursor: "pointer", fontFamily: F.body,
-          zIndex: 1,
+          fontSize: 11, cursor: "pointer", fontFamily: F.body, zIndex: 1,
         }}
       >
         Passer ›
@@ -179,80 +206,90 @@ export function IntroDialog({ onDone }) {
           display: "flex", flexDirection: "column", gap: 10,
         }}
       >
-        {/* ── Badge personnage ── */}
+        {/* Ligne d'identité : section + personnage */}
         <div style={{
-          display: "flex", alignItems: "center", gap: 8,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
           opacity: textAnim ? 1 : 0,
           transform: textAnim ? "translateY(0)" : "translateY(-4px)",
           transition: "opacity 0.25s ease, transform 0.25s ease",
         }}>
+          {/* Section (chapitre) */}
+          <div>
+            {line.section && (
+              <div style={{
+                fontSize: 10, fontWeight: 700,
+                color: sp.color + "99",
+                fontFamily: F.title, letterSpacing: "0.12em",
+                textTransform: "uppercase", marginBottom: 2,
+              }}>
+                ── {line.section} ──
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: "50%",
+                background: sp.color,
+                boxShadow: `0 0 8px ${sp.color}`,
+                flexShrink: 0,
+              }}/>
+              <span style={{
+                fontSize: 12, fontWeight: 700, color: sp.color,
+                fontFamily: F.title, letterSpacing: "0.05em",
+              }}>
+                {sp.name}
+              </span>
+              <span style={{
+                fontSize: 10, color: "rgba(255,255,255,0.35)",
+                fontFamily: F.body,
+              }}>
+                — {sp.title}
+              </span>
+            </div>
+          </div>
+
+          {/* Compteur étape */}
           <div style={{
-            width: 8, height: 8, borderRadius: "50%",
-            background: sp.color,
-            boxShadow: `0 0 8px ${sp.color}`,
-          }}/>
-          <span style={{
-            fontSize: 12, fontWeight: 700, color: sp.color,
-            fontFamily: F.title, letterSpacing: "0.05em",
-          }}>
-            {sp.name}
-          </span>
-          <span style={{
-            fontSize: 10, color: "rgba(255,255,255,0.35)",
+            fontSize: 10, color: "rgba(255,255,255,0.3)",
             fontFamily: F.body,
           }}>
-            — {sp.title}
-          </span>
+            {step + 1} / {dialogData.length}
+          </div>
         </div>
 
-        {/* ── Image + overlay bulle ── */}
-        {/*
-          Conteneur à ratio fixe 16:9 (paddingBottom=56.25%).
-          L'image est position:absolute et remplit 100%.
-          L'overlay texte est position:absolute avec % alignés sur la bulle.
-        */}
+        {/* Image + overlay bulle (conteneur 16:9) */}
         <div style={{
           position: "relative",
           width: "100%",
-          paddingBottom: "56.25%",   /* ratio 16:9 — ajuster si images non-16:9 */
+          paddingBottom: "56.25%",
           borderRadius: 16,
           overflow: "hidden",
-          background: "#111",        /* fond pendant chargement image */
+          background: "#111",
         }}>
-          {/* Image personnage */}
           <img
-            key={`img-${line.speaker}-${imgKey}`}
+            key={`${line.speaker}-${imgKey}`}
             src={sp.img}
             alt={sp.name}
             style={{
               position: "absolute", inset: 0,
               width: "100%", height: "100%",
-              objectFit: "cover",
-              borderRadius: 16,
+              objectFit: "cover", borderRadius: 16,
               animation: "introImgIn 0.32s ease both",
             }}
           />
 
-          {/* ── Overlay texte dans la bulle ── */}
+          {/* Texte sur la bulle */}
           <div
             style={{
               position: "absolute",
-              left:   bub.left,
-              top:    bub.top,
-              width:  bub.width,
-              height: bub.height,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              /* padding interne pour éviter les bords arrondis de la bulle */
+              left: bub.left, top: bub.top,
+              width: bub.width, height: bub.height,
+              display: "flex", alignItems: "center", justifyContent: "center",
               padding: "3% 5% 6%",
               pointerEvents: "none",
             }}
           >
             <p style={{
               margin: 0,
-              /* clamp : 10px min · 1.55vw fluide · 14px max */
               fontSize: "clamp(10px, 1.55vw, 14px)",
               color: "#1a120a",
               fontFamily: F.body,
@@ -267,18 +304,18 @@ export function IntroDialog({ onDone }) {
             </p>
           </div>
 
-          {/* Indicateur de tap */}
+          {/* Hint tap */}
           <div style={{
             position: "absolute", bottom: 10, right: 14,
             fontSize: 11, color: "rgba(255,255,255,0.45)",
             fontFamily: F.body,
             animation: "tapPulse 2s ease-in-out infinite",
           }}>
-            {isLast ? "" : "Toucher pour continuer ▶"}
+            {!isLast && "Toucher pour continuer ▶"}
           </div>
         </div>
 
-        {/* ── Note de mise en scène ── */}
+        {/* Note de mise en scène */}
         {line.note && (
           <div style={{
             textAlign: "center",
@@ -291,27 +328,24 @@ export function IntroDialog({ onDone }) {
           </div>
         )}
 
-        {/* ── Barre de contrôles ── */}
+        {/* Barre de contrôles */}
         <div style={{
           display: "flex", justifyContent: "space-between",
           alignItems: "center", padding: "0 2px", marginTop: 2,
         }}>
           {/* Points de progression */}
           <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            {DIALOG.map((d, i) => {
+            {dialogData.map((d, i) => {
               const isCurrent = i === step;
               const isDone    = i < step;
               const dot       = SPEAKERS[d.speaker];
               return (
                 <div key={i} style={{
-                  width:  isCurrent ? 16 : 6,
-                  height: 6,
+                  width: isCurrent ? 16 : 6, height: 6,
                   borderRadius: 99,
                   background: isCurrent
                     ? dot.color
-                    : isDone
-                      ? dot.color + "66"
-                      : "rgba(255,255,255,0.18)",
+                    : isDone ? dot.color + "66" : "rgba(255,255,255,0.18)",
                   transition: "all 0.3s ease",
                 }}/>
               );
@@ -345,7 +379,7 @@ export function IntroDialog({ onDone }) {
                 letterSpacing: "0.01em",
               }}
             >
-              {isLast ? "🍽 Commencer !" : "Suivant →"}
+              {isLast ? `✅ ${ctaLabel}` : "Suivant →"}
             </button>
           </div>
         </div>
@@ -353,14 +387,35 @@ export function IntroDialog({ onDone }) {
 
       <style>{`
         @keyframes introImgIn {
-          from { opacity: 0; transform: scale(1.03); }
-          to   { opacity: 1; transform: scale(1); }
+          from { opacity:0; transform:scale(1.03); }
+          to   { opacity:1; transform:scale(1); }
         }
         @keyframes tapPulse {
-          0%,100% { opacity: 0.45; }
-          50%      { opacity: 0.9; }
+          0%,100% { opacity:0.45; }
+          50%     { opacity:0.9; }
         }
       `}</style>
     </div>
+  );
+}
+
+/* ─── Exports ────────────────────────────────────────── */
+export function IntroDialog({ onDone }) {
+  return (
+    <DialogScene
+      dialogData={INTRO_DIALOG}
+      ctaLabel="Commencer !"
+      onDone={onDone}
+    />
+  );
+}
+
+export function TablesDialog({ onDone }) {
+  return (
+    <DialogScene
+      dialogData={TABLES_DIALOG}
+      ctaLabel="À table !"
+      onDone={onDone}
+    />
   );
 }
