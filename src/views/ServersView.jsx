@@ -85,10 +85,8 @@ const getMaxMoral = (sv) => {
 
 
 
-export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast,bp={}}){
+export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast,candidatePool=[],setCandidatePool,candidateDate="",setCandidateDate,bp={}}){
   const [modal,setModal]=useState(false);   // "hire" | "edit" | "fire" | "train" | false
-  const [candidates,setCandidates]=useState([]);
-  const [candidateDate,setCandidateDate]=useState("");
   const [form,setForm]=useState({name:"",status:"actif",salary:"12"});
   const [editId,setEditId]=useState(null);
   const [fireId,setFireId]=useState(null);
@@ -155,47 +153,44 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
   const canAfford = cash >= hireCost;
 
 
-  // Générer 3 candidats reproductibles par date
-  const generateCandidates = (dateStr) => {
-    // Seed déterministe basé sur la date
+  // Générer un pool de 9 candidats reproductibles par date
+  const generatePool = (dateStr) => {
     let seed = dateStr.split("").reduce((a,c)=>a+c.charCodeAt(0), 0);
     const rng = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
     const names1=["Alice","Bruno","Clara","Denis","Elena","Félix","Gina","Hugo","Iris","Jean","Katia","Luc","Mona","Noé","Olivia","Paul","Rosa","Sam","Tina","Vera"];
     const names2=["Martin","Dupont","Bernard","Thomas","Robert","Petit","Moreau","Simon","Laurent","Michel"];
-    return Array.from({length:3}, (_,i) => {
-      const salary     = Math.round(rng()*8+10);           // 10–18 €/h
-      const xp         = Math.round(rng()*180);             // 0–180 XP
-      const moral      = Math.round(rng()*30+70);           // 70–100
-      const hasSpec    = rng() > 0.5;                       // 50% chance
-      const specIdx    = Math.floor(rng()*SRV_SPECIALTIES.length);
-      const name       = names1[Math.floor(rng()*names1.length)]+" "+names2[Math.floor(rng()*names2.length)];
+    return Array.from({length:9}, (_,i) => {
+      const salary  = Math.round(rng()*8+10);
+      const xp      = Math.round(rng()*180);
+      const moral   = Math.round(rng()*30+70);
+      const hasSpec = rng() > 0.5;
+      const specIdx = Math.floor(rng()*SRV_SPECIALTIES.length);
+      const name    = names1[Math.floor(rng()*names1.length)]+" "+names2[Math.floor(rng()*names2.length)];
       return {
-        id       : i,
+        id      : `${dateStr}-${i}`,
         name,
         salary,
-        totalXp  : xp,
+        totalXp : xp,
         moral,
-        rating   : +(3.5 + rng()*1.5).toFixed(1),
+        rating  : +(3.5 + rng()*1.5).toFixed(1),
         specialty: hasSpec && xp >= 80 ? SRV_SPECIALTIES[specIdx] : null,
-        hireCost : salary * 3,
+        hireCost: salary * 3,
       };
     });
   };
 
   const openHire = () => {
     const today = new Date().toLocaleDateString("fr-FR");
-    // Renouveler les candidats si nouveau jour ou liste vide
-    if(candidateDate !== today || candidates.length === 0) {
-      setCandidates(generateCandidates(today));
+    if(candidateDate !== today || candidatePool.length === 0) {
+      setCandidatePool(generatePool(today));
       setCandidateDate(today);
     }
     setModal("hire");
   };
 
   const hireCandidate = (candidate) => {
-    const slotsAvailable = servers.length < maxSlots;
-    if(!slotsAvailable){
-      addToast&&addToast({icon:"🚫",title:"Équipe complète",msg:"Aucune place disponible — licenciez un serveur d'abord.",color:C.red,tab:"servers"});
+    if(servers.length >= maxSlots){
+      addToast&&addToast({icon:"🚫",title:"Équipe complète",msg:"Licenciez un serveur d'abord.",color:C.red,tab:"servers"});
       return;
     }
     if(cash < candidate.hireCost){
@@ -205,20 +200,21 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
     setCash&&setCash(c=>+(c-candidate.hireCost).toFixed(2));
     addTx&&addTx("achat",`Recrutement — ${candidate.name}`,candidate.hireCost);
     setServers(p=>[...p,{
-      id       : Date.now(),
-      name     : candidate.name,
-      status   : "actif",
-      totalXp  : candidate.totalXp,
-      rating   : candidate.rating,
-      salary   : candidate.salary,
-      moral    : candidate.moral,
+      id      : Date.now(),
+      name    : candidate.name,
+      status  : "actif",
+      totalXp : candidate.totalXp,
+      rating  : candidate.rating,
+      salary  : candidate.salary,
+      moral   : candidate.moral,
       specialty: candidate.specialty,
     }]);
-    // Retirer le candidat embauché de la liste
-    setCandidates(p=>p.filter(c=>c.id!==candidate.id));
+    const remaining = candidatePool.filter(c=>c.id!==candidate.id);
+    setCandidatePool(remaining);
     addToast&&addToast({icon:"👔",title:`${candidate.name} embauché·e !`,
-      msg:`−${candidate.hireCost}€ · Salaire ${candidate.salary}€/h`,color:C.green,tab:"servers"});
-    if(candidates.length <= 1 || servers.length + 1 >= maxSlots) setModal(false);
+      msg:`−${candidate.hireCost}€ · ${remaining.length} candidat${remaining.length>1?"s":""} restant${remaining.length>1?"s":""}`,
+      color:C.green,tab:"servers"});
+    if(remaining.length === 0 || servers.length + 1 >= maxSlots) setModal(false);
   };
   const openEdit = (sv) => {
     setEditId(sv.id);
@@ -724,7 +720,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                   👔 Candidats disponibles
                 </div>
                 <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:3}}>
-                  {candidates.length} candidat{candidates.length>1?"s":""} · {servers.length}/{maxSlots} postes · Liste renouvelée chaque jour
+                  {candidatePool.slice(0,3).length} affiché{candidatePool.slice(0,3).length>1?"s":""} · {candidatePool.length} restant{candidatePool.length>1?"s":""} aujourd'hui · {servers.length}/{maxSlots} postes
                 </div>
               </div>
               <button onClick={()=>setModal(false)}
@@ -744,13 +740,13 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
 
             {/* Liste des candidats */}
             <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",gap:14}}>
-              {candidates.length===0?(
+              {candidatePool.length===0?(
                 <div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:F.body}}>
                   <div style={{fontSize:32,marginBottom:8}}>📅</div>
                   <div style={{fontSize:13,fontWeight:600}}>Plus de candidats aujourd'hui</div>
                   <div style={{fontSize:11,marginTop:4}}>Revenez demain pour de nouveaux profils</div>
                 </div>
-              ):candidates.map(c=>{
+              ):candidatePool.slice(0,3).map(c=>{
                 const sl = srvLv(c.totalXp);
                 const slD = SRV_LVL[Math.min(sl.l, SRV_LVL.length-1)];
                 const canAfford = cash >= c.hireCost;
@@ -972,7 +968,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                   👔 Candidats disponibles
                 </div>
                 <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:3}}>
-                  {candidates.length} candidat{candidates.length>1?"s":""} · Liste renouvelée chaque jour
+                  {candidatePool.slice(0,3).length} affiché{candidatePool.slice(0,3).length>1?"s":""} · {candidatePool.length} restant{candidatePool.length>1?"s":""} aujourd'hui · {servers.length}/{maxSlots} postes
                 </div>
               </div>
               <button onClick={()=>setModal(false)}
@@ -992,13 +988,13 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
 
             {/* Liste des candidats */}
             <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",gap:14}}>
-              {candidates.length===0?(
+              {candidatePool.length===0?(
                 <div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:F.body}}>
                   <div style={{fontSize:32,marginBottom:8}}>📅</div>
                   <div style={{fontSize:13,fontWeight:600}}>Plus de candidats aujourd'hui</div>
                   <div style={{fontSize:11,marginTop:4}}>Revenez demain pour de nouveaux profils</div>
                 </div>
-              ):candidates.map(c=>{
+              ):candidatePool.slice(0,3).map(c=>{
                 const sl = srvLv(c.totalXp);
                 const slD = SRV_LVL[Math.min(sl.l, SRV_LVL.length-1)];
                 const canAfford = cash >= c.hireCost;
