@@ -120,6 +120,7 @@ const buildGDevelopPayload = ({
   formulas, dailySpecials, challengeDate,
   completedIds, pendingClaim, todayChallenges, challengeProgress,
   challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+  candidatePool, candidateDate,
 }) => {
   const rl       = restoLv(restoXp);
   const cl       = chefLv(kitchen?.chef?.totalXp || 0);
@@ -268,6 +269,8 @@ const buildGDevelopPayload = ({
       pendingClaim,
       activeTheme,
       activeEvent,
+      candidatePool,
+      candidateDate,
     },
     savedAt      : Date.now(),
   };
@@ -1197,12 +1200,14 @@ export default function App(){
       formulas, dailySpecials, challengeDate,
       completedIds, pendingClaim, todayChallenges, challengeProgress,
       challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+      candidatePool, candidateDate,
     };
   },[cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
      reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
      formulas, dailySpecials, challengeDate,
      completedIds, pendingClaim, todayChallenges, challengeProgress,
-     challengeClaimed, challengeLostToday, activeTheme, activeEvent]);
+     challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+     candidatePool, candidateDate]);
 
   useEffect(()=>{
     if (!isLoaded) return;
