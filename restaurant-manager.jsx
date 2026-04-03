@@ -55,6 +55,7 @@ import { useObjectives }  from "./src/hooks/useObjectives.js";
 // ── Composants UI ──────────────────────────────────────
 import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/ui/index.js";
 import { Toasts } from "./src/components/system/Toasts.jsx";
+import { IntroDialog } from "./src/components/IntroDialog.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./src/views/TablesView.jsx";
@@ -899,6 +900,15 @@ const ALL_CHALLENGES=[
 export default function App(){
   const bp=useBreakpoint();
   const _today = new Date().toLocaleDateString("fr-FR");
+
+  /* ── Dialogue d'introduction (premier lancement) ── */
+  const [showIntro, setShowIntro] = useState(()=>{
+    try { return !localStorage.getItem("intro_seen"); } catch(e) { return false; }
+  });
+  const handleIntroDone = () => {
+    try { localStorage.setItem("intro_seen", "1"); } catch(e) {}
+    setShowIntro(false);
+  };
 
   /* ── États principaux — initialisés avec les valeurs par défaut ── */
   /* La sauvegarde est chargée de façon asynchrone dans le useEffect  */
@@ -1962,6 +1972,9 @@ export default function App(){
       )}
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
+
+      {/* Dialogue d'introduction — affiché une seule fois */}
+      {showIntro && isLoaded && <IntroDialog onDone={handleIntroDone}/>}
     </div>
   );
 }
