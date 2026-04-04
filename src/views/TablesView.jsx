@@ -725,75 +725,132 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
       {!bp.isMobile&&(
         <div style={{flex:1,display:"flex",flexDirection:"row",minHeight:0,overflow:"hidden"}}>
 
-          {/* ── Panneau gauche — File d'attente ─────────── */}
-          {(queue.length>0||waitlist.length>0)&&(
+          {/* ── Panneau gauche — File d'attente + Détail table ── */}
+          {(queue.length>0||waitlist.length>0||selectedTable)&&(
             <div style={{
-              width:200,flexShrink:0,
+              width:bp.isTablet?210:240,flexShrink:0,
               borderRight:`1px solid ${C.border}`,
               background:C.surface,
               display:"flex",flexDirection:"column",
               overflowY:"hidden",
             }}>
-              <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,
-                fontWeight:700,fontSize:12,color:C.navy,fontFamily:F.title,
-                display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                🚶 File d'attente
-                {queue.length>=5&&<span style={{fontSize:9,background:C.redP,color:C.red,
-                  borderRadius:20,padding:"1px 6px",fontWeight:700,fontFamily:F.body,
-                  animation:"pulse 1.2s infinite"}}>🚨</span>}
-              </div>
-              <div style={{overflowY:"auto",flex:1,padding:8,display:"flex",
-                flexDirection:"column",gap:6}}>
-                {queue.map(g=>{
-                  const pct=Math.max(0,(g.expiresAt-now)/(g.patMax*1000));
-                  const col=pct>0.5?C.green:pct>0.25?C.amber:C.red;
-                  const freeT=tables.filter(t=>t.status==="libre"&&t.capacity>=g.size);
-                  const aS=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
-                  return(
-                    <div key={g.id} style={{background:C.bg,border:`1px solid ${col}33`,
-                      borderLeft:`3px solid ${col}`,borderRadius:9,padding:"8px 10px"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
-                        <span style={{fontSize:18}}>{g.mood.e}</span>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:11,fontWeight:700,color:C.ink,fontFamily:F.body,
-                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</div>
-                          <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{g.size}p · {g.mood.l}{g.isVIP?" 🎩":""}</div>
-                        </div>
-                      </div>
-                      <div style={{height:3,background:col+"22",borderRadius:99,overflow:"hidden",marginBottom:5}}>
-                        <div style={{height:"100%",width:`${pct*100}%`,background:col,borderRadius:99,transition:"width 0.3s"}}/>
-                      </div>
-                      {freeT.length>0&&aS.length>0
-                        ?<Btn full sm v="primary" onClick={()=>quickPlace(g)} icon="➡️">Placer</Btn>
-                        :freeT.length>0
-                        ?<Btn full sm v="secondary" onClick={()=>openAssign(g)} icon="🪑">Choisir serveur</Btn>
-                        :<div style={{fontSize:9,color:C.muted,fontFamily:F.body,textAlign:"center",padding:"2px 0"}}>{freeT.length===0?"Pas de table":"Pas de serveur"}</div>
-                      }
-                    </div>
-                  );
-                })}
-                {waitlist.length>0&&(
-                  <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8,marginTop:4}}>
-                    <div style={{fontSize:9,color:C.muted,fontFamily:F.body,fontWeight:600,
-                      textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:5}}>📞 Rappelables</div>
-                    {waitlist.map(g=>{
-                      const rem=Math.max(0,Math.ceil((g.recallUntil-now)/1000));
+
+              {/* File d'attente */}
+              {(queue.length>0||waitlist.length>0)&&(
+                <>
+                  <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,
+                    fontWeight:700,fontSize:12,color:C.navy,fontFamily:F.title,
+                    display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                    🚶 File d'attente
+                    {queue.length>=5&&<span style={{fontSize:9,background:C.redP,color:C.red,
+                      borderRadius:20,padding:"1px 6px",fontWeight:700,fontFamily:F.body,
+                      animation:"pulse 1.2s infinite"}}>🚨</span>}
+                  </div>
+                  <div style={{overflowY:"auto",padding:8,display:"flex",
+                    flexDirection:"column",gap:6,
+                    maxHeight: selectedTable ? "40%" : undefined,
+                    flex: selectedTable ? "0 0 auto" : 1,
+                  }}>
+                    {queue.map(g=>{
+                      const pct=Math.max(0,(g.expiresAt-now)/(g.patMax*1000));
+                      const col=pct>0.5?C.green:pct>0.25?C.amber:C.red;
+                      const freeT=tables.filter(t=>t.status==="libre"&&t.capacity>=g.size);
+                      const aS=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
                       return(
-                        <div key={"w"+g.id} style={{background:C.bg,borderRadius:8,
-                          padding:"5px 8px",marginBottom:3,display:"flex",alignItems:"center",gap:6}}>
-                          <span style={{fontSize:13}}>{g.mood.e}</span>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:10,fontWeight:600,color:C.ink,fontFamily:F.body,
-                              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</div>
-                            <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{g.size}p · {rem}s</div>
+                        <div key={g.id} style={{background:C.bg,border:`1px solid ${col}33`,
+                          borderLeft:`3px solid ${col}`,borderRadius:9,padding:"8px 10px"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
+                            <span style={{fontSize:18}}>{g.mood.e}</span>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:11,fontWeight:700,color:C.ink,fontFamily:F.body,
+                                overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</div>
+                              <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{g.size}p · {g.mood.l}{g.isVIP?" 🎩":""}</div>
+                            </div>
                           </div>
-                          <Btn sm v="ghost" onClick={()=>recallGroup(g)}>📞</Btn>
+                          <div style={{height:3,background:col+"22",borderRadius:99,overflow:"hidden",marginBottom:5}}>
+                            <div style={{height:"100%",width:`${pct*100}%`,background:col,borderRadius:99,transition:"width 0.3s"}}/>
+                          </div>
+                          {freeT.length>0&&aS.length>0
+                            ?<Btn full sm v="primary" onClick={()=>quickPlace(g)} icon="➡️">Placer</Btn>
+                            :freeT.length>0
+                            ?<Btn full sm v="secondary" onClick={()=>openAssign(g)} icon="🪑">Choisir serveur</Btn>
+                            :<div style={{fontSize:9,color:C.muted,fontFamily:F.body,textAlign:"center",padding:"2px 0"}}>{freeT.length===0?"Pas de table":"Pas de serveur"}</div>
+                          }
                         </div>
                       );
                     })}
+                    {waitlist.length>0&&(
+                      <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8,marginTop:4}}>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body,fontWeight:600,
+                          textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:5}}>📞 Rappelables</div>
+                        {waitlist.map(g=>{
+                          const rem=Math.max(0,Math.ceil((g.recallUntil-now)/1000));
+                          return(
+                            <div key={"w"+g.id} style={{background:C.bg,borderRadius:8,
+                              padding:"5px 8px",marginBottom:3,display:"flex",alignItems:"center",gap:6}}>
+                              <span style={{fontSize:13}}>{g.mood.e}</span>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:10,fontWeight:600,color:C.ink,fontFamily:F.body,
+                                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</div>
+                                <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{g.size}p · {rem}s</div>
+                              </div>
+                              <Btn sm v="ghost" onClick={()=>recallGroup(g)}>📞</Btn>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
+
+              {/* Détail table sélectionnée — en dessous de la file */}
+              {selectedTable&&(
+                <div style={{
+                  flex:1,minHeight:0,
+                  borderTop: (queue.length>0||waitlist.length>0) ? `1px solid ${C.border}` : undefined,
+                  display:"flex",flexDirection:"column",
+                  overflowY:"hidden",
+                }}>
+                  <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,
+                    display:"flex",justifyContent:"space-between",alignItems:"center",
+                    flexShrink:0}}>
+                    <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+                      📋 {selectedTable.name}
+                    </span>
+                    <button onClick={()=>setSelectedTable(null)} style={{
+                      background:"none",border:"none",fontSize:16,cursor:"pointer",
+                      color:C.muted,padding:"0 4px",lineHeight:1}}>✕</button>
+                  </div>
+                  <div style={{padding:10,flex:1,overflowY:"auto"}}>
+                    <DetailPanel
+                      t={selectedTable}
+                      tables={tables}
+                      servers={servers}
+                      kitchen={kitchen}
+                      queue={queue}
+                      now={now}
+                      cash={cash}
+                      menuTheme={menuTheme}
+                      C={C} F={F}
+                      quickPlace={quickPlace}
+                      openAssign={openAssign}
+                      checkout={checkout}
+                      setSelectedTable={setSelectedTable}
+                      addTx={addTx}
+                      setCash={setCash}
+                      addToast={addToast}
+                      setTables={setTables}
+                      onTableUpgrade={onTableUpgrade}
+                      CAP_UPGRADES={CAP_UPGRADES}
+                      calcRating={calcRating}
+                      ratingColor={ratingColor}
+                      ratingStars={ratingStars}
+                    />
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
 
@@ -811,54 +868,6 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
               lockedSlots={lockedSlots}
             />
           </div>
-
-          {/* ── Panneau droit — Détail table sélectionnée ── */}
-          {selectedTable&&(
-            <div style={{
-              width:bp.isTablet?220:255,flexShrink:0,
-              borderLeft:`1px solid ${C.border}`,
-              background:C.surface,
-              display:"flex",flexDirection:"column",
-              overflowY:"hidden",
-            }}>
-              <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,
-                display:"flex",justifyContent:"space-between",alignItems:"center",
-                flexShrink:0}}>
-                <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>
-                  📋 {selectedTable.name}
-                </span>
-                <button onClick={()=>setSelectedTable(null)} style={{
-                  background:"none",border:"none",fontSize:16,cursor:"pointer",
-                  color:C.muted,padding:"0 4px",lineHeight:1}}>✕</button>
-              </div>
-              <div style={{padding:10,flex:1,overflowY:"auto"}}>
-                <DetailPanel
-                  t={selectedTable}
-                  tables={tables}
-                  servers={servers}
-                  kitchen={kitchen}
-                  queue={queue}
-                  now={now}
-                  cash={cash}
-                  menuTheme={menuTheme}
-                  C={C} F={F}
-                  quickPlace={quickPlace}
-                  openAssign={openAssign}
-                  checkout={checkout}
-                  setSelectedTable={setSelectedTable}
-                  addTx={addTx}
-                  setCash={setCash}
-                  addToast={addToast}
-                  setTables={setTables}
-                  onTableUpgrade={onTableUpgrade}
-                  CAP_UPGRADES={CAP_UPGRADES}
-                  calcRating={calcRating}
-                  ratingColor={ratingColor}
-                  ratingStars={ratingStars}
-                />
-              </div>
-            </div>
-          )}
 
         </div>
       )}
