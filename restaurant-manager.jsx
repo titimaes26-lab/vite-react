@@ -1571,7 +1571,7 @@ export default function App(){
           :root { --gap: 10px; --pad: 12px; --card-radius: 12px; --font-base: 12px; }
           .desktop-nav { display: none !important; }
           .mobile-nav  { display: flex !important; }
-          .content-area { padding: 12px var(--pad) 140px !important; }
+          .content-area { padding: 12px var(--pad) 60px !important; }
           .badge-alert { font-size: 8px !important; width: 14px !important; height: 14px !important; }
           .hide-mobile { display: none !important; }
           .show-mobile { display: flex !important; }
@@ -1600,6 +1600,9 @@ export default function App(){
           .show-mobile { display: none !important; }
         }
       `}</style>
+
+      {/* Header + Nav — sticky top */}
+      <div style={{position:"sticky",top:0,zIndex:1000,background:C.surface}}>
 
       {/* Header — 2 lignes */}
       <div style={{
@@ -1873,6 +1876,72 @@ export default function App(){
         })}
       </div>
 
+      {/* Nav Mobile — fixe en haut (dans le wrapper sticky) */}
+      <div className="mobile-nav" style={{
+        background:C.surface,
+        borderBottom:`1px solid ${C.border}`,
+        boxShadow:"0 2px 8px rgba(23,18,14,0.07)",
+        justifyContent:"space-around",alignItems:"stretch",
+        paddingTop:"env(safe-area-inset-top,0px)",
+      }}>
+        {TABS.map(t=>{
+          const readyChallenges=(todayChallenges||[]).filter(ch=>{
+            const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):(challengeProgress[ch.key]||0);
+            return val>=ch.target&&!(challengeClaimed||{})[ch.id];
+          }).length;
+          const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:0;
+          const active=tab===t.id;
+          return(
+            <button key={t.id} onClick={()=>{
+              setTab(t.id);
+              if(t.id==="complaints")
+                setSeenIds(p=>new Set([...p,...complaints.filter(c=>c.status==="nouveau").map(c=>c.id)]));
+            }} style={{
+              flex:1,
+              background:active?`linear-gradient(180deg,${C.green}08,transparent)`:"transparent",
+              border:"none",
+              display:"flex",flexDirection:"column",alignItems:"center",
+              justifyContent:"center",
+              padding:"7px 2px 8px",
+              cursor:"pointer",position:"relative",
+              borderBottom:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
+              gap:3,
+              transition:"background 0.15s",
+            }}>
+              <div style={{
+                width:34,height:26,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                borderRadius:9,
+                background:active?C.green+"14":"transparent",
+                transition:"background 0.15s",
+              }}>
+                <span style={{
+                  fontSize:17,lineHeight:1,
+                  filter:active?"none":"grayscale(0.5) opacity(0.55)",
+                  transition:"filter 0.15s",
+                }}>{t.icon}</span>
+              </div>
+              <span style={{
+                fontSize:9,fontWeight:active?700:400,fontFamily:F.body,
+                color:active?C.green:C.muted,
+                whiteSpace:"nowrap",letterSpacing:"0.01em",lineHeight:1,
+              }}>{t.label}</span>
+              {badge>0&&(
+                <span style={{
+                  position:"absolute",top:4,right:"calc(50% - 18px)",
+                  background:C.red,color:"#fff",borderRadius:"50%",
+                  width:15,height:15,fontSize:8,fontWeight:800,
+                  display:"inline-flex",alignItems:"center",justifyContent:"center",
+                  boxShadow:`0 1px 4px ${C.red}55`,animation:"popIn 0.3s ease",
+                }}>{badge}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      </div>{/* fin wrapper sticky */}
+
       {/* Content */}
       <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
@@ -1897,77 +1966,6 @@ export default function App(){
         />
       )}
 
-      {/* Nav Mobile fixe en bas */}
-      <div className="mobile-nav" style={{
-        position:"fixed",bottom:0,left:0,right:0,zIndex:900,
-        background:C.surface,
-        borderTop:`1px solid ${C.border}`,
-        boxShadow:"0 -4px 24px rgba(23,18,14,0.12), 0 -1px 4px rgba(23,18,14,0.06)",
-        justifyContent:"space-around",alignItems:"stretch",
-        paddingBottom:"env(safe-area-inset-bottom,6px)",
-      }}>
-        {TABS.map(t=>{
-          const readyChallenges=(todayChallenges||[]).filter(ch=>{
-            const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):(challengeProgress[ch.key]||0);
-            return val>=ch.target&&!(challengeClaimed||{})[ch.id];
-          }).length;
-          const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:0;
-          const active=tab===t.id;
-          return(
-            <button key={t.id} onClick={()=>{
-              setTab(t.id);
-              if(t.id==="complaints")
-                setSeenIds(p=>new Set([...p,...complaints.filter(c=>c.status==="nouveau").map(c=>c.id)]));
-            }} style={{
-              flex:1,
-              background:active?`linear-gradient(180deg,${C.green}08,transparent)`:"transparent",
-              border:"none",
-              display:"flex",flexDirection:"column",alignItems:"center",
-              justifyContent:"center",
-              padding:"9px 2px 5px",
-              cursor:"pointer",position:"relative",
-              borderTop:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
-              gap:4,
-              transition:"background 0.15s",
-            }}>
-              {/* Icon container */}
-              <div style={{
-                width:34,height:28,
-                display:"flex",alignItems:"center",justifyContent:"center",
-                borderRadius:9,
-                background:active?C.green+"14":"transparent",
-                transition:"background 0.15s",
-              }}>
-                <span style={{
-                  fontSize:18,lineHeight:1,
-                  filter:active?"none":"grayscale(0.5) opacity(0.55)",
-                  transition:"filter 0.15s",
-                }}>{t.icon}</span>
-              </div>
-              <span style={{
-                fontSize:9,fontWeight:active?700:400,fontFamily:F.body,
-                color:active?C.green:C.muted,
-                whiteSpace:"nowrap",letterSpacing:"0.01em",
-                lineHeight:1,
-              }}>
-                {t.label}
-              </span>
-              {badge>0&&(
-                <span style={{
-                  position:"absolute",top:5,right:"calc(50% - 18px)",
-                  background:C.red,color:"#fff",borderRadius:"50%",
-                  width:15,height:15,fontSize:8,fontWeight:800,
-                  display:"inline-flex",alignItems:"center",justifyContent:"center",
-                  boxShadow:`0 1px 4px ${C.red}55`,
-                  animation:"popIn 0.3s ease",
-                }}>
-                  {badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
 
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
       {showBank&&<BankModal onClose={()=>setShowBank(false)} cash={cash} loan={loan}

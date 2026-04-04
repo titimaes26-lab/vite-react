@@ -26,7 +26,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
   return (
     <div style={{
       position: "fixed",
-      bottom: isMobile ? "calc(env(safe-area-inset-bottom, 0px) + 62px)" : 0,
+      bottom: 0,
       left: 0, right: 0,
       zIndex: 850,
       background: "rgba(20,15,10,0.93)",
