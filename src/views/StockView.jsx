@@ -57,8 +57,8 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
       const target=it.alert*6;
       const qty=+(target-it.qty).toFixed(3);
       if(qty>0){
-        deductCost(it,qty);
-        setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(target,+(s.qty+qty).toFixed(3)),freshness:100}:s));
+        const instant=deductCost(it,qty);
+        if(instant) setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(target,+(s.qty+qty).toFixed(3)),freshness:100}:s));
       }
     });
   };
