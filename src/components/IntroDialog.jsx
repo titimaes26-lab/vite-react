@@ -172,7 +172,51 @@ const SERVERS_DIALOG = [
 ];
 
 /* ═══════════════════════════════════════════════════════
-   DIALOGUE 4 — Tutoriel : L'onglet Cuisine
+   DIALOGUE 4 — Tutoriel : L'onglet Menu
+═══════════════════════════════════════════════════════ */
+const MENU_DIALOG = [
+  {
+    speaker: "elodie",
+    section: "L'Alchimie du Menu",
+    text: "Patron, il est temps de structurer notre offre. Nous avons trois leviers : la 📋 Carte pour les plats individuels, les 🍽 Formules pour les combos stratégiques, et les 🎨 Thèmes pour donner une ambiance globale à notre cuisine.",
+  },
+  {
+    speaker: "gustave",
+    text: "Et surtout, la liberté ! Je viens de doubler le prix de mon Homard Thermidor. L'art n'a pas de prix, n'est-ce pas ?",
+  },
+  {
+    speaker: "elodie",
+    text: "L'art a un prix que le client accepte de payer, Gustave. Patron, vous pouvez ajuster les prix sur chaque fiche. Notez bien que les nouveaux tarifs s'appliquent uniquement aux prochaines commandes. On ne change pas l'addition d'un client qui est déjà en train de manger !",
+  },
+  {
+    speaker: "gustave",
+    text: "Regardez, j'ai aussi cliqué sur ce petit bouton ⏸. Ma Soupe à l'Oignon me barbait ce matin, alors je l'ai mise en pause. Disparue ! Envolée !",
+  },
+  {
+    speaker: "elodie",
+    text: "Exactement. Le bouton ⏸ désactive le plat : il reste dans nos archives, mais les clients ne le commanderont plus. C'est pratique pour gérer les stocks... ou les caprices du Chef.",
+  },
+  {
+    speaker: "gustave",
+    text: "Et regardez ce magnifique Badge 🔥 ! C'est la consécration ! Mon Filet Mignon est la star du quartier !",
+  },
+  {
+    speaker: "elodie",
+    text: "Ce badge récompense le score composé. Pour l'obtenir, le Patron doit jongler entre : 40% de marge brute (l'argent qui reste en caisse), 40% de popularité (le plaisir des clients), 20% de disponibilité (avoir les ingrédients en stock).",
+  },
+  {
+    speaker: "gustave",
+    text: "Marge, stock... Vous parlez comme une épicière ! Patron, cherchez le feu ! Cherchez le 🔥 ! C'est lui qui fera de nous des rois !",
+  },
+  {
+    speaker: "elodie",
+    text: "Et c'est la marge qui nous permettra de payer le gaz pour vos fourneaux. À vous de fixer les priorités, Patron.",
+    isLast: true,
+  },
+];
+
+/* ═══════════════════════════════════════════════════════
+   DIALOGUE 5 — Tutoriel : L'onglet Cuisine
 ═══════════════════════════════════════════════════════ */
 const KITCHEN_DIALOG = [
   {
@@ -506,6 +550,16 @@ export function ServersDialog({ onDone }) {
     <DialogScene
       dialogData={SERVERS_DIALOG}
       ctaLabel="Gérer l'équipe !"
+      onDone={onDone}
+    />
+  );
+}
+
+export function MenuDialog({ onDone }) {
+  return (
+    <DialogScene
+      dialogData={MENU_DIALOG}
+      ctaLabel="On compose la carte !"
       onDone={onDone}
     />
   );
