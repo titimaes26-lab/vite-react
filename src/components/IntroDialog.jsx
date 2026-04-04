@@ -172,7 +172,59 @@ const SERVERS_DIALOG = [
 ];
 
 /* ═══════════════════════════════════════════════════════
-   DIALOGUE 4 — Tutoriel : L'onglet Objectifs
+   DIALOGUE 4 — Tutoriel : L'onglet Statistiques
+═══════════════════════════════════════════════════════ */
+const STATS_DIALOG = [
+  {
+    speaker: "gustave",
+    section: "Le verdict des chiffres",
+    text: "Bon, Élodie, dis-moi la vérité. On a eu un monde fou, mais est-ce que le tiroir-caisse suit la cadence ?",
+  },
+  {
+    speaker: "elodie",
+    text: "Regarde l'onglet Statistiques. J'ai affiché les 3 courbes interactives. En bleu, tes Revenus grimpent, en vert, tes Clients servis suivent... et en doré, ta Réputation décolle.",
+  },
+  {
+    speaker: "gustave",
+    text: "C'est un peu serré sur l'écran, non ? Je n'y vois pas grand-chose.",
+  },
+  {
+    speaker: "elodie",
+    text: "C'est parce que tu es en vue large. Utilise le Sélecteur 5 jours. Si tu veux analyser le rush de ce soir en détail, passe en Zoom 3 jours. C'est plus lisible, non ?",
+  },
+  {
+    speaker: "gustave",
+    text: "Ah oui, nettement. Et le verdict du jour ?",
+  },
+  {
+    speaker: "elodie",
+    text: "Voici ton Compte de résultat : revenus encaissés d'un côté, dépenses de l'autre... et le Résultat Net en gras. Le Panier moyen est en hausse : tes clients dépensent un peu plus que d'habitude, c'est bon signe !",
+  },
+  {
+    speaker: "gustave",
+    text: "Attends, c'est quoi ce gros cercle de couleurs à côté ?",
+  },
+  {
+    speaker: "elodie",
+    text: "C'est ton Camembert de répartition : il montre d'où viennent tes revenus par catégorie. Jette aussi un œil à la Masse salariale active — on voit le détail en €/h pour le chef, les commis et les serveurs.",
+  },
+  {
+    speaker: "gustave",
+    text: "Regarde le Tableau journalier en bas, on a eu des clients perdus ?",
+  },
+  {
+    speaker: "elodie",
+    text: "La ligne du jour est mise en avant pour que tu ne la rates pas. On a un Taux de service à 95% (la barre est bien verte), mais on a perdu 3 clients à cause de l'attente. Par rapport aux derniers jours, on reste dans notre meilleure moyenne.",
+  },
+  {
+    speaker: "gustave",
+    text: "95% ? C'est presque parfait. Allez, ferme-moi tout ça, demain on vise le 100% !",
+    isLast: true,
+  },
+];
+
+/* ═══════════════════════════════════════════════════════
+   DIALOGUE 5 — Tutoriel : L'onglet Objectifs
 ═══════════════════════════════════════════════════════ */
 const OBJECTIVES_DIALOG = [
   {
@@ -658,6 +710,16 @@ export function ServersDialog({ onDone }) {
     <DialogScene
       dialogData={SERVERS_DIALOG}
       ctaLabel="Gérer l'équipe !"
+      onDone={onDone}
+    />
+  );
+}
+
+export function StatsDialog({ onDone }) {
+  return (
+    <DialogScene
+      dialogData={STATS_DIALOG}
+      ctaLabel="On vise le 100% !"
       onDone={onDone}
     />
   );

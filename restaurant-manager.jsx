@@ -55,7 +55,7 @@ import { useObjectives }  from "./src/hooks/useObjectives.js";
 // ── Composants UI ──────────────────────────────────────
 import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/ui/index.js";
 import { Toasts } from "./src/components/system/Toasts.jsx";
-import { IntroDialog, TablesDialog, ServersDialog, ObjectivesDialog, StockDialog, MenuDialog, KitchenDialog } from "./src/components/IntroDialog.jsx";
+import { IntroDialog, TablesDialog, ServersDialog, StatsDialog, ObjectivesDialog, StockDialog, MenuDialog, KitchenDialog } from "./src/components/IntroDialog.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./src/views/TablesView.jsx";
@@ -943,6 +943,23 @@ export default function App(){
   const handleServersTutorialDone = () => {
     try { localStorage.setItem("servers_tutorial_seen", "1"); } catch(e) {}
     setShowServersTutorial(false);
+  };
+
+  /* ── Tutoriel Statistiques (déclenché à la première visite de l'onglet) ── */
+  const [showStatsTutorial, setShowStatsTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "stats" && isLoaded){
+      try {
+        if(!localStorage.getItem("stats_tutorial_seen")){
+          setShowStatsTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleStatsTutorialDone = () => {
+    try { localStorage.setItem("stats_tutorial_seen", "1"); } catch(e) {}
+    setShowStatsTutorial(false);
   };
 
   /* ── Tutoriel Objectifs (déclenché à la première visite de l'onglet) ── */
@@ -2075,6 +2092,7 @@ export default function App(){
       {showIntro            && isLoaded && <IntroDialog   onDone={handleIntroDone}/>}
       {showTablesTutorial   && isLoaded && <TablesDialog  onDone={handleTablesTutorialDone}/>}
       {showServersTutorial     && isLoaded && <ServersDialog    onDone={handleServersTutorialDone}/>}
+      {showStatsTutorial       && isLoaded && <StatsDialog      onDone={handleStatsTutorialDone}/>}
       {showObjectivesTutorial  && isLoaded && <ObjectivesDialog onDone={handleObjectivesTutorialDone}/>}
       {showStockTutorial       && isLoaded && <StockDialog      onDone={handleStockTutorialDone}/>}
       {showMenuTutorial     && isLoaded && <MenuDialog    onDone={handleMenuTutorialDone}/>}
