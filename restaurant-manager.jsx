@@ -57,6 +57,7 @@ import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/
 import { Toasts } from "./src/components/system/Toasts.jsx";
 import { IntroDialog, TablesDialog, ServersDialog, BankDialog, StatsDialog, ObjectivesDialog, StockDialog, MenuDialog, KitchenDialog } from "./src/components/IntroDialog.jsx";
 import { LevelUpModal } from "./src/components/LevelUpModal.jsx";
+import { QueueBar }    from "./src/components/QueueBar.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./src/views/TablesView.jsx";
@@ -1570,7 +1571,7 @@ export default function App(){
           :root { --gap: 10px; --pad: 12px; --card-radius: 12px; --font-base: 12px; }
           .desktop-nav { display: none !important; }
           .mobile-nav  { display: flex !important; }
-          .content-area { padding: 12px var(--pad) 90px !important; }
+          .content-area { padding: 12px var(--pad) 140px !important; }
           .badge-alert { font-size: 8px !important; width: 14px !important; height: 14px !important; }
           .hide-mobile { display: none !important; }
           .show-mobile { display: flex !important; }
@@ -1587,7 +1588,7 @@ export default function App(){
           :root { --gap: 12px; --pad: 16px; --card-radius: 14px; }
           .desktop-nav { display: flex !important; }
           .mobile-nav  { display: none !important; }
-          .content-area { padding: 16px var(--pad) !important; }
+          .content-area { padding: 16px var(--pad) 60px !important; }
           .hide-tablet { display: none !important; }
           .resp-grid { grid-template-columns: 1fr 1fr !important; }
           .resp-grid-3 { grid-template-columns: 1fr 1fr !important; }
@@ -1595,7 +1596,7 @@ export default function App(){
         @media (min-width: 1024px) {
           .desktop-nav { display: flex !important; }
           .mobile-nav  { display: none !important; }
-          .content-area { padding: 20px var(--pad) !important; }
+          .content-area { padding: 20px var(--pad) 60px !important; }
           .show-mobile { display: none !important; }
         }
       `}</style>
@@ -1885,6 +1886,16 @@ export default function App(){
         {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} bp={bp}/>}
         </div>
       </div>
+
+      {/* Barre file d'attente + cash — toujours visible */}
+      {isLoaded && (
+        <QueueBar
+          queue={queue}
+          cash={cash}
+          onTabChange={setTab}
+          isMobile={bp.isMobile}
+        />
+      )}
 
       {/* Nav Mobile fixe en bas */}
       <div className="mobile-nav" style={{
