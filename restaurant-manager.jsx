@@ -57,6 +57,7 @@ import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/
 import { Toasts } from "./src/components/system/Toasts.jsx";
 import { IntroDialog, TablesDialog, ServersDialog, BankDialog, StatsDialog, ObjectivesDialog, StockDialog, MenuDialog, KitchenDialog } from "./src/components/IntroDialog.jsx";
 import { LevelUpModal } from "./src/components/LevelUpModal.jsx";
+import { QueueBar }    from "./src/components/QueueBar.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./src/views/TablesView.jsx";
@@ -1570,7 +1571,7 @@ export default function App(){
           :root { --gap: 10px; --pad: 12px; --card-radius: 12px; --font-base: 12px; }
           .desktop-nav { display: none !important; }
           .mobile-nav  { display: flex !important; }
-          .content-area { padding: 12px var(--pad) 90px !important; }
+          .content-area { padding: 12px var(--pad) 60px !important; }
           .badge-alert { font-size: 8px !important; width: 14px !important; height: 14px !important; }
           .hide-mobile { display: none !important; }
           .show-mobile { display: flex !important; }
@@ -1587,7 +1588,7 @@ export default function App(){
           :root { --gap: 12px; --pad: 16px; --card-radius: 14px; }
           .desktop-nav { display: flex !important; }
           .mobile-nav  { display: none !important; }
-          .content-area { padding: 16px var(--pad) !important; }
+          .content-area { padding: 16px var(--pad) 60px !important; }
           .hide-tablet { display: none !important; }
           .resp-grid { grid-template-columns: 1fr 1fr !important; }
           .resp-grid-3 { grid-template-columns: 1fr 1fr !important; }
@@ -1595,10 +1596,13 @@ export default function App(){
         @media (min-width: 1024px) {
           .desktop-nav { display: flex !important; }
           .mobile-nav  { display: none !important; }
-          .content-area { padding: 20px var(--pad) !important; }
+          .content-area { padding: 20px var(--pad) 60px !important; }
           .show-mobile { display: none !important; }
         }
       `}</style>
+
+      {/* Header + Nav — sticky top */}
+      <div style={{position:"sticky",top:0,zIndex:1000,background:C.surface}}>
 
       {/* Header — 2 lignes */}
       <div style={{
@@ -1872,28 +1876,13 @@ export default function App(){
         })}
       </div>
 
-      {/* Content */}
-      <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
-        <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
-        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} restoLvN={rl.l} stock={stock} bp={bp}/>}
-        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
-        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} bp={bp}/>}
-        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats} bp={bp}/>}
-        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
-        {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
-        {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
-        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} bp={bp}/>}
-        </div>
-      </div>
-
-      {/* Nav Mobile fixe en bas */}
+      {/* Nav Mobile — fixe en haut (dans le wrapper sticky) */}
       <div className="mobile-nav" style={{
-        position:"fixed",bottom:0,left:0,right:0,zIndex:900,
         background:C.surface,
-        borderTop:`1px solid ${C.border}`,
-        boxShadow:"0 -4px 24px rgba(23,18,14,0.12), 0 -1px 4px rgba(23,18,14,0.06)",
+        borderBottom:`1px solid ${C.border}`,
+        boxShadow:"0 2px 8px rgba(23,18,14,0.07)",
         justifyContent:"space-around",alignItems:"stretch",
-        paddingBottom:"env(safe-area-inset-bottom,6px)",
+        paddingTop:"env(safe-area-inset-top,0px)",
       }}>
         {TABS.map(t=>{
           const readyChallenges=(todayChallenges||[]).filter(ch=>{
@@ -1913,22 +1902,21 @@ export default function App(){
               border:"none",
               display:"flex",flexDirection:"column",alignItems:"center",
               justifyContent:"center",
-              padding:"9px 2px 5px",
+              padding:"7px 2px 8px",
               cursor:"pointer",position:"relative",
-              borderTop:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
-              gap:4,
+              borderBottom:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
+              gap:3,
               transition:"background 0.15s",
             }}>
-              {/* Icon container */}
               <div style={{
-                width:34,height:28,
+                width:34,height:26,
                 display:"flex",alignItems:"center",justifyContent:"center",
                 borderRadius:9,
                 background:active?C.green+"14":"transparent",
                 transition:"background 0.15s",
               }}>
                 <span style={{
-                  fontSize:18,lineHeight:1,
+                  fontSize:17,lineHeight:1,
                   filter:active?"none":"grayscale(0.5) opacity(0.55)",
                   transition:"filter 0.15s",
                 }}>{t.icon}</span>
@@ -1936,27 +1924,48 @@ export default function App(){
               <span style={{
                 fontSize:9,fontWeight:active?700:400,fontFamily:F.body,
                 color:active?C.green:C.muted,
-                whiteSpace:"nowrap",letterSpacing:"0.01em",
-                lineHeight:1,
-              }}>
-                {t.label}
-              </span>
+                whiteSpace:"nowrap",letterSpacing:"0.01em",lineHeight:1,
+              }}>{t.label}</span>
               {badge>0&&(
                 <span style={{
-                  position:"absolute",top:5,right:"calc(50% - 18px)",
+                  position:"absolute",top:4,right:"calc(50% - 18px)",
                   background:C.red,color:"#fff",borderRadius:"50%",
                   width:15,height:15,fontSize:8,fontWeight:800,
                   display:"inline-flex",alignItems:"center",justifyContent:"center",
-                  boxShadow:`0 1px 4px ${C.red}55`,
-                  animation:"popIn 0.3s ease",
-                }}>
-                  {badge}
-                </span>
+                  boxShadow:`0 1px 4px ${C.red}55`,animation:"popIn 0.3s ease",
+                }}>{badge}</span>
               )}
             </button>
           );
         })}
       </div>
+
+      </div>{/* fin wrapper sticky */}
+
+      {/* Content */}
+      <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
+        <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
+        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} restoLvN={rl.l} stock={stock} bp={bp}/>}
+        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
+        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} bp={bp}/>}
+        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats} bp={bp}/>}
+        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
+        {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
+        {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
+        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} bp={bp}/>}
+        </div>
+      </div>
+
+      {/* Barre file d'attente + cash — toujours visible */}
+      {isLoaded && (
+        <QueueBar
+          queue={queue}
+          cash={cash}
+          onTabChange={setTab}
+          isMobile={bp.isMobile}
+        />
+      )}
+
 
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
       {showBank&&<BankModal onClose={()=>setShowBank(false)} cash={cash} loan={loan}
