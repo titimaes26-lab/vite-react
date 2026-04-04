@@ -56,6 +56,7 @@ import { useObjectives }  from "./src/hooks/useObjectives.js";
 import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/ui/index.js";
 import { Toasts } from "./src/components/system/Toasts.jsx";
 import { IntroDialog, TablesDialog, ServersDialog, BankDialog, StatsDialog, ObjectivesDialog, StockDialog, MenuDialog, KitchenDialog } from "./src/components/IntroDialog.jsx";
+import { LevelUpModal } from "./src/components/LevelUpModal.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./src/views/TablesView.jsx";
@@ -1050,6 +1051,7 @@ export default function App(){
   ]);
   const [showLedger,setShowLedger]=useState(false);
   const [showBank,setShowBank]=useState(false);
+  const [levelUpData,setLevelUpData]=useState(null);
   const [showBankTutorial,setShowBankTutorial]=useState(false);
   const openBank = () => {
     setShowBank(true);
@@ -1431,13 +1433,7 @@ export default function App(){
       const after=restoLv(prev+xp);
       if(after.l>before.l){
         const nd=RESTO_LVL[after.l];
-        setTimeout(()=>addToast({
-          icon:nd.icon,
-          title:`Niveau ${nd.l} — ${nd.name} !`,
-          msg:`🎉 ${nd.tables} tables débloquées`,
-          color:nd.color,
-          tab:"tables",
-        }),50);
+        setTimeout(()=>setLevelUpData(nd), 50);
         setObjStats(s=>({...s,restoLevel:after.l}));
       }
       return prev+xp;
@@ -2100,6 +2096,7 @@ export default function App(){
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
 
       {/* Dialogues tutoriels — affichés une seule fois chacun */}
+      {levelUpData && <LevelUpModal levelData={levelUpData} onClose={()=>setLevelUpData(null)}/>}
       {showBankTutorial                  && <BankDialog    onDone={handleBankTutorialDone}/>}
       {showIntro            && isLoaded && <IntroDialog   onDone={handleIntroDone}/>}
       {showTablesTutorial   && isLoaded && <TablesDialog  onDone={handleTablesTutorialDone}/>}
