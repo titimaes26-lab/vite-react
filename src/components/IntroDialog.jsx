@@ -172,7 +172,59 @@ const SERVERS_DIALOG = [
 ];
 
 /* ═══════════════════════════════════════════════════════
-   DIALOGUE 4 — Tutoriel : L'onglet Stock
+   DIALOGUE 4 — Tutoriel : L'onglet Objectifs
+═══════════════════════════════════════════════════════ */
+const OBJECTIVES_DIALOG = [
+  {
+    speaker: "gustave",
+    section: "La chasse aux trophées",
+    text: "Dis-moi Élodie, j'ai l'impression d'avoir abattu un boulot de titan aujourd'hui. On n'a rien pour marquer le coup ?",
+  },
+  {
+    speaker: "elodie",
+    text: "Regarde l'onglet Objectifs, Gustave. Tu vois ce petit badge rouge qui clignote ? Ça ne veut pas dire que le four brûle, ça veut dire que tu as des récompenses qui dorment.",
+  },
+  {
+    speaker: "gustave",
+    text: "Ah ! J'adore quand ça brille. On a quoi au menu des gratifications ?",
+  },
+  {
+    speaker: "elodie",
+    text: "On a tes Défis quotidiens. Il y en a 3 chaque jour, tirés au sort. Tu as déjà validé « Service sans faute » et « Maître des pâtes ». Les jalons sur la barre de progression sont passés à l'or.",
+  },
+  {
+    speaker: "gustave",
+    text: "Magnifique ! Et ça me rapporte quoi, concrètement ? Ma banquière va m'aimer davantage ?",
+  },
+  {
+    speaker: "elodie",
+    text: "Absolument. Chaque objectif complété te donne des espèces sonnantes et trébuchantes, mais aussi de l'XP restaurant pour monter en grade. Mais ça ne tombe pas tout seul dans ta poche.",
+  },
+  {
+    speaker: "gustave",
+    text: "Ah bon ? Il y a un piège ?",
+  },
+  {
+    speaker: "elodie",
+    text: "Pas de piège, juste un clic. Il faut que tu cliques sur Récupérer pour encaisser tes gains. Sinon, c'est comme laisser un pourboire sur une table : ça finit par disparaître au prochain renouvellement des défis.",
+  },
+  {
+    speaker: "gustave",
+    text: "Hors de question de laisser un centime ! Et pour le troisième défi ? Celui qui n'est pas encore doré ?",
+  },
+  {
+    speaker: "elodie",
+    text: "Si tu gères bien ton stock, le badge rouge t'avertira dès que la récompense sera prête. À toi de surveiller et de récupérer avant que le défi expire.",
+  },
+  {
+    speaker: "gustave",
+    text: "Allez, je m'y mets. Clique-moi sur ce bouton Récupérer, je veux entendre le bruit des pièces !",
+    isLast: true,
+  },
+];
+
+/* ═══════════════════════════════════════════════════════
+   DIALOGUE 5 — Tutoriel : L'onglet Stock
 ═══════════════════════════════════════════════════════ */
 const STOCK_DIALOG = [
   {
@@ -606,6 +658,16 @@ export function ServersDialog({ onDone }) {
     <DialogScene
       dialogData={SERVERS_DIALOG}
       ctaLabel="Gérer l'équipe !"
+      onDone={onDone}
+    />
+  );
+}
+
+export function ObjectivesDialog({ onDone }) {
+  return (
+    <DialogScene
+      dialogData={OBJECTIVES_DIALOG}
+      ctaLabel="On réclame nos pièces !"
       onDone={onDone}
     />
   );
