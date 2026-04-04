@@ -9,19 +9,17 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
   const [now, setNow] = useState(Date.now());
   const rafRef = useRef(null);
 
-  /* Mise à jour fluide de l'horloge pour les barres de patience */
   useEffect(() => {
     const tick = () => { setNow(Date.now()); rafRef.current = requestAnimationFrame(tick); };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
-  const cashColor  = cash < 200 ? C.red : cash < 800 ? C.amber : C.green;
-  const queueCount = queue.length;
-  const urgentCount = queue.filter(g => {
-    const pct = Math.max(0, (g.expiresAt - now) / (g.patMax * 1000)) * 100;
-    return pct < 30;
-  }).length;
+  const cashColor   = cash < 200 ? C.red : cash < 800 ? C.amber : C.green;
+  const queueCount  = queue.length;
+  const urgentCount = queue.filter(g =>
+    Math.max(0, (g.expiresAt - now) / (g.patMax * 1000)) * 100 < 30
+  ).length;
 
   return (
     <div style={{
@@ -29,10 +27,9 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
       bottom: 0,
       left: 0, right: 0,
       zIndex: 850,
-      background: "rgba(20,15,10,0.93)",
-      backdropFilter: "blur(10px)",
-      borderTop: `1px solid rgba(255,255,255,0.08)`,
-      boxShadow: "0 -4px 20px rgba(0,0,0,0.35)",
+      background: "#ffffff",
+      borderTop: `2px solid ${C.border}`,
+      boxShadow: "0 -2px 12px rgba(23,18,14,0.08), 0 -1px 3px rgba(23,18,14,0.04)",
       display: "flex",
       alignItems: "stretch",
       minHeight: 44,
@@ -43,7 +40,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
         display: "flex", alignItems: "center", gap: 6,
         padding: "0 14px",
         flexShrink: 0,
-        borderRight: "1px solid rgba(255,255,255,0.09)",
+        borderRight: `1px solid ${C.border}`,
         minWidth: isMobile ? 100 : 130,
       }}>
         <span style={{ fontSize: 13 }}>💰</span>
@@ -59,17 +56,17 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
         </span>
       </div>
 
-      {/* ── Séparateur titre file ───────────────────────── */}
+      {/* ── Titre file d'attente ────────────────────────── */}
       <div style={{
         display: "flex", alignItems: "center", gap: 6,
         padding: "0 10px 0 12px",
         flexShrink: 0,
-        borderRight: "1px solid rgba(255,255,255,0.09)",
+        borderRight: `1px solid ${C.border}`,
       }}>
         <span style={{ fontSize: 13 }}>👥</span>
         <span style={{
           fontSize: 10, fontWeight: 700,
-          color: urgentCount > 0 ? C.red : queueCount > 0 ? C.amber : "rgba(255,255,255,0.35)",
+          color: urgentCount > 0 ? C.red : queueCount > 0 ? C.amber : C.muted,
           fontFamily: F.body,
           whiteSpace: "nowrap",
         }}>
@@ -101,9 +98,9 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
       }}>
         {queue.length === 0 ? (
           <span style={{
-            fontSize: 11, color: "rgba(255,255,255,0.2)",
+            fontSize: 11, color: C.muted,
             fontFamily: F.body, fontStyle: "italic",
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap", opacity: 0.6,
           }}>
             Aucun client en attente
           </span>
@@ -121,8 +118,8 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
                 title={`${g.name} — groupe de ${g.size} — ${Math.ceil(remaining / 1000)}s`}
                 style={{
                   display: "flex", alignItems: "center", gap: 5,
-                  background: isUrgent ? `${C.red}18` : "rgba(255,255,255,0.06)",
-                  border: `1px solid ${isUrgent ? C.red + "44" : "rgba(255,255,255,0.08)"}`,
+                  background: isUrgent ? C.redP : C.bg,
+                  border: `1px solid ${isUrgent ? C.red + "55" : C.border}`,
                   borderRadius: 8,
                   padding: "4px 8px",
                   flexShrink: 0,
@@ -135,7 +132,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
                 <span style={{ fontSize: 14, lineHeight: 1 }}>{g.mood?.e ?? "😐"}</span>
                 <span style={{
                   fontSize: 10, fontWeight: 700,
-                  color: "rgba(255,255,255,0.7)",
+                  color: C.ink,
                   fontFamily: F.body,
                 }}>
                   ×{g.size}
@@ -145,7 +142,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
                 <div style={{
                   width: isMobile ? 36 : 48,
                   height: 4,
-                  background: "rgba(255,255,255,0.12)",
+                  background: C.border,
                   borderRadius: 99,
                   overflow: "hidden",
                   flexShrink: 0,
@@ -162,7 +159,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
                 {/* Secondes restantes */}
                 <span style={{
                   fontSize: 9,
-                  color: isUrgent ? C.red : "rgba(255,255,255,0.35)",
+                  color: isUrgent ? C.red : C.muted,
                   fontFamily: F.body,
                   fontWeight: isUrgent ? 700 : 400,
                   minWidth: 18,
@@ -179,10 +176,8 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
       <style>{`
         @keyframes queuePulse {
           0%,100% { opacity: 1; }
-          50%     { opacity: 0.6; }
+          50%     { opacity: 0.55; }
         }
-        /* Masquer la scrollbar horizontale */
-        .queue-bar-scroll::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );
