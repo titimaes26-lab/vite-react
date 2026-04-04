@@ -55,7 +55,7 @@ import { useObjectives }  from "./src/hooks/useObjectives.js";
 // ── Composants UI ──────────────────────────────────────
 import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/ui/index.js";
 import { Toasts } from "./src/components/system/Toasts.jsx";
-import { IntroDialog } from "./src/components/IntroDialog.jsx";
+import { IntroDialog, TablesDialog, ServersDialog, BankDialog, StatsDialog, ObjectivesDialog, StockDialog, MenuDialog, KitchenDialog } from "./src/components/IntroDialog.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./src/views/TablesView.jsx";
@@ -901,19 +901,134 @@ export default function App(){
   const bp=useBreakpoint();
   const _today = new Date().toLocaleDateString("fr-FR");
 
-  /* ── Dialogue d'introduction (premier lancement) ── */
+  /* ── Dialogues tutoriels (premier lancement) ── */
   const [showIntro, setShowIntro] = useState(()=>{
     try { return !localStorage.getItem("intro_seen"); } catch(e) { return false; }
   });
+  const [showTablesTutorial, setShowTablesTutorial] = useState(false);
+
   const handleIntroDone = () => {
     try { localStorage.setItem("intro_seen", "1"); } catch(e) {}
     setShowIntro(false);
+    // Enchaîner avec le tutoriel Tables si jamais vu
+    try {
+      if (!localStorage.getItem("tables_tutorial_seen")) {
+        setTimeout(() => setShowTablesTutorial(true), 400);
+      }
+    } catch(e) {}
+  };
+
+  const handleTablesTutorialDone = () => {
+    try { localStorage.setItem("tables_tutorial_seen", "1"); } catch(e) {}
+    setShowTablesTutorial(false);
   };
 
   /* ── États principaux — initialisés avec les valeurs par défaut ── */
   /* La sauvegarde est chargée de façon asynchrone dans le useEffect  */
   const [isLoaded, setIsLoaded] = useState(false);
   const [tab,setTab]=useState("tables");
+
+  /* ── Tutoriel Serveurs (déclenché à la première visite de l'onglet) ── */
+  const [showServersTutorial, setShowServersTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "servers" && isLoaded){
+      try {
+        if(!localStorage.getItem("servers_tutorial_seen")){
+          setShowServersTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleServersTutorialDone = () => {
+    try { localStorage.setItem("servers_tutorial_seen", "1"); } catch(e) {}
+    setShowServersTutorial(false);
+  };
+
+  /* ── Tutoriel Statistiques (déclenché à la première visite de l'onglet) ── */
+  const [showStatsTutorial, setShowStatsTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "stats" && isLoaded){
+      try {
+        if(!localStorage.getItem("stats_tutorial_seen")){
+          setShowStatsTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleStatsTutorialDone = () => {
+    try { localStorage.setItem("stats_tutorial_seen", "1"); } catch(e) {}
+    setShowStatsTutorial(false);
+  };
+
+  /* ── Tutoriel Objectifs (déclenché à la première visite de l'onglet) ── */
+  const [showObjectivesTutorial, setShowObjectivesTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "objectives" && isLoaded){
+      try {
+        if(!localStorage.getItem("objectives_tutorial_seen")){
+          setShowObjectivesTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleObjectivesTutorialDone = () => {
+    try { localStorage.setItem("objectives_tutorial_seen", "1"); } catch(e) {}
+    setShowObjectivesTutorial(false);
+  };
+
+  /* ── Tutoriel Stock (déclenché à la première visite de l'onglet) ── */
+  const [showStockTutorial, setShowStockTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "stock" && isLoaded){
+      try {
+        if(!localStorage.getItem("stock_tutorial_seen")){
+          setShowStockTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleStockTutorialDone = () => {
+    try { localStorage.setItem("stock_tutorial_seen", "1"); } catch(e) {}
+    setShowStockTutorial(false);
+  };
+
+  /* ── Tutoriel Menu (déclenché à la première visite de l'onglet) ── */
+  const [showMenuTutorial, setShowMenuTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "menu" && isLoaded){
+      try {
+        if(!localStorage.getItem("menu_tutorial_seen")){
+          setShowMenuTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleMenuTutorialDone = () => {
+    try { localStorage.setItem("menu_tutorial_seen", "1"); } catch(e) {}
+    setShowMenuTutorial(false);
+  };
+
+  /* ── Tutoriel Cuisine (déclenché à la première visite de l'onglet) ── */
+  const [showKitchenTutorial, setShowKitchenTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "cuisine" && isLoaded){
+      try {
+        if(!localStorage.getItem("kitchen_tutorial_seen")){
+          setShowKitchenTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleKitchenTutorialDone = () => {
+    try { localStorage.setItem("kitchen_tutorial_seen", "1"); } catch(e) {}
+    setShowKitchenTutorial(false);
+  };
   const [tables,setTables]=useState(TABLES0);
   const [servers,setServers]=useState(SERVERS0);
   const [queue,setQueue]=useState(()=>{
@@ -935,6 +1050,17 @@ export default function App(){
   ]);
   const [showLedger,setShowLedger]=useState(false);
   const [showBank,setShowBank]=useState(false);
+  const [showBankTutorial,setShowBankTutorial]=useState(false);
+  const openBank = () => {
+    setShowBank(true);
+    try {
+      if(!localStorage.getItem("bank_tutorial_seen")){
+        localStorage.setItem("bank_tutorial_seen","1");
+        setTimeout(()=>setShowBankTutorial(true),300);
+      }
+    } catch(e) {}
+  };
+  const handleBankTutorialDone = () => setShowBankTutorial(false);
   const [loan,setLoan]=useState(null);
   const [supplierMode,setSupplierMode]=useState("premium");
   const [pendingDeliveries,setPendingDeliveries]=useState([]);
@@ -1648,7 +1774,7 @@ export default function App(){
                 🏦 −{loan.remaining.toFixed(0)}€
               </div>
             )}
-            <button onClick={()=>setShowBank(true)} title="Banque" style={{
+            <button onClick={openBank} title="Banque" style={{
               padding:"6px 12px",fontSize:12,fontWeight:700,
               background:loan?C.amber:C.navy,
               border:"none",
@@ -1973,8 +2099,16 @@ export default function App(){
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
 
-      {/* Dialogue d'introduction — affiché une seule fois */}
-      {showIntro && isLoaded && <IntroDialog onDone={handleIntroDone}/>}
+      {/* Dialogues tutoriels — affichés une seule fois chacun */}
+      {showBankTutorial                  && <BankDialog    onDone={handleBankTutorialDone}/>}
+      {showIntro            && isLoaded && <IntroDialog   onDone={handleIntroDone}/>}
+      {showTablesTutorial   && isLoaded && <TablesDialog  onDone={handleTablesTutorialDone}/>}
+      {showServersTutorial     && isLoaded && <ServersDialog    onDone={handleServersTutorialDone}/>}
+      {showStatsTutorial       && isLoaded && <StatsDialog      onDone={handleStatsTutorialDone}/>}
+      {showObjectivesTutorial  && isLoaded && <ObjectivesDialog onDone={handleObjectivesTutorialDone}/>}
+      {showStockTutorial       && isLoaded && <StockDialog      onDone={handleStockTutorialDone}/>}
+      {showMenuTutorial     && isLoaded && <MenuDialog    onDone={handleMenuTutorialDone}/>}
+      {showKitchenTutorial  && isLoaded && <KitchenDialog onDone={handleKitchenTutorialDone}/>}
     </div>
   );
 }
