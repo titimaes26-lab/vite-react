@@ -172,7 +172,63 @@ const SERVERS_DIALOG = [
 ];
 
 /* ═══════════════════════════════════════════════════════
-   DIALOGUE 4 — Tutoriel : L'onglet Menu
+   DIALOGUE 4 — Tutoriel : L'onglet Stock
+═══════════════════════════════════════════════════════ */
+const STOCK_DIALOG = [
+  {
+    speaker: "gustave",
+    section: "Le coup de feu de 19h",
+    text: "Élodie, j'ai un doute affreux. J'ai l'impression qu'on vide le frigo plus vite qu'on ne le remplit. On en est où ?",
+  },
+  {
+    speaker: "elodie",
+    text: "Respire, Gustave. Je bascule l'écran en 📊 Vue Graphique. Regarde ces barres horizontales : c'est trié par urgence. Plus la barre est courte, plus on approche de la catastrophe culinaire.",
+  },
+  {
+    speaker: "gustave",
+    text: "C'est quoi ce gros bloc qui brille avec une boule de cristal ?",
+  },
+  {
+    speaker: "elodie",
+    text: "C'est le bloc 🔮. Il calcule combien de repas on peut sortir avec ce qu'il reste. Pour les tomates cerises, on est en ⛔ Rouge : moins de 3 repas possibles. Autant dire qu'on est à sec.",
+  },
+  {
+    speaker: "gustave",
+    text: "Panique à bord ! Et pour le reste ?",
+  },
+  {
+    speaker: "elodie",
+    text: "Le basilic est en ⚠ Orange, 7 ou 8 plats possibles. La mozzarella est au ✓ Vert, on pourrait nourrir un régiment. Plus de 10 repas garantis.",
+  },
+  {
+    speaker: "gustave",
+    text: "Non, laisse comme ça, le graphique me fait peur mais il est clair. Il faut commander. Vite !",
+  },
+  {
+    speaker: "elodie",
+    text: "J'ai le doigt sur le bouton 🛒 Commander. Le système va cibler les ingrédients les plus critiques. On joue la carte de l'économie ou de la survie ?",
+  },
+  {
+    speaker: "gustave",
+    text: "C'est-à-dire ?",
+  },
+  {
+    speaker: "elodie",
+    text: "Soit le 🚚 Fournisseur Local : −20% sur la note, mais il faut attendre 2 minutes. Soit le ⚡ Grossiste Premium : prix fort, mais livraison immédiate.",
+  },
+  {
+    speaker: "gustave",
+    text: "2 minutes ? En cuisine, c'est une éternité ! Mais pour 20% d'économie, je vais faire patienter le client avec une mise en bouche. Va pour le local !",
+  },
+  {
+    speaker: "elodie",
+    text: "C'est validé. En attendant, je te repasse les stocks en ☰ Vue Liste — plus compact. Pour tout le reste, on est larges. Trie par Catégorie pour t'y retrouver.",
+    isLast: true,
+  },
+];
+
+/* ═══════════════════════════════════════════════════════
+   DIALOGUE 5 — Tutoriel : L'onglet Menu
 ═══════════════════════════════════════════════════════ */
 const MENU_DIALOG = [
   {
@@ -550,6 +606,16 @@ export function ServersDialog({ onDone }) {
     <DialogScene
       dialogData={SERVERS_DIALOG}
       ctaLabel="Gérer l'équipe !"
+      onDone={onDone}
+    />
+  );
+}
+
+export function StockDialog({ onDone }) {
+  return (
+    <DialogScene
+      dialogData={STOCK_DIALOG}
+      ctaLabel="On gère le frigo !"
       onDone={onDone}
     />
   );
