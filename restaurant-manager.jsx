@@ -948,7 +948,7 @@ export default function App(){
   /* ── Tutoriel Cuisine (déclenché à la première visite de l'onglet) ── */
   const [showKitchenTutorial, setShowKitchenTutorial] = useState(false);
   useEffect(()=>{
-    if(tab === "kitchen" && isLoaded){
+    if(tab === "cuisine" && isLoaded){
       try {
         if(!localStorage.getItem("kitchen_tutorial_seen")){
           setShowKitchenTutorial(true);
