@@ -55,7 +55,7 @@ import { useObjectives }  from "./src/hooks/useObjectives.js";
 // ── Composants UI ──────────────────────────────────────
 import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/ui/index.js";
 import { Toasts } from "./src/components/system/Toasts.jsx";
-import { IntroDialog, TablesDialog, ServersDialog } from "./src/components/IntroDialog.jsx";
+import { IntroDialog, TablesDialog, ServersDialog, KitchenDialog } from "./src/components/IntroDialog.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./src/views/TablesView.jsx";
@@ -943,6 +943,23 @@ export default function App(){
   const handleServersTutorialDone = () => {
     try { localStorage.setItem("servers_tutorial_seen", "1"); } catch(e) {}
     setShowServersTutorial(false);
+  };
+
+  /* ── Tutoriel Cuisine (déclenché à la première visite de l'onglet) ── */
+  const [showKitchenTutorial, setShowKitchenTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "kitchen" && isLoaded){
+      try {
+        if(!localStorage.getItem("kitchen_tutorial_seen")){
+          setShowKitchenTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleKitchenTutorialDone = () => {
+    try { localStorage.setItem("kitchen_tutorial_seen", "1"); } catch(e) {}
+    setShowKitchenTutorial(false);
   };
   const [tables,setTables]=useState(TABLES0);
   const [servers,setServers]=useState(SERVERS0);
@@ -2007,6 +2024,7 @@ export default function App(){
       {showIntro            && isLoaded && <IntroDialog   onDone={handleIntroDone}/>}
       {showTablesTutorial   && isLoaded && <TablesDialog  onDone={handleTablesTutorialDone}/>}
       {showServersTutorial  && isLoaded && <ServersDialog onDone={handleServersTutorialDone}/>}
+      {showKitchenTutorial  && isLoaded && <KitchenDialog onDone={handleKitchenTutorialDone}/>}
     </div>
   );
 }

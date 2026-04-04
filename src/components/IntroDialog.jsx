@@ -172,6 +172,42 @@ const SERVERS_DIALOG = [
 ];
 
 /* ═══════════════════════════════════════════════════════
+   DIALOGUE 4 — Tutoriel : L'onglet Cuisine
+═══════════════════════════════════════════════════════ */
+const KITCHEN_DIALOG = [
+  {
+    speaker: "gustave",
+    section: "Le Feu Sacré... et la Rigueur",
+    text: "Regardez-moi cette bête, Patron ! Elle n'attend que mon talent. Pour lancer la magie, il suffit de cliquer sur un plat ou sur « Tout démarrer » pour embraser tous les brûleurs d'un coup !",
+  },
+  {
+    speaker: "elodie",
+    text: "C'est surtout une question d'optimisation d'espace. Un brûleur vide est un brûleur qui nous coûte de l'argent. Remplissez les feux libres, mais ne vous laissez pas déborder par votre ego, Gustave.",
+  },
+  {
+    speaker: "gustave",
+    text: "Déborder ? Jamais ! Dès que le petit ✅ PRÊT s'affiche sur chaque plat d'une même commande, c'est l'heure du spectacle ! On clique sur 🍽 Servir et la salle s'illumine de saveurs !",
+  },
+  {
+    speaker: "elodie",
+    text: "Et surtout, le client passe en phase repas, ce qui nous rapproche enfin du moment où il paye l'addition. C'est l'étape cruciale.",
+  },
+  {
+    speaker: "gustave",
+    text: "C'est aussi l'étape de ma gloire personnelle ! Chaque plat envoyé me rapporte +12 XP. Je deviens chaque jour plus légendaire !",
+  },
+  {
+    speaker: "elodie",
+    text: "N'oubliez pas vos commis, Gustave. Ils ne font pas ça pour la gloire, mais ils apprennent à vos côtés. Ils gagnent 40% de votre expérience. S'ils progressent, l'établissement progresse.",
+  },
+  {
+    speaker: "gustave",
+    text: "40% ? C'est généreux ! Allez, Patron, assez de théorie ! Les brûleurs sont froids, les clients ont faim et mon talent trépigne d'impatience... On lance la première commande ?",
+    isLast: true,
+  },
+];
+
+/* ═══════════════════════════════════════════════════════
    COMPOSANT GÉNÉRIQUE — DialogScene
 ═══════════════════════════════════════════════════════ */
 function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
@@ -470,6 +506,16 @@ export function ServersDialog({ onDone }) {
     <DialogScene
       dialogData={SERVERS_DIALOG}
       ctaLabel="Gérer l'équipe !"
+      onDone={onDone}
+    />
+  );
+}
+
+export function KitchenDialog({ onDone }) {
+  return (
+    <DialogScene
+      dialogData={KITCHEN_DIALOG}
+      ctaLabel="On allume les feux !"
       onDone={onDone}
     />
   );
