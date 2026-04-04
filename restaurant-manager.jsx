@@ -55,7 +55,7 @@ import { useObjectives }  from "./src/hooks/useObjectives.js";
 // ── Composants UI ──────────────────────────────────────
 import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/ui/index.js";
 import { Toasts } from "./src/components/system/Toasts.jsx";
-import { IntroDialog, TablesDialog, ServersDialog, StatsDialog, ObjectivesDialog, StockDialog, MenuDialog, KitchenDialog } from "./src/components/IntroDialog.jsx";
+import { IntroDialog, TablesDialog, ServersDialog, BankDialog, StatsDialog, ObjectivesDialog, StockDialog, MenuDialog, KitchenDialog } from "./src/components/IntroDialog.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./src/views/TablesView.jsx";
@@ -1050,6 +1050,17 @@ export default function App(){
   ]);
   const [showLedger,setShowLedger]=useState(false);
   const [showBank,setShowBank]=useState(false);
+  const [showBankTutorial,setShowBankTutorial]=useState(false);
+  const openBank = () => {
+    setShowBank(true);
+    try {
+      if(!localStorage.getItem("bank_tutorial_seen")){
+        localStorage.setItem("bank_tutorial_seen","1");
+        setTimeout(()=>setShowBankTutorial(true),300);
+      }
+    } catch(e) {}
+  };
+  const handleBankTutorialDone = () => setShowBankTutorial(false);
   const [loan,setLoan]=useState(null);
   const [supplierMode,setSupplierMode]=useState("premium");
   const [pendingDeliveries,setPendingDeliveries]=useState([]);
@@ -1763,7 +1774,7 @@ export default function App(){
                 🏦 −{loan.remaining.toFixed(0)}€
               </div>
             )}
-            <button onClick={()=>setShowBank(true)} title="Banque" style={{
+            <button onClick={openBank} title="Banque" style={{
               padding:"6px 12px",fontSize:12,fontWeight:700,
               background:loan?C.amber:C.navy,
               border:"none",
@@ -2089,6 +2100,7 @@ export default function App(){
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
 
       {/* Dialogues tutoriels — affichés une seule fois chacun */}
+      {showBankTutorial                  && <BankDialog    onDone={handleBankTutorialDone}/>}
       {showIntro            && isLoaded && <IntroDialog   onDone={handleIntroDone}/>}
       {showTablesTutorial   && isLoaded && <TablesDialog  onDone={handleTablesTutorialDone}/>}
       {showServersTutorial     && isLoaded && <ServersDialog    onDone={handleServersTutorialDone}/>}

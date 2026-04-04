@@ -172,7 +172,47 @@ const SERVERS_DIALOG = [
 ];
 
 /* ═══════════════════════════════════════════════════════
-   DIALOGUE 4 — Tutoriel : L'onglet Statistiques
+   DIALOGUE 4 — Tutoriel : La Banque
+═══════════════════════════════════════════════════════ */
+const BANK_DIALOG = [
+  {
+    speaker: "gustave",
+    section: "Le levier financier",
+    text: "Élodie, j'ai envie de voir grand pour la nouvelle terrasse, mais mon épargne est un peu... timide. On a des options pour booster le budget ?",
+  },
+  {
+    speaker: "elodie",
+    text: "On appelle ça le levier financier, Gustave. J'ai 3 options de prêts bancaires prêtes : le Petit prêt (1 500 €) pour les bricoles, le Standard (4 000 €) pour du sérieux, et le Grand prêt (9 000 €) si tu veux vraiment refaire la déco du sol au plafond.",
+  },
+  {
+    speaker: "gustave",
+    text: "9 000 € ! Ça en fait des pizzas. Et je rembourse comment ? Je n'ai pas envie d'avoir un huissier en cuisine.",
+  },
+  {
+    speaker: "elodie",
+    text: "C'est indolore. Le remboursement est automatique par mensualités horaires : on prélève un petit peu chaque heure sur tes revenus. Règle d'or : un seul prêt actif à la fois. Pour en prendre un autre, il faudra d'abord faire un remboursement anticipé.",
+  },
+  {
+    speaker: "gustave",
+    text: "D'accord, je vais réfléchir. Et niveau charges ? Les salaires, ça donne quoi ce soir ?",
+  },
+  {
+    speaker: "elodie",
+    text: "Pas de panique, c'est géré. Les salaires sont débités automatiquement toutes les heures réelles. Je ne paie que les personnels actifs. Ton commis que tu n'as pas encore débloqué ? Il ne nous coûte pas un centime.",
+  },
+  {
+    speaker: "gustave",
+    text: "Heureusement ! J'avais peur de payer des gens qui regardent les mouches voler.",
+  },
+  {
+    speaker: "elodie",
+    text: "Pas ici. Si le staff travaille, l'argent sort. Si tu renvoies tout le monde chez soi, le compteur s'arrête. C'est du flux tendu, Gustave, exactement comme ta cuisson !",
+    isLast: true,
+  },
+];
+
+/* ═══════════════════════════════════════════════════════
+   DIALOGUE 5 — Tutoriel : L'onglet Statistiques
 ═══════════════════════════════════════════════════════ */
 const STATS_DIALOG = [
   {
@@ -710,6 +750,16 @@ export function ServersDialog({ onDone }) {
     <DialogScene
       dialogData={SERVERS_DIALOG}
       ctaLabel="Gérer l'équipe !"
+      onDone={onDone}
+    />
+  );
+}
+
+export function BankDialog({ onDone }) {
+  return (
+    <DialogScene
+      dialogData={BANK_DIALOG}
+      ctaLabel="On gère le budget !"
       onDone={onDone}
     />
   );
