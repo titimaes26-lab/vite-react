@@ -362,8 +362,8 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                       return(
                         <button key={n} onClick={()=>{
                           if(wouldExceed)return;
-                          deductCost(it,n);
-                          setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap2,+(s.qty+n).toFixed(3)),freshness:100}:s));
+                          const inst=deductCost(it,n);
+                          if(inst)setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap2,+(s.qty+n).toFixed(3)),freshness:100}:s));
                         }} disabled={wouldExceed} style={{
                           padding:"2px 6px",fontSize:9,fontWeight:700,borderRadius:4,
                           background:wouldExceed?C.bg:C.greenP,color:wouldExceed?C.muted:C.green,
@@ -597,8 +597,8 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                             return(
                               <button key={n} onClick={()=>{
                                 if(wouldExceed)return;
-                                deductCost(it,n);
-                                setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap,+(s.qty+n).toFixed(3)),freshness:100}:s));
+                                const inst=deductCost(it,n);
+                                if(inst)setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap,+(s.qty+n).toFixed(3)),freshness:100}:s));
                               }} disabled={wouldExceed} style={{
                                 flex:1,padding:"4px 0",fontSize:10,fontWeight:700,
                                 background:wouldExceed?C.bg:C.greenP,border:`1px solid ${wouldExceed?C.border:C.green}33`,
