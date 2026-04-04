@@ -360,9 +360,6 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                     const fill=isNettoyage?"#f5d878":isMange?"#4a9e78":isOrdering?"#3a5f8a":
                       t.status==="occupée"?"#e07a45":myQ.length>0?"#5ab88a":"#c8e6d8";
 
-                    const stroke=t.id===selectedTable?.id?"#1a1612":
-                      t.group?.isVIP?"#d4af37":fill;
-                    const strokeW=t.id===selectedTable?.id?3:1.5;
 
                     // Taille selon capacité — garantit que tw+chaises < CELL_W
                     const tw=getTW(t.capacity);
@@ -421,33 +418,27 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                             opacity="0.25" strokeDasharray="5 3"/>
                         )}
 
-                        {/* Chaises latérales */}
-                        {[{dx:-(tw/2+7),dy:0},{dx:tw/2+7,dy:0}].map((ch,ci)=>(
-                          <ellipse key={`s${ci}`}
-                            cx={pos.cx+ch.dx} cy={pos.cy+ch.dy}
-                            rx="5" ry="7" fill="#d4c9b0" opacity="0.75"/>
-                        ))}
-                        {/* Chaises haut/bas si 4p+ */}
-                        {t.capacity>=4&&[{dx:0,dy:-(th/2+7)},{dx:0,dy:th/2+7}].map((ch,ci)=>(
-                          <ellipse key={`tb${ci}`}
-                            cx={pos.cx+ch.dx} cy={pos.cy+ch.dy}
-                            rx="7" ry="5" fill="#d4c9b0" opacity="0.75"/>
-                        ))}
-                        {/* Chaises supplémentaires si 6p */}
-                        {t.capacity>=6&&[
-                          {dx:-(tw/2+7),dy:-th/4},{dx:-(tw/2+7),dy:th/4},
-                          {dx:tw/2+7,     dy:-th/4},{dx:tw/2+7,     dy:th/4},
-                        ].map((ch,ci)=>(
-                          <ellipse key={`ex${ci}`}
-                            cx={pos.cx+ch.dx} cy={pos.cy+ch.dy}
-                            rx="4" ry="6" fill="#d4c9b0" opacity="0.65"/>
-                        ))}
+                        {/* Image de table selon capacité */}
+                        <image
+                          href={t.capacity<=2?"/table-2.png":t.capacity<=4?"/table-4.png":"/table-6.png"}
+                          x={pos.cx-CELL_W/2} y={pos.cy-CELL_H/2}
+                          width={CELL_W} height={CELL_H}
+                          preserveAspectRatio="xMidYMid meet"
+                        />
 
-                        {/* Surface de la table */}
-                        <rect x={pos.cx-tw/2} y={pos.cy-th/2}
-                          width={tw} height={th} rx="8"
-                          fill={fill} stroke={stroke} strokeWidth={strokeW}
-                          opacity={isLibre&&myQ.length===0?0.85:1}/>
+                        {/* Overlay coloré selon statut (transparent si libre) */}
+                        {!isLibre&&(
+                          <rect x={pos.cx-tw/2} y={pos.cy-th/2}
+                            width={tw} height={th} rx="8"
+                            fill={fill} opacity="0.45"/>
+                        )}
+
+                        {/* Halo VIP */}
+                        {t.group?.isVIP&&(
+                          <rect x={pos.cx-tw/2-3} y={pos.cy-th/2-3}
+                            width={tw+6} height={th+6} rx="10"
+                            fill="none" stroke="#d4af37" strokeWidth="2" opacity="0.8"/>
+                        )}
 
                         {/* Barre progression — phase unique + timer */}
                         {isActive&&svgPhase>=0&&(
