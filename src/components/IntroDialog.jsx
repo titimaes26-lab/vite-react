@@ -609,7 +609,7 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
               left: bub.left, top: bub.top,
               width: bub.width, height: bub.height,
               display: "flex", alignItems: "center", justifyContent: "center",
-              padding: "3% 5% 3%",
+              padding: "1% 5% 9%",
               pointerEvents: "none",
             }}
           >
