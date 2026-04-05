@@ -1753,19 +1753,6 @@ export default function App(){
             );
           })()}
 
-          {/* Cash */}
-          <div onClick={()=>setShowLedger(true)} style={{flexShrink:0,display:"flex",alignItems:"center",gap:5,
-            background:cash<200?C.redP:C.greenP,
-            border:`1px solid ${cash<200?C.red:C.green}33`,
-            borderRadius:7,padding:"3px 10px",cursor:"pointer"}}
-            title="Voir le grand livre">
-            <span style={{fontSize:12}}>💰</span>
-            <span style={{fontSize:12,fontWeight:700,
-              color:cash<200?C.red:C.green,fontFamily:F.title,whiteSpace:"nowrap"}}>
-              {cash.toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})} €
-            </span>
-            <span style={{fontSize:9,color:cash<200?C.red:C.green,opacity:0.7}}>▼</span>
-          </div>
           {/* Loan indicator + bank button */}
           <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
             {loan&&(
@@ -1963,6 +1950,7 @@ export default function App(){
           cash={cash}
           onTabChange={setTab}
           isMobile={bp.isMobile}
+          onOpenBank={()=>setShowLedger(true)}
         />
       )}
 
