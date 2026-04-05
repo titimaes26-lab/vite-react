@@ -159,6 +159,22 @@ export const SERVER_SLOTS_BY_LEVEL = {
   40: 23, 41: 23, 42: 24, 43: 24, 44: 25, 45: 25, 46: 25, 47: 25, 48: 25, 49: 25,
 };
 
+/* ─── Exigences de qualité du personnel par niveau restaurant ── */
+/*
+  Chaque entrée décrit le minimum de personnel qualifié requis
+  pour que le restaurant fonctionne à son plein potentiel.
+  tier : 0=Stagiaire 1=Serveur 2=Senior 3=Expert 4=Maître
+  Appliqué dès que restoLv >= atLv
+*/
+export const STAFF_QUALITY_REQ = [
+  { atLv: 10, tier: 1, count: 1, icon: "👔", label: "1 Serveur minimum"  },
+  { atLv: 15, tier: 2, count: 1, icon: "⭐", label: "1 Senior minimum"   },
+  { atLv: 20, tier: 2, count: 2, icon: "⭐", label: "2 Senior minimum"   },
+  { atLv: 25, tier: 3, count: 1, icon: "🎖",  label: "1 Expert minimum"   },
+  { atLv: 30, tier: 3, count: 2, icon: "🎖",  label: "2 Expert minimum"   },
+  { atLv: 40, tier: 4, count: 1, icon: "👑", label: "1 Maître minimum"   },
+];
+
 /* ─── Agrandissements de tables ──────────────────────── */
 export const CAP_UPGRADES = [
   { capLv: 0, label: "Agrandir (×2→4)", cost: 800,  newCap: 4 },
