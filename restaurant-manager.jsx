@@ -1714,19 +1714,6 @@ export default function App(){
               border:`1px solid ${rlD.color}33`,borderRadius:4,
               padding:"1px 5px",fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap"}}>N{rlD.l}</span>
           </div>
-          <div style={{flex:1,minWidth:40}}>
-            <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
-              <div style={{height:"100%",
-                width:rl.l>=RESTO_LVL.length-1?"100%":`${rl.pct}%`,
-                background:rlD.color,borderRadius:99,transition:"width 0.6s ease"}}/>
-            </div>
-          </div>
-          <div style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0,whiteSpace:"nowrap"}}>
-            {rl.l>=RESTO_LVL.length-1
-              ? "✦ Max"
-              : `${restoXp}/${rl.next.xpNeeded} XP`
-            }
-          </div>
 
           {/* ── Réputation ── */}
           {(()=>{
