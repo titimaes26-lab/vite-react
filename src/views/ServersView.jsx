@@ -146,7 +146,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
     setTrainId(null);
   };
 
-  const maxSlots = SERVER_SLOTS_BY_LEVEL[Math.min(restoLvN||0,5)]||2;
+  const maxSlots = SERVER_SLOTS_BY_LEVEL[Math.min(restoLvN||0, RESTO_LVL.length-1)]||2;
   const canHire  = servers.length < maxSlots;
   // Coût de recrutement : 3× le salaire horaire
   const hireCost = Math.round(+(form.salary||12)*3);
