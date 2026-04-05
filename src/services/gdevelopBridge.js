@@ -3,7 +3,6 @@
    Pont de communication React ↔ GDevelop (postMessage).
 ═══════════════════════════════════════════════════════ */
 import { RESTO_LVL, CHEF_LVL, TABLES0, STOCK0 } from "../constants/gameData.js";
-import { MENU_THEMES } from "../constants/gameConstants.js";
 import { restoLv, chefLv, srvLv, commisLv } from "../utils/levelUtils.js";
 
 /** Envoie un message structuré au parent (GDevelop via iframe) */
@@ -21,12 +20,11 @@ export const buildGDevelopPayload = ({
   reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
   formulas, dailySpecials, challengeDate,
   completedIds, pendingClaim, todayChallenges, challengeProgress,
-  challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+  challengeClaimed, challengeLostToday, activeEvent,
   candidatePool, candidateDate,
 }) => {
-  const rl       = restoLv(restoXp);
-  const cl       = chefLv(kitchen?.chef?.totalXp || 0);
-  const themeObj = MENU_THEMES.find(t => t.id === activeTheme) || MENU_THEMES[0];
+  const rl = restoLv(restoXp);
+  const cl = chefLv(kitchen?.chef?.totalXp || 0);
   return {
     argent: cash,
     niveaux: {
@@ -142,13 +140,6 @@ export const buildGDevelopPayload = ({
       clientPerduAujourdhui: challengeLostToday,
     },
     statsJournalieres: dailyStats,
-    theme: {
-      id       : themeObj.id,
-      nom      : themeObj.name,
-      prixMult : themeObj.priceMult,
-      repBonus : themeObj.repBonus,
-      xpMult   : themeObj.xpMult,
-    },
     evenement    : activeEvent,
     saveData: {
       argent             : cash,
@@ -168,7 +159,6 @@ export const buildGDevelopPayload = ({
       transactions,
       pendingDeliveries,
       pendingClaim,
-      activeTheme,
       activeEvent,
       candidatePool,
       candidateDate,

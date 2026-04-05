@@ -5,7 +5,7 @@
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect } from "react";
 import { C, F, CAP_UPGRADES, SRV_LVL, GAME_EVENTS, RESTO_LVL } from "../constants/gameData.js";
-import { MENU_THEMES, getRepTier } from "../constants/gameConstants.js";
+import { getRepTier } from "../constants/gameConstants.js";
 import { REP_DELTA } from "../constants/gameConstants.js";
 import { Badge, Btn, Sel, Modal, XpBar, Lbl, Inp } from "../components/ui/index.js";
 import { srvLv, calcRating, ratingColor, ratingStars, calcTip, restoXpFromCheckout, srvXpFromCheckout } from "../utils/levelUtils.js";
@@ -15,7 +15,7 @@ import { buildKitchenTickets, svcDuration, eatDuration, calcBill } from "../util
 /* ═══════════════════════════════════════════════════════
    DetailPanel — Panneau de détail d'une table sélectionnée
 ═══════════════════════════════════════════════════════ */
-function DetailPanel({t,tables,servers,kitchen,queue,now,cash,menuTheme,
+function DetailPanel({t,tables,servers,kitchen,queue,now,cash,
   C,F,quickPlace,openAssign,checkout,
   addTx,setCash,addToast,setTables,onTableUpgrade,CAP_UPGRADES,
   calcRating,ratingColor,ratingStars}) {
@@ -26,7 +26,7 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,menuTheme,
               const isNettoyage=tLive.status==="nettoyage";
               const isOrdering=tLive.status==="occupée"&&tLive.svcUntil&&now<tLive.svcUntil;
               const bill=isMange?tLive.order.reduce((s,o)=>s+o.price*o.qty,0):0;
-              const themedBill=+(bill*menuTheme.priceMult).toFixed(2);
+              const themedBill=+bill.toFixed(2);
               const isEating=isMange&&tLive.eatUntil&&now<tLive.eatUntil;
               const eatSecsLeft=isEating?Math.ceil((tLive.eatUntil-now)/1000):0;
               const cleanSecsLeft=isNettoyage&&tLive.cleanUntil?Math.max(0,Math.ceil((tLive.cleanUntil-now)/1000)):0;
@@ -272,7 +272,7 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,menuTheme,
    SvgFloorPlan — Plan de salle SVG animé
 ═══════════════════════════════════════════════════════ */
 function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
-  selectedTable,setSelectedTable,menuTheme,
+  selectedTable,setSelectedTable,
   srvLv,SRV_LVL,calcRating,ratingColor,ratingStars,calcTip,
   quickPlace,openAssign,checkout,activeSrv,lockedSlots=[]}) {
               const n = tables.length + lockedSlots.length;
@@ -366,7 +366,7 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                     const th=getTH(t.capacity);
 
                     const bill=isMange?t.order.reduce((s,o)=>s+o.price*o.qty,0):0;
-                    const themedBill=+(bill*menuTheme.priceMult).toFixed(2);
+                    const themedBill=+bill.toFixed(2);
                     const isEating=isMange&&t.eatUntil&&now<t.eatUntil;
                     const eatPct=isEating?
                       Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):
@@ -545,9 +545,8 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
               );
 }
 
-export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,activeTheme,restoLvN=0,stock=[],bp={}}) {
+export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,stock=[],bp={}}) {
 
-  const menuTheme = MENU_THEMES.find(m=>m.id===activeTheme)||MENU_THEMES[0];
   const now = clockNow;
 
   const [selectedTable, setSelectedTable] = useState(null);
@@ -584,7 +583,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     const t = tables.find(x=>x.id===tid);
     if (!t?.group) return;
     const bill = t.order.reduce((s,o)=>s+o.price*o.qty,0);
-    const themedBill = +(bill*menuTheme.priceMult).toFixed(2);
+    const themedBill = +bill.toFixed(2);
     const hasStaleIngredient = t.order.some(o=>{
       const mi=menu.find(m=>m.id===o.id);
       if(!mi)return false;
@@ -827,7 +826,6 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                       queue={queue}
                       now={now}
                       cash={cash}
-                      menuTheme={menuTheme}
                       C={C} F={F}
                       quickPlace={quickPlace}
                       openAssign={openAssign}
@@ -856,7 +854,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
               tables={tables} servers={servers} kitchen={kitchen}
               queue={queue} now={now} C={C} F={F}
               selectedTable={selectedTable} setSelectedTable={setSelectedTable}
-              srvLv={srvLv} SRV_LVL={SRV_LVL} menuTheme={menuTheme}
+              srvLv={srvLv} SRV_LVL={SRV_LVL}
               calcRating={calcRating} ratingColor={ratingColor}
               ratingStars={ratingStars} calcTip={calcTip}
               quickPlace={quickPlace} openAssign={openAssign}
@@ -886,7 +884,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
               const ckT=kitchen.cooking.filter(d=>d.tableId===t.id);
               const slw=ckT.length>0?ckT.reduce((a,b)=>(b.startedAt+b.timerMax*1000)>(a.startedAt+a.timerMax*1000)?b:a):null;
               const pc=ph===0?Math.min(100,Math.round((1-(Math.max(0,(t.svcUntil-now))/((t.svcUntil-t.placedAt)||1)))*100)):ph===1?(slw?Math.min(100,Math.round(((now-slw.startedAt)/(slw.timerMax*1000))*100)):0):ph===2?(isEm?Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):100):ph===3?(t.cleanUntil?Math.min(100,Math.round(((t.cleanDur*1000-(t.cleanUntil-now))/(t.cleanDur*1000))*100)):0):0;
-              const bl=isMm?+(t.order.reduce((s,o)=>s+o.price*o.qty,0)*menuTheme.priceMult).toFixed(2):0;
+              const bl=isMm?+t.order.reduce((s,o)=>s+o.price*o.qty,0).toFixed(2):0;
               return(
                 <div key={t.id} style={{background:C.surface,
                   border:`1.5px solid ${ph>=0?pC+"55":C.border}`,

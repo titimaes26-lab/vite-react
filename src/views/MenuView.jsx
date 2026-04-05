@@ -8,7 +8,7 @@ import { C, F } from "../constants/gameData.js";
 import { FORMULA_PRESETS } from "../constants/gameConstants.js";
 import { Badge, Btn, Modal, Lbl, Inp, Sel } from "../components/ui/index.js";
 
-export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActiveTheme,dailyStats,restoLvN=0,bp={}}){
+export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,restoLvN=0,bp={}}){
   const [mainTab,setMainTab]=useState("carte");
   const [catFilter,setCatFilter]=useState("Tout");
   const [sortBy,setSortBy]=useState("cat");
