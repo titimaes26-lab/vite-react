@@ -665,14 +665,14 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
 
   const activeTables = tables;
 
+  // Seul le prochain slot verrouillé est affiché (SVG + liste)
   const lockedSlots = (() => {
-    const slots = [];
     let prev = tables.length;
     for (const lv of RESTO_LVL.filter(l => l.l > restoLvN)) {
-      for (let i = prev; i < lv.tables; i++) slots.push({ num: i + 1, unlocksAt: lv });
+      if (prev < lv.tables) return [{ num: prev + 1, unlocksAt: lv }];
       prev = lv.tables;
     }
-    return slots;
+    return [];
   })();
 
   return(
