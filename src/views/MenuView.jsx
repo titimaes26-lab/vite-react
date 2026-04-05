@@ -5,10 +5,10 @@
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
 import { C, F } from "../constants/gameData.js";
-import { MENU_THEMES, FORMULA_PRESETS } from "../constants/gameConstants.js";
+import { FORMULA_PRESETS } from "../constants/gameConstants.js";
 import { Badge, Btn, Modal, Lbl, Inp, Sel } from "../components/ui/index.js";
 
-export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActiveTheme,dailyStats,restoLvN=0,bp={}}){
+export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,restoLvN=0,bp={}}){
   const [mainTab,setMainTab]=useState("carte");
   const [catFilter,setCatFilter]=useState("Tout");
   const [sortBy,setSortBy]=useState("cat");
@@ -23,8 +23,6 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
 
   const cats=["Tout","Entrées","Plats","Desserts","Boissons"];
   const catC={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy};
-  const theme=(MENU_THEMES||[]).find(t=>t.id===(activeTheme||"none"))||{id:"none",icon:"📋",name:"Standard",color:C.muted,desc:"",priceMult:1,repBonus:0,xpMult:1,accent:C.bg};
-
   /* ── Calculs par plat ── */
   const dishCost=(m)=>
     (m.ingredients||[]).reduce((sum,ing)=>{
@@ -132,26 +130,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
   const lockedAllCount=menu.filter(m=>!unlocked(m)).length;
 
   return(
-    <div style={{background:theme.accent||C.bg,borderRadius:16,padding:16,transition:"background 0.4s"}}>
-
-      {/* Bandeau thème */}
-      {theme.id!=="none"&&(
-        <div style={{background:theme.color+"18",border:`1.5px solid ${theme.color}33`,
-          borderRadius:10,padding:"8px 14px",marginBottom:12,
-          display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-          <span style={{fontSize:18}}>{theme.icon}</span>
-          <span style={{fontSize:12,fontWeight:700,color:theme.color,fontFamily:F.title}}>
-            Thème : {theme.name}
-          </span>
-          <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>— {theme.desc}</span>
-          <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-            {[`💰 ×${theme.priceMult}`,`⭐ Rép.+${theme.repBonus}`,`🎯 XP×${theme.xpMult}`].map(t=>(
-              <span key={t} style={{fontSize:10,background:theme.color,color:"#fff",
-                borderRadius:20,padding:"2px 8px",fontFamily:F.body,fontWeight:700}}>{t}</span>
-            ))}
-          </div>
-        </div>
-      )}
+    <div style={{background:C.bg,borderRadius:16,padding:16}}>
 
       {/* Alertes stock critique */}
       {criticalDishes.length>0&&(
@@ -256,7 +235,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
               const criticalStock=portions<2&&(m.ingredients||[]).length>0;
               const score=perfScore(m);
               const sc=score>=70?C.green:score>=40?C.amber:C.red;
-              const effectivePrice=theme.priceMult!==1?+(m.price*theme.priceMult).toFixed(2):m.price;
+              const effectivePrice=m.price;
 
               return(
                 <div key={m.id} style={{
@@ -286,11 +265,11 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
                     </div>
                     <div style={{flexShrink:0,textAlign:"right"}}>
                       <div style={{fontSize:16,fontWeight:700,
-                        color:isPriceModified?C.purple:theme.priceMult!==1?theme.color:C.terra,
+                        color:isPriceModified?C.purple:C.terra,
                         fontFamily:F.title}}>
                         {effectivePrice}€
                       </div>
-                      {(isPriceModified||theme.priceMult!==1)&&(
+                      {isPriceModified&&(
                         <div style={{fontSize:9,color:C.muted,textDecoration:"line-through",fontFamily:F.body}}>
                           {m.basePrice||m.price}€
                         </div>

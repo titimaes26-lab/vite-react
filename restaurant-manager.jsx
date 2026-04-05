@@ -31,7 +31,7 @@ import {
 } from "./src/constants/gameData.js";
 
 import {
-  REP_THRESHOLDS, REP_DELTA, MENU_THEMES, FORMULA_PRESETS,
+  REP_THRESHOLDS, REP_DELTA, FORMULA_PRESETS,
   MORAL_PAUSE_GAIN, getRepTier,
 } from "./src/constants/gameConstants.js";
 
@@ -224,7 +224,6 @@ export default function App(){
   const [menu,setMenu]=useState(MENU0);
   const [stock,setStock]=useState(STOCK0);
   const [formulas,setFormulas]=useState([]); // [{id, presetId, name, items:[{menuId,cat}], active}]
-  const [activeTheme,setActiveTheme]=useState("none");
   const [complaints,setComplaints]=useState(COMPLAINTS0);
   const [kitchen,setKitchen]=useState(KITCHEN0);
   const [toasts,setToasts]=useState([]);
@@ -328,7 +327,6 @@ export default function App(){
     setReputation(50);
     setWaitlist([]);
     setFormulas([]);
-    setActiveTheme("none");
     setTab("tables");
     setShowResetModal(false);
   },[]);
@@ -362,7 +360,6 @@ export default function App(){
         if(sv.dailyStats)    setDailyStats(sv.dailyStats);
         if(sv.reputation!=null) setReputation(sv.reputation);
         if(sv.formulas)      setFormulas(sv.formulas);
-        if(sv.activeTheme)   setActiveTheme(sv.activeTheme);
         if(sv.candidatePool) setCandidatePool(sv.candidatePool);
         if(sv.candidateDate) setCandidateDate(sv.candidateDate);
         setQueue(sv.queue||[]);
@@ -444,7 +441,7 @@ export default function App(){
      restoXp,cash,loan,supplierMode,pendingDeliveries,
      completedIds,challengeProgress,challengeClaimed,
      challengeLostToday,pendingClaim,objStats,dailyStats,reputation,
-     formulas,activeTheme]);
+     formulas]);
 
   // Toutes les 5s : sauvegarder si dirty
   useEffect(()=>{
@@ -459,7 +456,7 @@ export default function App(){
         pendingDeliveries,dailySpecials,completedIds,
         challengeDate,todayChallenges,challengeProgress,
         challengeClaimed,challengeLostToday,pendingClaim,
-        objStats,dailyStats,reputation,formulas,activeTheme,
+        objStats,dailyStats,reputation,formulas,
         candidatePool,candidateDate,
       });
       setSaveStatus("saved");
@@ -495,7 +492,6 @@ export default function App(){
         if (payload.pendingClaim)          setPendingClaim(payload.pendingClaim);
         if (payload.challengeClaimed)      setChallengeClaimed(payload.challengeClaimed);
         if (payload.challengeLostToday != null) setChallengeLostToday(payload.challengeLostToday);
-        if (payload.activeTheme)           setActiveTheme(payload.activeTheme);
         if (payload.activeEvent  != null)  setActiveEvent(payload.activeEvent);
         console.info("[GDevelop Bridge] Init reçu ✓", payload);
         // Confirmer la réception à GDevelop
@@ -521,14 +517,14 @@ export default function App(){
       reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
       formulas, dailySpecials, challengeDate,
       completedIds, pendingClaim, todayChallenges, challengeProgress,
-      challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+      challengeClaimed, challengeLostToday, activeEvent,
       candidatePool, candidateDate,
     };
   },[cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
      reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
      formulas, dailySpecials, challengeDate,
      completedIds, pendingClaim, todayChallenges, challengeProgress,
-     challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+     challengeClaimed, challengeLostToday, activeEvent,
      candidatePool, candidateDate]);
 
   useEffect(()=>{
@@ -981,7 +977,7 @@ export default function App(){
                 pendingDeliveries,dailySpecials,completedIds,
                 challengeDate,todayChallenges,challengeProgress,
                 challengeClaimed,challengeLostToday,pendingClaim,
-                objStats,dailyStats,reputation,formulas,activeTheme,
+                objStats,dailyStats,reputation,formulas,
                 candidatePool,candidateDate,
               });
               setSaveStatus("saved");
@@ -1128,10 +1124,10 @@ export default function App(){
       {/* Content */}
       <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
-        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} restoLvN={rl.l} stock={stock} bp={bp}/>}
+        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} restoLvN={rl.l} stock={stock} bp={bp}/>}
         {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
         {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} bp={bp}/>}
-        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats} bp={bp}/>}
+        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} dailyStats={dailyStats} bp={bp}/>}
         {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
         {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
         {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
