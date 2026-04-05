@@ -1713,6 +1713,9 @@ export default function App(){
             <span style={{fontSize:9,background:rlD.color+"18",color:rlD.color,
               border:`1px solid ${rlD.color}33`,borderRadius:4,
               padding:"1px 5px",fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap"}}>N{rlD.l}</span>
+            <span style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>
+              {rl.l>=RESTO_LVL.length-1?"✦ Max":`${restoXp}/${rl.next.xpNeeded} XP`}
+            </span>
           </div>
 
           {/* ── Réputation ── */}
