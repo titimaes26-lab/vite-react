@@ -4,8 +4,8 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F } from "../constants/gameData";
-import { HELP_SECTIONS } from "../constants/helpContent.js";
+import { C, F } from "../../constants/gameData";
+import { HELP_SECTIONS } from "../../constants/helpContent.js";
 
 export function HelpModal({onClose}){
   const [sec,setSec]=useState(0);
