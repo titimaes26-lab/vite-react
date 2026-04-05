@@ -257,14 +257,20 @@ export const STOCK0 = [
   { id: 20, name: "Vin blanc",     qty: 18,  unit: "btl",    alert: 4,    cat: "Boissons", price: 6    },
   { id: 21, name: "Bordeaux",      qty: 24,  unit: "btl",    alert: 8,    cat: "Boissons", price: 12   },
   { id: 22, name: "Eau minérale",  qty: 48,  unit: "btl",    alert: 12,   cat: "Boissons", price: 0.5  },
+  // Ingrédients premium (niveaux élevés)
+  { id: 23, name: "Truffe noire",    qty: 50,  unit: "g",      alert: 10,   cat: "Fins",     price: 2.8  },
+  { id: 24, name: "Homard vivant",   qty: 4,   unit: "pcs",    alert: 1,    cat: "Poissons", price: 45   },
+  { id: 25, name: "Pigeonneau",      qty: 6,   unit: "pcs",    alert: 1,    cat: "Viandes",  price: 22   },
+  { id: 26, name: "Champagne",       qty: 12,  unit: "btl",    alert: 3,    cat: "Boissons", price: 28   },
 ].map(item => ({ ...item, freshness: 100 }));
 
 /* ─── État initial : menu (plats définis par recette) ── */
-// prepTime : temps de préparation de base en secondes (avant bonus chef)
+// prepTime    : temps de préparation de base en secondes (avant bonus chef)
+// unlockLevel : niveau restaurant minimum requis pour utiliser ce plat
 export const MENU0 = [
   // ── Entrées ──────────────────────────────────────────
   {
-    id: 1, name: "Salade César", cat: "Entrées", price: 14, prepTime: 45,
+    id: 1, name: "Salade César", cat: "Entrées", price: 14, prepTime: 45, unlockLevel: 0,
     ingredients: [
       { stockId: 5,  qty: 1    },  // laitue romaine
       { stockId: 14, qty: 0.06 },  // parmesan
@@ -273,7 +279,7 @@ export const MENU0 = [
     ],
   },
   {
-    id: 2, name: "Soupe à l'oignon", cat: "Entrées", price: 11, prepTime: 90,
+    id: 2, name: "Soupe à l'oignon", cat: "Entrées", price: 11, prepTime: 90, unlockLevel: 0,
     ingredients: [
       { stockId: 6,  qty: 0.35 },  // oignons
       { stockId: 11, qty: 0.05 },  // beurre
@@ -282,16 +288,33 @@ export const MENU0 = [
     ],
   },
   {
-    id: 3, name: "Foie gras maison", cat: "Entrées", price: 22, prepTime: 60,
+    id: 3, name: "Foie gras maison", cat: "Entrées", price: 22, prepTime: 60, unlockLevel: 7,
     ingredients: [
       { stockId: 4,  qty: 0.12 },  // foie gras
       { stockId: 11, qty: 0.02 },  // beurre
       { stockId: 17, qty: 0.01 },  // sucre (chutney)
     ],
   },
+  {
+    id: 12, name: "Tartare de bœuf", cat: "Entrées", price: 18, prepTime: 50, unlockLevel: 10,
+    ingredients: [
+      { stockId: 1,  qty: 0.18 },  // bœuf
+      { stockId: 6,  qty: 0.03 },  // oignons
+      { stockId: 19, qty: 0.02 },  // huile d'olive
+      { stockId: 13, qty: 1    },  // œufs (jaune)
+    ],
+  },
+  {
+    id: 13, name: "Velouté de truffe", cat: "Entrées", price: 38, prepTime: 80, unlockLevel: 20,
+    ingredients: [
+      { stockId: 23, qty: 8    },  // truffe noire (g)
+      { stockId: 12, qty: 0.15 },  // crème fraîche
+      { stockId: 11, qty: 0.03 },  // beurre
+    ],
+  },
   // ── Plats ────────────────────────────────────────────
   {
-    id: 4, name: "Entrecôte 300g", cat: "Plats", price: 28, prepTime: 75,
+    id: 4, name: "Entrecôte 300g", cat: "Plats", price: 28, prepTime: 75, unlockLevel: 0,
     ingredients: [
       { stockId: 1,  qty: 0.35 },  // bœuf
       { stockId: 11, qty: 0.06 },  // beurre
@@ -300,7 +323,7 @@ export const MENU0 = [
     ],
   },
   {
-    id: 5, name: "Saumon grillé", cat: "Plats", price: 24, prepTime: 120,
+    id: 5, name: "Saumon grillé", cat: "Plats", price: 24, prepTime: 120, unlockLevel: 3,
     ingredients: [
       { stockId: 2,  qty: 0.25 },  // saumon
       { stockId: 11, qty: 0.04 },  // beurre
@@ -309,7 +332,7 @@ export const MENU0 = [
     ],
   },
   {
-    id: 6, name: "Poulet rôti", cat: "Plats", price: 19, prepTime: 105,
+    id: 6, name: "Poulet rôti", cat: "Plats", price: 19, prepTime: 105, unlockLevel: 0,
     ingredients: [
       { stockId: 3,  qty: 1    },  // poulet
       { stockId: 11, qty: 0.07 },  // beurre
@@ -318,7 +341,7 @@ export const MENU0 = [
     ],
   },
   {
-    id: 7, name: "Risotto champignons", cat: "Plats", price: 18, prepTime: 180,
+    id: 7, name: "Risotto champignons", cat: "Plats", price: 18, prepTime: 180, unlockLevel: 5,
     ingredients: [
       { stockId: 18, qty: 0.15 },  // riz arborio
       { stockId: 7,  qty: 0.2  },  // champignons
@@ -328,9 +351,36 @@ export const MENU0 = [
       { stockId: 20, qty: 0.15 },  // vin blanc
     ],
   },
+  {
+    id: 14, name: "Homard rôti", cat: "Plats", price: 55, prepTime: 150, unlockLevel: 15,
+    ingredients: [
+      { stockId: 24, qty: 1    },  // homard vivant
+      { stockId: 11, qty: 0.08 },  // beurre
+      { stockId: 8,  qty: 0.02 },  // ail
+      { stockId: 10, qty: 1    },  // thym
+    ],
+  },
+  {
+    id: 15, name: "Filet de bœuf Wellington", cat: "Plats", price: 72, prepTime: 210, unlockLevel: 25,
+    ingredients: [
+      { stockId: 1,  qty: 0.30 },  // bœuf
+      { stockId: 7,  qty: 0.15 },  // champignons (duxelles)
+      { stockId: 16, qty: 0.12 },  // farine (pâte feuilletée)
+      { stockId: 11, qty: 0.05 },  // beurre
+    ],
+  },
+  {
+    id: 16, name: "Pigeonneau en croûte", cat: "Plats", price: 90, prepTime: 240, unlockLevel: 35,
+    ingredients: [
+      { stockId: 25, qty: 1    },  // pigeonneau
+      { stockId: 7,  qty: 0.12 },  // champignons
+      { stockId: 16, qty: 0.10 },  // farine
+      { stockId: 11, qty: 0.06 },  // beurre
+    ],
+  },
   // ── Desserts ─────────────────────────────────────────
   {
-    id: 8, name: "Crème brûlée", cat: "Desserts", price: 9, prepTime: 75,
+    id: 8, name: "Crème brûlée", cat: "Desserts", price: 9, prepTime: 75, unlockLevel: 0,
     ingredients: [
       { stockId: 12, qty: 0.2  },  // crème fraîche
       { stockId: 13, qty: 3    },  // œufs
@@ -338,7 +388,7 @@ export const MENU0 = [
     ],
   },
   {
-    id: 9, name: "Tarte Tatin", cat: "Desserts", price: 10, prepTime: 105,
+    id: 9, name: "Tarte Tatin", cat: "Desserts", price: 10, prepTime: 105, unlockLevel: 3,
     ingredients: [
       { stockId: 9,  qty: 0.35 },  // pommes
       { stockId: 11, qty: 0.08 },  // beurre
@@ -346,14 +396,39 @@ export const MENU0 = [
       { stockId: 16, qty: 0.1  },  // farine
     ],
   },
+  {
+    id: 17, name: "Soufflé au Grand Marnier", cat: "Desserts", price: 14, prepTime: 120, unlockLevel: 12,
+    ingredients: [
+      { stockId: 13, qty: 4    },  // œufs
+      { stockId: 12, qty: 0.1  },  // crème fraîche
+      { stockId: 17, qty: 0.08 },  // sucre
+    ],
+  },
+  {
+    id: 18, name: "Mille-feuille Passion", cat: "Desserts", price: 16, prepTime: 130, unlockLevel: 22,
+    ingredients: [
+      { stockId: 16, qty: 0.15 },  // farine (feuilletage)
+      { stockId: 11, qty: 0.07 },  // beurre
+      { stockId: 12, qty: 0.12 },  // crème fraîche (pâtissière)
+      { stockId: 17, qty: 0.06 },  // sucre
+    ],
+  },
   // ── Boissons ─────────────────────────────────────────
   {
-    id: 10, name: "Bordeaux 75cl", cat: "Boissons", price: 32, prepTime: 8,
+    id: 10, name: "Bordeaux 75cl", cat: "Boissons", price: 32, prepTime: 8, unlockLevel: 0,
     ingredients: [{ stockId: 21, qty: 1 }],
   },
   {
-    id: 11, name: "Eau minérale 1L", cat: "Boissons", price: 5, prepTime: 5,
+    id: 11, name: "Eau minérale 1L", cat: "Boissons", price: 5, prepTime: 5, unlockLevel: 0,
     ingredients: [{ stockId: 22, qty: 1 }],
+  },
+  {
+    id: 19, name: "Vin blanc AOC", cat: "Boissons", price: 18, prepTime: 6, unlockLevel: 5,
+    ingredients: [{ stockId: 20, qty: 1 }],  // vin blanc
+  },
+  {
+    id: 20, name: "Champagne Millésimé", cat: "Boissons", price: 75, prepTime: 10, unlockLevel: 10,
+    ingredients: [{ stockId: 26, qty: 1 }],  // champagne
   },
 ];
 

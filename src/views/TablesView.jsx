@@ -631,7 +631,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     const speedMult = srv.specialty?.id==="speed"?(srv.specialty.speedMult||1.0):1.0;
     const svcDur = Math.round((g.size<=2?30000:g.size<=4?60000:90000)*speedMult);
     const svcUntil = Date.now()+svcDur;
-    const orderLines = generateOrderWithSpecials(g, menu);
+    const orderLines = generateOrderWithSpecials(g, menu, restoLvN);
     const kitchenTickets = buildKitchenTickets(orderLines, table);
     const drinkTickets = kitchenTickets.filter(d=>d.cat==="Boissons");
     const foodTickets  = kitchenTickets.filter(d=>d.cat!=="Boissons");
