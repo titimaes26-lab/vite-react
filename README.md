@@ -53,7 +53,7 @@ src/
     TablesView.jsx          ← Salle (placement, service, encaissement, nettoyage)
     KitchenView.jsx         ← Cuisine (cuisson, service des plats)
     ServersView.jsx         ← Gestion des serveurs
-    MenuView.jsx            ← Carte et thèmes
+    MenuView.jsx            ← Carte et formules
     StockView.jsx           ← Stock et fournisseurs
     ObjectivesView.jsx      ← Objectifs et défis
     StatsView.jsx           ← Statistiques et transactions
@@ -267,10 +267,6 @@ setN("totalServis", cl.totalServis);
 const cu = msg.cuisine || {};
 setN("cuisineEnCuisson", cu.platsEnCuisson); setN("cuisinePrets", cu.platsPretsNb);
 
-// Thème
-const th = msg.theme || {};
-setS("themeId", th.id); setN("themePrixMult", th.prixMult);
-
 // Prêt
 const p = msg.pret || {};
 setN("pretRestant", p.restant); setB("pretActif", p.montant > 0);
@@ -294,3 +290,4 @@ setJ("transactions",msg.transactions);
 | `main` | Production stable |
 | `Test` / `testclaude` | Développement en cours |
 | `claude/project-structure-summary-qPQt9` | Branch de session Claude |
+| `claude/add-kitchen-features-9lhlE` | Branch de session Claude — suppression thèmes menu |
