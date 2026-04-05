@@ -179,7 +179,6 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
         {[
           {k:"carte",    icon:"📋", label:"Carte"},
           {k:"formules", icon:"🍽",  label:`Formules${(formulas||[]).filter(f=>f.active).length>0?" ("+(formulas||[]).filter(f=>f.active).length+")":""}`},
-          {k:"themes",   icon:"🎨",  label:"Thèmes"},
           {k:"perf",     icon:"📊",  label:"Performance"},
         ].map(t=>(
           <button key={t.k} onClick={()=>setMainTab(t.k)} style={{
@@ -500,44 +499,6 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
               </div>
             </Modal>
           )}
-        </div>
-      )}
-
-      {/* ══ THÈMES ══ */}
-      {mainTab==="themes"&&(
-        <div>
-          <div style={{fontSize:12,color:C.muted,fontFamily:F.body,marginBottom:16,lineHeight:1.6}}>
-            Le thème modifie visuellement la carte et applique un multiplicateur de prix global + bonus de réputation sur chaque service.
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":"repeat(auto-fill,minmax(240px,1fr))",gap:bp.isMobile?10:14}}>
-            {MENU_THEMES.map(t=>{
-              const isActive=(activeTheme||"none")===t.id;
-              return(
-                <div key={t.id} onClick={()=>setActiveTheme(t.id)} style={{
-                  background:isActive?t.color+"14":C.card,
-                  border:`2px solid ${isActive?t.color:C.border}`,
-                  borderRadius:14,padding:16,cursor:"pointer",
-                  boxShadow:isActive?`0 4px 16px ${t.color}33`:"0 1px 4px rgba(0,0,0,0.06)",
-                  transition:"all 0.2s"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
-                    <div style={{width:44,height:44,background:t.color+"18",border:`2px solid ${t.color}44`,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{t.icon}</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:14,fontWeight:700,color:t.color,fontFamily:F.title}}>
-                        {t.name}
-                        {isActive&&<span style={{marginLeft:6,fontSize:9,background:t.color,color:"#fff",borderRadius:20,padding:"1px 7px",fontFamily:F.body,fontWeight:700}}>Actif</span>}
-                      </div>
-                      <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>{t.desc}</div>
-                    </div>
-                  </div>
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                    {[`💰 ×${t.priceMult}`,`⭐ +${t.repBonus} rép.`,`🎯 ×${t.xpMult} XP`].map(tag=>(
-                      <span key={tag} style={{fontSize:10,background:t.color+"14",color:t.color,border:`1px solid ${t.color}33`,borderRadius:6,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 
