@@ -273,7 +273,11 @@ export const STOCK0 = [
   { id: 20, name: "Vin blanc",     qty: 18,  unit: "btl",    alert: 4,    cat: "Boissons", price: 6    },
   { id: 21, name: "Bordeaux",      qty: 24,  unit: "btl",    alert: 8,    cat: "Boissons", price: 12   },
   { id: 22, name: "Eau minérale",  qty: 48,  unit: "btl",    alert: 12,   cat: "Boissons", price: 0.5  },
-  // Ingrédients premium (niveaux élevés)
+].map(item => ({ ...item, freshness: 100 }));
+
+/* ─── Ingrédients premium — injectés au déblocage du plat ── */
+// Non présents dans STOCK0 ; ajoutés automatiquement quand le plat se débloque.
+export const PREMIUM_STOCK = [
   { id: 23, name: "Truffe noire",    qty: 50,  unit: "g",      alert: 10,   cat: "Fins",     price: 2.8  },
   { id: 24, name: "Homard vivant",   qty: 4,   unit: "pcs",    alert: 1,    cat: "Poissons", price: 45   },
   { id: 25, name: "Pigeonneau",      qty: 6,   unit: "pcs",    alert: 1,    cat: "Viandes",  price: 22   },

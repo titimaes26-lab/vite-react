@@ -18,7 +18,7 @@ import {
   SRV_LVL, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
   RESTO_LVL, SERVER_SLOTS_BY_LEVEL, CAP_UPGRADES,
   MOODS, NAMES1, NAMES2,
-  TABLES0, SERVERS0, STOCK0, MENU0, COMPLAINTS0, KITCHEN0,
+  TABLES0, SERVERS0, STOCK0, MENU0, PREMIUM_STOCK, COMPLAINTS0, KITCHEN0,
   KITCHEN_UPGRADES, SUPPLIERS, LOAN_OPTIONS,
   CHALLENGES_POOL, OBJECTIVES_DEF, SERIES_LABELS, SERIES_COLORS,
   GAME_EVENTS, TABS,
@@ -740,10 +740,26 @@ export default function App(){
       const after=restoLv(prev+xp);
       if(after.l>before.l){
         const nd=RESTO_LVL[after.l];
+        // Ingrédients premium à injecter pour les plats qui se débloquent
+        const newlyUnlocked=MENU0.filter(
+          d=>(d.unlockLevel??0)>before.l&&(d.unlockLevel??0)<=after.l
+        );
+        const neededStockIds=new Set(
+          newlyUnlocked.flatMap(d=>(d.ingredients||[]).map(i=>i.stockId))
+        );
+        const premiumToAdd=PREMIUM_STOCK.filter(p=>neededStockIds.has(p.id));
+        if(premiumToAdd.length>0){
+          setStock(s=>{
+            const existing=new Set(s.map(item=>item.id));
+            const toAdd=premiumToAdd.filter(p=>!existing.has(p.id));
+            return toAdd.length>0?[...s,...toAdd]:s;
+          });
+        }
+        const unlockedNames=newlyUnlocked.map(d=>d.name).join(", ");
         setTimeout(()=>addToast({
           icon:nd.icon,
           title:`Niveau ${nd.l} — ${nd.name} !`,
-          msg:`🎉 ${nd.tables} tables débloquées`,
+          msg:`🎉 ${nd.tables} tables débloquées${unlockedNames?` · 🍽 ${unlockedNames}`:""}`,
           color:nd.color,
           tab:"tables",
         }),50);
