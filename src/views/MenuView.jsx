@@ -8,7 +8,7 @@ import { C, F } from "../constants/gameData.js";
 import { MENU_THEMES, FORMULA_PRESETS } from "../constants/gameConstants.js";
 import { Badge, Btn, Modal, Lbl, Inp, Sel } from "../components/ui/index.js";
 
-export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActiveTheme,dailyStats,bp={}}){
+export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActiveTheme,dailyStats,restoLvN=0,bp={}}){
   const [mainTab,setMainTab]=useState("carte");
   const [catFilter,setCatFilter]=useState("Tout");
   const [sortBy,setSortBy]=useState("cat");
@@ -55,14 +55,16 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
   };
 
   /* ── Tri ── */
+  const unlocked=(m)=>(m.unlockLevel??0)<=restoLvN;
   const base=catFilter==="Tout"?menu:menu.filter(m=>m.cat===catFilter);
-  const sorted=[...base].sort((a,b)=>{
+  const sorted=[...base.filter(unlocked)].sort((a,b)=>{
     if(sortBy==="margin")  return (dishMargin(b)||0)-(dishMargin(a)||0);
     if(sortBy==="popular") return (b.orderCount||0)-(a.orderCount||0);
     if(sortBy==="stock")   return portionsLeft(a)-portionsLeft(b);
     if(sortBy==="score")   return perfScore(b)-perfScore(a);
     return 0;
   });
+  const locked=base.filter(m=>!unlocked(m)).sort((a,b)=>(a.unlockLevel??0)-(b.unlockLevel??0));
   const maxOrders=Math.max(...menu.map(m=>m.orderCount||0),1);
 
   /* ── Helpers ── */
@@ -125,8 +127,9 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
     setModal(false);
   };
 
-  const criticalDishes=menu.filter(m=>m.enabled!==false&&portionsLeft(m)<2&&portionsLeft(m)>=0&&(m.ingredients||[]).length>0);
-  const disabledCount=menu.filter(m=>m.enabled===false).length;
+  const criticalDishes=menu.filter(m=>m.enabled!==false&&unlocked(m)&&portionsLeft(m)<2&&portionsLeft(m)>=0&&(m.ingredients||[]).length>0);
+  const disabledCount=menu.filter(m=>m.enabled===false&&unlocked(m)).length;
+  const lockedAllCount=menu.filter(m=>!unlocked(m)).length;
 
   return(
     <div style={{background:theme.accent||C.bg,borderRadius:16,padding:16,transition:"background 0.4s"}}>
@@ -211,6 +214,13 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
                   border:`1px solid ${C.amber}33`,borderRadius:20,padding:"4px 10px",
                   fontFamily:F.body,fontWeight:600}}>
                   ⏸ {disabledCount} désactivé{disabledCount>1?"s":""}
+                </span>
+              )}
+              {lockedAllCount>0&&(
+                <span style={{fontSize:11,background:C.purpleP,color:C.purple,
+                  border:`1px solid ${C.purple}33`,borderRadius:20,padding:"4px 10px",
+                  fontFamily:F.body,fontWeight:600}}>
+                  🔒 {lockedAllCount} à débloquer
                 </span>
               )}
             </div>
@@ -344,6 +354,60 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
               );
             })}
           </div>
+
+          {/* ── Plats verrouillés ── */}
+          {locked.length>0&&(
+            <div style={{marginTop:20}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,
+                borderTop:`2px dashed ${C.purple}44`,paddingTop:14}}>
+                <span style={{fontSize:16}}>🔒</span>
+                <span style={{fontSize:13,fontWeight:700,color:C.purple,fontFamily:F.title}}>
+                  Plats à débloquer
+                </span>
+                <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
+                  — disponibles en progressant en niveau
+                </span>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(220px,1fr))",gap:bp.isMobile?8:10}}>
+                {locked.map(m=>{
+                  const cc=catC[m.cat]||C.navy;
+                  const lvReq=m.unlockLevel??0;
+                  return(
+                    <div key={m.id} style={{
+                      background:C.bg,
+                      border:`1.5px dashed ${C.purple}44`,
+                      borderRadius:14,padding:14,opacity:0.65,
+                      position:"relative",overflow:"hidden"}}>
+                      {/* overlay verrou */}
+                      <div style={{position:"absolute",top:8,right:10,
+                        background:C.purple,color:"#fff",fontSize:10,fontWeight:800,
+                        borderRadius:20,padding:"2px 10px",letterSpacing:"0.5px"}}>
+                        🔒 Niv.{lvReq}
+                      </div>
+                      <div style={{fontSize:13,fontWeight:600,color:C.muted,
+                        fontFamily:F.title,lineHeight:1.3,marginBottom:6,
+                        paddingRight:60}}>
+                        {m.name}
+                      </div>
+                      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
+                        <Badge color={cc} sm>{m.cat}</Badge>
+                        <span style={{fontSize:9,background:C.amberP,color:C.amber,borderRadius:5,padding:"1px 5px",fontFamily:F.body,fontWeight:600}}>
+                          ⏱{m.prepTime>=60?`${Math.floor(m.prepTime/60)}m`:m.prepTime+"s"}
+                        </span>
+                        <span style={{fontSize:9,background:C.purpleP,color:C.purple,borderRadius:5,padding:"1px 5px",fontFamily:F.body,fontWeight:700}}>
+                          {m.price}€
+                        </span>
+                      </div>
+                      <div style={{fontSize:10,color:C.purple,fontFamily:F.body,fontWeight:600,
+                        background:C.purpleP,borderRadius:6,padding:"4px 8px",textAlign:"center"}}>
+                        Disponible au niveau {lvReq}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </>
       )}
 

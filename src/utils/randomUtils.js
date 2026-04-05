@@ -74,12 +74,17 @@ export const pickSeeded = (pool, count, dateStr) => {
 /**
  * Génère une commande aléatoire pour un groupe.
  * Règles : 1 plat/personne, ~60% entrées, ~40% desserts, 1 boisson/personne.
+ * Seuls les plats activés ET dont unlockLevel <= restoLevel sont proposés.
  * @param {{ size: number }} group
  * @param {typeof import("../constants/gameData").MENU0} menu
+ * @param {number} [restoLevel=0] - niveau actuel du restaurant
  * @returns {Array<{oid, menuId, item, cat, price, qty, prepTime, ingredients}>}
  */
-export const generateOrder = (group, menu) => {
-  const by = (cat) => menu.filter((m) => m.cat === cat);
+export const generateOrder = (group, menu, restoLevel = 0) => {
+  const available = menu.filter(
+    (m) => m.enabled !== false && (m.unlockLevel ?? 0) <= restoLevel
+  );
+  const by = (cat) => available.filter((m) => m.cat === cat);
   const items = [];
 
   // 1 plat par personne
@@ -124,10 +129,11 @@ export const generateOrder = (group, menu) => {
  * Comme generateOrder() mais applique les prix des plats du jour (isSpecial).
  * @param {{ size: number }} group
  * @param {typeof import("../constants/gameData").MENU0} menu
+ * @param {number} [restoLevel=0]
  * @returns {ReturnType<typeof generateOrder>}
  */
-export const generateOrderWithSpecials = (group, menu) => {
-  const orders = generateOrder(group, menu);
+export const generateOrderWithSpecials = (group, menu, restoLevel = 0) => {
+  const orders = generateOrder(group, menu, restoLevel);
   return orders.map((o) => {
     const dish = menu.find((m) => m.id === o.menuId);
     if (dish?.isSpecial) return { ...o, price: dish.price, isSpecial: true };
