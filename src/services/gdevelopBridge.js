@@ -2,7 +2,8 @@
    src/services/gdevelopBridge.js
    Pont de communication React ↔ GDevelop (postMessage).
 ═══════════════════════════════════════════════════════ */
-import { MENU_THEMES, RESTO_LVL, CHEF_LVL, TABLES0, STOCK0 } from "../constants/gameData.js";
+import { RESTO_LVL, CHEF_LVL, TABLES0, STOCK0 } from "../constants/gameData.js";
+import { MENU_THEMES } from "../constants/gameConstants.js";
 import { restoLv, chefLv, srvLv, commisLv } from "../utils/levelUtils.js";
 
 /** Envoie un message structuré au parent (GDevelop via iframe) */
