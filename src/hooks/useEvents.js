@@ -5,48 +5,44 @@
    des refs pour ne pas recréer l'intervalle à chaque rendu.
 
    Événements disponibles (définis dans gameData.js) :
-     - inspection  → amende ou bonus selon le stock
-     - rush        → 3 groupes ajoutés en file
-     - frigo       → panne, stock viandes/poissons −60 %
-     - critique    → client VIP Michelin
+     - inspection       → amende ou bonus selon le stock
+     - rush             → 3 groupes ajoutés en file
+     - frigo            → panne, stock viandes/poissons −60 %
+     - critique         → client VIP Michelin
+     - anniversaire     → patience +30%, bonus cash
+     - buzz             → 3 groupes + VIP, réputation +5
+     - blackout         → cuisson ralentie 50% pendant 3 min
+     - livraison_cadeau → réapprovisionnement gratuit x5 items
+     - serveur_malade   → serveur en pause 4 min
 
    Usage dans App.jsx :
      useEvents({ stockRef, cashRef, complaintsRef, tablesRef,
-                 setStock, setComplaints, setQueue, setCash,
-                 setActiveEvent, addToast, addTx });
+                 serversRef, setStock, setComplaints, setQueue,
+                 setCash, setTables, setServers, setKitchen,
+                 setActiveEvent, addToast, addTx, updateReputation });
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
 import { GAME_EVENTS } from "../constants/gameData.js";
 import { rMood, rName, rSize } from "../utils/randomUtils.js";
 
-/**
- * @param {{
- *   stockRef        : React.MutableRefObject<Array>,
- *   cashRef         : React.MutableRefObject<number>,
- *   complaintsRef   : React.MutableRefObject<Array>,
- *   tablesRef       : React.MutableRefObject<Array>,
- *   setStock        : Function,
- *   setComplaints   : Function,
- *   setQueue        : Function,
- *   setCash         : Function,
- *   setActiveEvent  : Function,
- *   addToast        : Function,
- *   addTx           : Function,
- * }} params
- */
 export const useEvents = ({
   stockRef,
   cashRef,
   complaintsRef,
   tablesRef,
+  serversRef,
   setStock,
   setComplaints,
   setQueue,
   setCash,
+  setTables,
+  setServers,
+  setKitchen,
   setActiveEvent,
   addToast,
   addTx,
+  updateReputation,
 }) => {
   useEffect(() => {
     const iv = setInterval(() => {
@@ -58,7 +54,7 @@ export const useEvents = ({
       setActiveEvent(evt.id);
       setTimeout(() => setActiveEvent(null), 8_000);
 
-      // Exécuter l'événement avec les refs pour lire l'état courant
+      // Exécuter l'événement
       evt.apply(
         stockRef.current,
         cashRef.current,
@@ -73,12 +69,15 @@ export const useEvents = ({
         rSize,
         tablesRef.current,
         setStock,
+        setTables,
+        setServers,
+        setKitchen,
+        updateReputation,
+        serversRef ? serversRef.current : [],
       );
     }, 240_000); // toutes les 4 minutes
 
     return () => clearInterval(iv);
-  // Les setters React sont stables — pas besoin dans les deps
-  // Les refs sont mutables — accès en lecture dans le callback
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addToast, addTx]);
 };

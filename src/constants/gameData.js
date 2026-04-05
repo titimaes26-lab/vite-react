@@ -79,18 +79,85 @@ export const COMMIS_LVL = [
 
 export const COMMIS_XP_CAP = [80, 200];
 
-/* ─── Niveaux restaurant ─────────────────────────────── */
+/* ─── Niveaux restaurant (50 niveaux, 0–49) ──────────── */
+/*
+  Progression XP : paliers croissants (~+10 % par niveau).
+  Tables : +1 tous les niveaux au début, puis +1 tous les 2-3 niveaux.
+  Max : 30 tables, niveau 49 = « Olympe ».
+
+  Ères :
+    0– 9  Établissements locaux  (muted / green)
+   10–19  Reconnaissance régionale (navy / terra)
+   20–29  Gastronomie étoilée   (amber / purple)
+   30–39  Prestige international  (green / navy)
+   40–49  Légende culinaire      (terra / amber → purple)
+*/
 export const RESTO_LVL = [
-  { l: 0, name: "Café de quartier",  icon: "☕",  tables: 3,  xpNeeded: 0,    color: C.muted  },
-  { l: 1, name: "Bistrot",           icon: "🍺",  tables: 5,  xpNeeded: 300,  color: C.green  },
-  { l: 2, name: "Brasserie",         icon: "🍽",  tables: 7,  xpNeeded: 800,  color: C.navy   },
-  { l: 3, name: "Restaurant",        icon: "⭐",  tables: 9,  xpNeeded: 1800, color: C.terra  },
-  { l: 4, name: "Grand Restaurant",  icon: "🌟",  tables: 11, xpNeeded: 3500, color: C.purple },
-  { l: 5, name: "Palace",            icon: "👑",  tables: 12, xpNeeded: 6000, color: C.amber  },
+  /* ── Ère 1 : Établissements locaux (0–9) ─────────────── */
+  { l:  0, name: "Café de quartier",       icon: "☕",    tables:  3, xpNeeded:      0, color: C.muted  },
+  { l:  1, name: "Snack Bar",              icon: "🥙",    tables:  4, xpNeeded:    300, color: C.muted  },
+  { l:  2, name: "Café-Brasserie",         icon: "🍵",    tables:  5, xpNeeded:    800, color: C.green  },
+  { l:  3, name: "Bistrot",               icon: "🍺",    tables:  6, xpNeeded:  1_800, color: C.green  },
+  { l:  4, name: "Auberge",               icon: "🏡",    tables:  7, xpNeeded:  3_500, color: C.navy   },
+  { l:  5, name: "Taverne",               icon: "🍻",    tables:  8, xpNeeded:  6_000, color: C.navy   },
+  { l:  6, name: "Bouchon",               icon: "🥂",    tables:  9, xpNeeded:  9_000, color: C.terra  },
+  { l:  7, name: "Guinguette",            icon: "🎵",    tables: 10, xpNeeded: 12_500, color: C.terra  },
+  { l:  8, name: "Hostellerie",           icon: "🏠",    tables: 11, xpNeeded: 17_000, color: C.amber  },
+  { l:  9, name: "Estaminet",             icon: "🪵",    tables: 12, xpNeeded: 22_500, color: C.amber  },
+  /* ── Ère 2 : Reconnaissance régionale (10–19) ─────────── */
+  { l: 10, name: "Restaurant",            icon: "🍽️",   tables: 13, xpNeeded: 29_500, color: C.purple },
+  { l: 11, name: "Restaurant Bourgeois",  icon: "🎩",    tables: 14, xpNeeded: 38_000, color: C.purple },
+  { l: 12, name: "Table Gourmande",       icon: "🍴",    tables: 15, xpNeeded: 48_500, color: C.green  },
+  { l: 13, name: "Maison de Maître",      icon: "🏛️",   tables: 15, xpNeeded: 61_000, color: C.green  },
+  { l: 14, name: "Restaurant Gastro.",    icon: "⭐",    tables: 16, xpNeeded: 76_000, color: C.navy   },
+  { l: 15, name: "Table d'Auteur",        icon: "🖋️",   tables: 16, xpNeeded: 94_000, color: C.navy   },
+  { l: 16, name: "Cuisine Créative",      icon: "✨",    tables: 17, xpNeeded:115_000, color: C.terra  },
+  { l: 17, name: "Restaurant Renommé",    icon: "🌟",    tables: 17, xpNeeded:140_000, color: C.terra  },
+  { l: 18, name: "Brasserie de Prestige", icon: "🥇",    tables: 18, xpNeeded:169_000, color: C.amber  },
+  { l: 19, name: "Table du Chef",         icon: "👨‍🍳", tables: 18, xpNeeded:202_000, color: C.amber  },
+  /* ── Ère 3 : Gastronomie étoilée (20–29) ─────────────── */
+  { l: 20, name: "Haute Cuisine",          icon: "🌺",   tables: 19, xpNeeded:240_000, color: C.purple },
+  { l: 21, name: "Maison Étoilée",         icon: "⭐",   tables: 19, xpNeeded:283_000, color: C.purple },
+  { l: 22, name: "Grande Table",           icon: "🍾",   tables: 20, xpNeeded:332_000, color: C.green  },
+  { l: 23, name: "Restaurant d'Exception", icon: "💎",   tables: 20, xpNeeded:387_000, color: C.green  },
+  { l: 24, name: "Cuisine d'Auteur",       icon: "🎨",   tables: 21, xpNeeded:449_000, color: C.navy   },
+  { l: 25, name: "Grand Restaurant",       icon: "🌟",   tables: 21, xpNeeded:518_000, color: C.navy   },
+  { l: 26, name: "Établissement Réputé",   icon: "🏆",   tables: 22, xpNeeded:595_000, color: C.terra  },
+  { l: 27, name: "Maison Gastronomique",   icon: "🌹",   tables: 22, xpNeeded:681_000, color: C.terra  },
+  { l: 28, name: "Cuisine d'Excellence",   icon: "💫",   tables: 23, xpNeeded:776_000, color: C.amber  },
+  { l: 29, name: "Temple Gastronomique",   icon: "🏛️",  tables: 23, xpNeeded:882_000, color: C.amber  },
+  /* ── Ère 4 : Prestige international (30–39) ──────────── */
+  { l: 30, name: "Restaurant 2 Étoiles",   icon: "⭐⭐",  tables: 24, xpNeeded:  999_000, color: C.purple },
+  { l: 31, name: "Grande Maison",          icon: "🏰",   tables: 24, xpNeeded:1_128_000, color: C.purple },
+  { l: 32, name: "Restaurant Légendaire",  icon: "🌠",   tables: 25, xpNeeded:1_270_000, color: C.green  },
+  { l: 33, name: "Maison d'Élite",         icon: "💎",   tables: 25, xpNeeded:1_426_000, color: C.green  },
+  { l: 34, name: "Institut Gastronomique", icon: "🎓",   tables: 26, xpNeeded:1_597_000, color: C.navy   },
+  { l: 35, name: "Palace Gastronomique",   icon: "🏯",   tables: 26, xpNeeded:1_784_000, color: C.navy   },
+  { l: 36, name: "Restaurant 3 Étoiles",   icon: "⭐⭐⭐", tables: 27, xpNeeded:1_988_000, color: C.terra  },
+  { l: 37, name: "Résidence Gastronomique",icon: "✨",   tables: 27, xpNeeded:2_210_000, color: C.terra  },
+  { l: 38, name: "Temple Culinaire",       icon: "🗽",   tables: 28, xpNeeded:2_451_000, color: C.amber  },
+  { l: 39, name: "Maison de Référence",    icon: "🎯",   tables: 28, xpNeeded:2_712_000, color: C.amber  },
+  /* ── Ère 5 : Légende culinaire (40–49) ───────────────── */
+  { l: 40, name: "Légende Culinaire",       icon: "🌟",   tables: 29, xpNeeded:2_994_000, color: C.purple },
+  { l: 41, name: "Patrimoine Gastro.",      icon: "🏛️",  tables: 29, xpNeeded:3_298_000, color: C.purple },
+  { l: 42, name: "Icône Culinaire",         icon: "⚜️",  tables: 30, xpNeeded:3_625_000, color: C.green  },
+  { l: 43, name: "Mythe Gastronomique",     icon: "🌌",   tables: 30, xpNeeded:3_976_000, color: C.green  },
+  { l: 44, name: "Sanctuaire Culinaire",    icon: "🕌",   tables: 30, xpNeeded:4_352_000, color: C.navy   },
+  { l: 45, name: "Haute Gastro. Mondiale",  icon: "🌍",   tables: 30, xpNeeded:4_754_000, color: C.navy   },
+  { l: 46, name: "Palais Gastronomique",    icon: "👑",   tables: 30, xpNeeded:5_183_000, color: C.terra  },
+  { l: 47, name: "Monument Culinaire",      icon: "🗿",   tables: 30, xpNeeded:5_640_000, color: C.terra  },
+  { l: 48, name: "Anthologie Gastro.",      icon: "📜",   tables: 30, xpNeeded:6_126_000, color: C.amber  },
+  { l: 49, name: "Olympe",                  icon: "🌠",   tables: 30, xpNeeded:6_642_000, color: C.purple },
 ];
 
-/* ─── Slots serveurs par niveau resto ────────────────── */
-export const SERVER_SLOTS_BY_LEVEL = { 0: 2, 1: 3, 2: 4, 3: 5, 4: 6, 5: 8 };
+/* ─── Slots serveurs par niveau resto (0–49) ────────────── */
+export const SERVER_SLOTS_BY_LEVEL = {
+   0:  2,  1:  3,  2:  3,  3:  4,  4:  4,  5:  5,  6:  5,  7:  6,  8:  6,  9:  7,
+  10:  8, 11:  8, 12:  9, 13:  9, 14: 10, 15: 10, 16: 11, 17: 11, 18: 12, 19: 12,
+  20: 13, 21: 13, 22: 14, 23: 14, 24: 15, 25: 15, 26: 16, 27: 16, 28: 17, 29: 17,
+  30: 18, 31: 18, 32: 19, 33: 19, 34: 20, 35: 20, 36: 21, 37: 21, 38: 22, 39: 22,
+  40: 23, 41: 23, 42: 24, 43: 24, 44: 25, 45: 25, 46: 25, 47: 25, 48: 25, 49: 25,
+};
 
 /* ─── Agrandissements de tables ──────────────────────── */
 export const CAP_UPGRADES = [
@@ -109,19 +176,37 @@ export const MOODS = [
 
 /* ─── Banque de prénoms (génération aléatoire) ───────── */
 export const NAMES1 = [
-  "Alice","Bruno","Clara","Denis","Elena","Félix","Gina","Hugo",
-  "Iris","Jean","Katia","Luc","Mona","Noé","Olivia","Paul","Rosa","Sam","Tina","Vera"
+  "Gabriel", "Emma", "Kenji", "Fatoumata", "Mateo", "Yuki", "Sofia", "Amine", "Elena", "Sven", 
+   "Priya", "Liam", "Zaynab", "Diego", "Chloé", "Hiroshi", "Anais", "Raj", "Valentina", "Malik", 
+   "Ingrid", "Santiago", "Mei", "Omar", "Alessandra", "Kwamé", "Soraya", "Lars", "Théo", "Ji-woo", 
+   "Luca", "Inès", "Dimitri", "Aïcha", "Pablo", "Sakura", "Matteo", "Fatima", "Nikolai", "Yasmine", 
+   "Björn", "Isabella", "Ravi", "Clara", "Ahmed", "Freya", "Carlos", "Leila", "Aris", "Noémie", "Keita", 
+   "Xiuying", "Marco", "Amina", "Finn", "Lucia", "Hassan", "Camille", "Sanjay", "Beatriz", "Khalil", 
+   "Mathilda", "Kenza", "Alejandro", "Sunita", "Hugo", "Nala", "Stefan", "Maria", "Idriss", "Olga", 
+   "Javier", "Zahra", "Mikael", "Siobhan", "Ali", "Francesca", "Tenzin", "Manuel", "Inaya", "Soren", "Paolo", 
+   "Latifa", "Erik", "Luna", "Ismaël", "Brigitte", "Kwesi", "Natasha", "Kim", "Bodhi", "Salma", "Hans", "Aya", 
+   "Rodrigo", "Malia", "Vlad", "Zara", "Ousmane", "Camille"
 ];
 export const NAMES2 = [
-  "Martin","Dupont","Bernard","Thomas","Robert","Petit","Moreau","Simon","Laurent","Michel"
+   "Aleksei", "Amani", "Bao", "Callista", "Dante", "Eliana", "Farrah", "Giacomo", "Hana", "Indira", "Jovan", 
+   "Kanya", "Lior", "Muna", "Nadir", "Odessa", "Pavel", "Qasim", "Rayan", "Saskia", "Tariq", "Ursula", "Vanya", 
+   "Willem", "Ximena", "Yosef", "Zaina", "Alaric", "Basile", "Cassian", "Dahlia", "Elowen", "Fadi", "Gita", "Hamza", 
+   "Ione", "Jiro", "Kael", "Lumi", "Miran", "Niamh", "Odin", "Petra", "Quinn", "Rohan", "Selene", "Thalia", "Umar", 
+   "Veda", "Xavier"
 ];
 
-/* ─── État initial : tables (12 max) ─────────────────── */
+/* ─── État initial : tables (30 max, débloquées progressivement) ── */
 export const TABLES0 = [
   _mkT(1,  "Table 1"),   _mkT(2,  "Table 2"),   _mkT(3,  "Table 3"),
   _mkT(4,  "Table 4"),   _mkT(5,  "Table 5"),   _mkT(6,  "Table 6"),
   _mkT(7,  "Table 7"),   _mkT(8,  "Table 8"),   _mkT(9,  "Table 9"),
   _mkT(10, "Table 10"),  _mkT(11, "Table 11"),  _mkT(12, "Table 12"),
+  _mkT(13, "Table 13"),  _mkT(14, "Table 14"),  _mkT(15, "Table 15"),
+  _mkT(16, "Table 16"),  _mkT(17, "Table 17"),  _mkT(18, "Table 18"),
+  _mkT(19, "Table 19"),  _mkT(20, "Table 20"),  _mkT(21, "Table 21"),
+  _mkT(22, "Table 22"),  _mkT(23, "Table 23"),  _mkT(24, "Table 24"),
+  _mkT(25, "Table 25"),  _mkT(26, "Table 26"),  _mkT(27, "Table 27"),
+  _mkT(28, "Table 28"),  _mkT(29, "Table 29"),  _mkT(30, "Table 30"),
 ];
 
 /* ─── État initial : serveurs ────────────────────────── */
@@ -129,6 +214,18 @@ export const SERVERS0 = [
   { id: 1, name: "Marie Dupont",  status: "actif", totalXp: 320, rating: 4.8, salary: 14, moral: 90, specialty: null },
   { id: 2, name: "Pierre Martin", status: "actif", totalXp: 180, rating: 4.5, salary: 12, moral: 75, specialty: null },
 ];
+
+/* ─── Taux de dégradation de la fraîcheur (%/min) ───── */
+export const FRESHNESS_DECAY = {
+  Poissons: 0.417,  // 25 %/h → périmé en ~4h
+  Viandes:  0.250,  // 15 %/h → ~6h
+  Laitiers: 0.167,  // 10 %/h → ~10h
+  Légumes:  0.133,  //  8 %/h → ~12h
+  Herbes:   0.133,
+  Fins:     0.033,  //  2 %/h → ~50h (quasi stable)
+  Épicerie: 0.033,
+  Boissons: 0.033,
+};
 
 /* ─── État initial : stock (ingrédients bruts) ───────── */
 // price = coût d'achat unitaire en €
@@ -160,7 +257,7 @@ export const STOCK0 = [
   { id: 20, name: "Vin blanc",     qty: 18,  unit: "btl",    alert: 4,    cat: "Boissons", price: 6    },
   { id: 21, name: "Bordeaux",      qty: 24,  unit: "btl",    alert: 8,    cat: "Boissons", price: 12   },
   { id: 22, name: "Eau minérale",  qty: 48,  unit: "btl",    alert: 12,   cat: "Boissons", price: 0.5  },
-];
+].map(item => ({ ...item, freshness: 100 }));
 
 /* ─── État initial : menu (plats définis par recette) ── */
 // prepTime : temps de préparation de base en secondes (avant bonus chef)
@@ -322,10 +419,10 @@ export const KITCHEN_UPGRADES = [
   },
   {
     id: "stockage", icon: "🧊", name: "Chambre froide",
-    desc: "Double la capacité maximale de chaque ingrédient en stock.",
+    desc: "Double la capacité de stock et ralentit la dégradation de la fraîcheur des aliments.",
     levels: [
-      { l: 1, cost: 1000, bonus: { storage: 1 }, label: "Capacité stock ×2" },
-      { l: 2, cost: 2500, bonus: { storage: 1 }, label: "Capacité stock ×3" },
+      { l: 1, cost: 1000, bonus: { storage: 1 }, label: "Capacité ×2 · Fraîcheur −50%" },
+      { l: 2, cost: 2500, bonus: { storage: 1 }, label: "Capacité ×3 · Fraîcheur −75%" },
     ],
   },
   {
@@ -386,16 +483,17 @@ export const OBJECTIVES_DEF = [
   { id: "twenty_tables", series: 2, title: "Rush du midi",       desc: "Servez 20 tables",                         icon: "🔥", reward: { cash: 800,  xp: 200 }, condition: (s) => s.totalServed  >= 20   },
   { id: "five_k",        series: 2, title: "Brasserie rentable", desc: "Atteignez 5 000 € de chiffre d'affaires",  icon: "📈", reward: { cash: 600,  xp: 150 }, condition: (s) => s.totalRevenue >= 5000 },
   { id: "upgrade_table", series: 2, title: "Confort amélioré",   desc: "Agrandissez une table",                    icon: "🪑", reward: { cash: 400,  xp: 100 }, condition: (s) => s.tablesUpgraded >= 1  },
-  { id: "bistrot",       series: 2, title: "Bistrot",            desc: "Atteignez le niveau Bistrot",              icon: "🍺", reward: { cash: 700,  xp: 200 }, condition: (s) => s.restoLevel   >= 1    },
+  { id: "bistrot",       series: 2, title: "Bistrot",            desc: "Atteignez le niveau Bistrot (niv. 3)",     icon: "🍺", reward: { cash: 700,  xp: 0   }, condition: (s) => s.restoLevel   >= 3    },
   // Série 3 — Excellence
   { id: "fifty_tables",  series: 3, title: "Service non-stop",   desc: "Servez 50 tables",                         icon: "🏃", reward: { cash: 1500, xp: 400 }, condition: (s) => s.totalServed  >= 50   },
   { id: "twenty_k",      series: 3, title: "Grand Compte",       desc: "Atteignez 20 000 € de chiffre d'affaires", icon: "💰", reward: { cash: 2000, xp: 500 }, condition: (s) => s.totalRevenue >= 20000},
   { id: "three_upgrades",series: 3, title: "Salle de prestige",  desc: "Agrandissez 3 tables",                     icon: "✨", reward: { cash: 1200, xp: 300 }, condition: (s) => s.tablesUpgraded >= 3  },
-  { id: "brasserie",     series: 3, title: "Brasserie",          desc: "Atteignez le niveau Brasserie",            icon: "🍽", reward: { cash: 1500, xp: 400 }, condition: (s) => s.restoLevel   >= 2    },
+  { id: "brasserie",     series: 3, title: "Restaurant",         desc: "Atteignez le niveau Restaurant (niv. 10)", icon: "🍽", reward: { cash: 1500, xp: 0   }, condition: (s) => s.restoLevel   >= 10   },
   // Série 4 — Légende
-  { id: "hundred_tables",series: 4, title: "Centenaire",         desc: "Servez 100 tables",                        icon: "🏆", reward: { cash: 3000, xp: 800 }, condition: (s) => s.totalServed  >= 100  },
-  { id: "fifty_k",       series: 4, title: "Empire",             desc: "Atteignez 50 000 € de chiffre d'affaires", icon: "👑", reward: { cash: 5000, xp: 1000}, condition: (s) => s.totalRevenue >= 50000},
-  { id: "palace",        series: 4, title: "Le Palace",          desc: "Atteignez le niveau Palace",               icon: "👑", reward: { cash: 5000, xp: 1200}, condition: (s) => s.restoLevel   >= 5    },
+  { id: "hundred_tables",series: 4, title: "Centenaire",         desc: "Servez 100 tables",                          icon: "🏆", reward: { cash: 3000, xp: 800  }, condition: (s) => s.totalServed  >= 100  },
+  { id: "fifty_k",       series: 4, title: "Empire",             desc: "Atteignez 50 000 € de chiffre d'affaires",   icon: "💎", reward: { cash: 5000, xp: 1000 }, condition: (s) => s.totalRevenue >= 50000},
+  { id: "flawless_5",    series: 4, title: "Service légendaire", desc: "Terminez 5 journées sans perdre un client",  icon: "✨", reward: { cash: 4000, xp: 900  }, condition: (s) => (s.perfectDays||0) >= 5},
+  { id: "palace",        series: 4, title: "Grand Restaurant",   desc: "Atteignez le niveau Grand Restaurant (niv. 25)", icon: "👑", reward: { cash: 5000, xp: 0    }, condition: (s) => s.restoLevel   >= 25   },
 ];
 
 /* ─── Étiquettes & couleurs des séries d'objectifs ───── */
@@ -454,10 +552,10 @@ export const GAME_EVENTS = [
     apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock) => {
       setStock(s => s.map(item => {
         if (["kg", "L"].includes(item.unit) && ["Viandes", "Poissons", "Laitiers"].includes(item.cat))
-          return { ...item, qty: +(item.qty * 0.4).toFixed(3) };
+          return { ...item, qty: +(item.qty * 0.4).toFixed(3), freshness: Math.min(item.freshness ?? 100, 15) };
         return item;
       }));
-      addToast({ icon: "🧊", title: "Panne frigo !", msg: "Stocks viandes/poissons réduits de 60%", color: "#1c3352", tab: "stock" });
+      addToast({ icon: "🧊", title: "Panne frigo !", msg: "Stocks viandes/poissons réduits de 60% · Fraîcheur à 15%", color: "#1c3352", tab: "stock" });
     },
   },
   {
@@ -472,6 +570,111 @@ export const GAME_EVENTS = [
       };
       setQueue(q => [vip, ...q]);
       addToast({ icon: "🎩", title: "Client VIP !", msg: "Un critique Michelin attend — servez-le vite !", color: "#6b3fa0", tab: "tables" });
+    },
+  },
+  {
+    id: "anniversaire", icon: "🎉", title: "Anniversaire surprise !",
+    desc: "Un groupe fête un anniversaire — bonne humeur générale dans toute la salle.",
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables) => {
+      // Étendre la patience de tous les groupes en attente de +30%
+      setQueue(q => q.map(g => ({
+        ...g,
+        expiresAt: g.expiresAt + Math.round(g.patMax * 1000 * 0.3),
+      })));
+      // Étendre le temps de repas des tables en train de manger
+      setTables(t => t.map(tbl => {
+        if (tbl.status === "mange" && tbl.eatUntil)
+          return { ...tbl, eatUntil: tbl.eatUntil + 30000 };
+        return tbl;
+      }));
+      const bonus = 60;
+      setCash(c => +(c + bonus).toFixed(2));
+      addTx("revenu", "Ambiance anniversaire — bonus ambiance", bonus);
+      addToast({ icon: "🎉", title: "Anniversaire surprise !", msg: "Patience +30% pour tous · +60€ bonus ambiance", color: "#6b3fa0", tab: "tables" });
+    },
+  },
+  {
+    id: "buzz", icon: "📱", title: "Buzz sur les réseaux !",
+    desc: "Une story virale attire du monde. File d'attente et réputation en hausse.",
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation) => {
+      const maxCap = Math.max(...(tables.filter(t => t.status === "libre").map(t => t.capacity)), 2);
+      const groups = Array.from({ length: 2 }, () => {
+        const mood = rMood();
+        return { id: Date.now() + Math.random(), name: rName(), size: Math.min(rSize(), maxCap), mood, expiresAt: Date.now() + mood.p * 1000, patMax: mood.p };
+      });
+      const vip = {
+        id: Date.now() + Math.random(), name: rName(), size: 2,
+        mood: { e: "🎩", l: "VIP", p: 50, b: 2.0 }, isVIP: true,
+        expiresAt: Date.now() + 50000, patMax: 50,
+      };
+      setQueue(q => [...q, ...groups, vip]);
+      if (updateReputation) updateReputation(5, "buzz réseaux sociaux");
+      addToast({ icon: "📱", title: "Buzz sur les réseaux !", msg: "3 groupes en file · Réputation +5", color: "#6b3fa0", tab: "tables" });
+    },
+  },
+  {
+    id: "blackout", icon: "🌑", title: "Coupure électrique !",
+    desc: "Panne partielle — la cuisine tourne au ralenti pendant 3 minutes.",
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen) => {
+      const now = Date.now();
+      // Allonger le temps restant de cuisson de 50%
+      setKitchen(k => ({
+        ...k,
+        cooking: k.cooking.map(d => {
+          const finishAt = d.startedAt + d.timerMax * 1000;
+          const remaining = Math.max(0, finishAt - now);
+          // Nouveau startedAt pour que finishAt = now + remaining * 1.5
+          const newStartedAt = now + remaining * 1.5 - d.timerMax * 1000;
+          return { ...d, startedAt: newStartedAt };
+        }),
+      }));
+      addToast({ icon: "🌑", title: "Coupure électrique !", msg: "Cuisson ralentie +50% · Retour normal dans 3 min", color: "#1c3352", tab: "cuisine" });
+      setTimeout(() => {
+        addToast({ icon: "💡", title: "Électricité rétablie !", msg: "La cuisine reprend son rythme normal", color: "#2a5c3f", tab: "cuisine" });
+      }, 180_000);
+    },
+  },
+  {
+    id: "livraison_cadeau", icon: "🚚", title: "Livraison cadeau fournisseur !",
+    desc: "Votre fournisseur offre un réapprovisionnement gratuit sur vos stocks les plus bas.",
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock) => {
+      // Trouver les 5 articles les plus bas (ratio qty/alert)
+      const sorted = [...stock]
+        .filter(s => s.alert > 0)
+        .sort((a, b) => (a.qty / a.alert) - (b.qty / b.alert))
+        .slice(0, 5);
+      const ids = new Set(sorted.map(s => s.id));
+      setStock(prev => prev.map(s => {
+        if (!ids.has(s.id)) return s;
+        const restock = +(s.alert * 5).toFixed(3);
+        return { ...s, qty: +(s.qty + restock).toFixed(3), freshness: 100 };
+      }));
+      addToast({ icon: "🚚", title: "Livraison cadeau !", msg: `${sorted.map(s => s.name).join(", ")} réapprovisionnés gratuitement`, color: "#2a5c3f", tab: "stock" });
+    },
+  },
+  {
+    id: "serveur_malade", icon: "🤧", title: "Serveur malade !",
+    desc: "Un serveur se sent mal et doit s'arrêter 4 minutes.",
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef) => {
+      const actifs = (serversRef || []).filter(s => s.status === "actif");
+      if (actifs.length === 0) return;
+      const victim = actifs[Math.floor(Math.random() * actifs.length)];
+      const pauseUntil = Date.now() + 240_000;
+      setServers(prev => prev.map(s =>
+        s.id !== victim.id ? s : { ...s, status: "pause", moral: 10, pauseUntil }
+      ));
+      addToast({ icon: "🤧", title: "Serveur malade !", msg: `${victim.name} est indisponible pendant 4 minutes`, color: "#c4622d", tab: "servers" });
+      setTimeout(() => {
+        setServers(prev => prev.map(s =>
+          s.id !== victim.id ? s : { ...s, status: "actif", pauseUntil: null }
+        ));
+        addToast({ icon: "💪", title: `${victim.name} de retour !`, msg: "Le serveur a repris son service", color: "#2a5c3f", tab: "servers" });
+      }, 240_000);
     },
   },
 ];

@@ -48,12 +48,16 @@ import { useSalary }      from "./src/hooks/useSalary.js";
 import { useDeliveries }  from "./src/hooks/useDeliveries.js";
 import { useEvents }      from "./src/hooks/useEvents.js";
 import { useServerMoral } from "./src/hooks/useServerMoral.js";
+import { useFreshness }   from "./src/hooks/useFreshness.js";
 import { useChallenges }  from "./src/hooks/useChallenges.js";
 import { useObjectives }  from "./src/hooks/useObjectives.js";
 
 // ── Composants UI ──────────────────────────────────────
 import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/ui/index.js";
 import { Toasts } from "./src/components/system/Toasts.jsx";
+import { IntroDialog, TablesDialog, ServersDialog, BankDialog, StatsDialog, ObjectivesDialog, StockDialog, MenuDialog, KitchenDialog } from "./src/components/IntroDialog.jsx";
+import { LevelUpModal } from "./src/components/LevelUpModal.jsx";
+import { QueueBar }    from "./src/components/QueueBar.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./src/views/TablesView.jsx";
@@ -119,6 +123,7 @@ const buildGDevelopPayload = ({
   formulas, dailySpecials, challengeDate,
   completedIds, pendingClaim, todayChallenges, challengeProgress,
   challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+  candidatePool, candidateDate,
 }) => {
   const rl       = restoLv(restoXp);
   const cl       = chefLv(kitchen?.chef?.totalXp || 0);
@@ -267,6 +272,8 @@ const buildGDevelopPayload = ({
       pendingClaim,
       activeTheme,
       activeEvent,
+      candidatePool,
+      candidateDate,
     },
     savedAt      : Date.now(),
   };
@@ -302,7 +309,13 @@ const sanitizeSave = (save) => {
     cooking: [],
     done: save.kitchen.done || [],
   } : null;
-  return { ...save, tables, servers, kitchen, queue: [] };
+  const stock = (save.stock || STOCK0).map(item => ({
+    ...item, freshness: item.freshness ?? 100,
+  }));
+  return { ...save, tables, servers, kitchen, stock, queue: [],
+    candidatePool: save.candidatePool || [],
+    candidateDate: save.candidateDate || "",
+  };
 };
 
 /* ─── Palette ─────────────────────────────────────────── */
@@ -890,10 +903,134 @@ export default function App(){
   const bp=useBreakpoint();
   const _today = new Date().toLocaleDateString("fr-FR");
 
+  /* ── Dialogues tutoriels (premier lancement) ── */
+  const [showIntro, setShowIntro] = useState(()=>{
+    try { return !localStorage.getItem("intro_seen"); } catch(e) { return false; }
+  });
+  const [showTablesTutorial, setShowTablesTutorial] = useState(false);
+
+  const handleIntroDone = () => {
+    try { localStorage.setItem("intro_seen", "1"); } catch(e) {}
+    setShowIntro(false);
+    // Enchaîner avec le tutoriel Tables si jamais vu
+    try {
+      if (!localStorage.getItem("tables_tutorial_seen")) {
+        setTimeout(() => setShowTablesTutorial(true), 400);
+      }
+    } catch(e) {}
+  };
+
+  const handleTablesTutorialDone = () => {
+    try { localStorage.setItem("tables_tutorial_seen", "1"); } catch(e) {}
+    setShowTablesTutorial(false);
+  };
+
   /* ── États principaux — initialisés avec les valeurs par défaut ── */
   /* La sauvegarde est chargée de façon asynchrone dans le useEffect  */
   const [isLoaded, setIsLoaded] = useState(false);
   const [tab,setTab]=useState("tables");
+
+  /* ── Tutoriel Serveurs (déclenché à la première visite de l'onglet) ── */
+  const [showServersTutorial, setShowServersTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "servers" && isLoaded){
+      try {
+        if(!localStorage.getItem("servers_tutorial_seen")){
+          setShowServersTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleServersTutorialDone = () => {
+    try { localStorage.setItem("servers_tutorial_seen", "1"); } catch(e) {}
+    setShowServersTutorial(false);
+  };
+
+  /* ── Tutoriel Statistiques (déclenché à la première visite de l'onglet) ── */
+  const [showStatsTutorial, setShowStatsTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "stats" && isLoaded){
+      try {
+        if(!localStorage.getItem("stats_tutorial_seen")){
+          setShowStatsTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleStatsTutorialDone = () => {
+    try { localStorage.setItem("stats_tutorial_seen", "1"); } catch(e) {}
+    setShowStatsTutorial(false);
+  };
+
+  /* ── Tutoriel Objectifs (déclenché à la première visite de l'onglet) ── */
+  const [showObjectivesTutorial, setShowObjectivesTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "objectives" && isLoaded){
+      try {
+        if(!localStorage.getItem("objectives_tutorial_seen")){
+          setShowObjectivesTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleObjectivesTutorialDone = () => {
+    try { localStorage.setItem("objectives_tutorial_seen", "1"); } catch(e) {}
+    setShowObjectivesTutorial(false);
+  };
+
+  /* ── Tutoriel Stock (déclenché à la première visite de l'onglet) ── */
+  const [showStockTutorial, setShowStockTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "stock" && isLoaded){
+      try {
+        if(!localStorage.getItem("stock_tutorial_seen")){
+          setShowStockTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleStockTutorialDone = () => {
+    try { localStorage.setItem("stock_tutorial_seen", "1"); } catch(e) {}
+    setShowStockTutorial(false);
+  };
+
+  /* ── Tutoriel Menu (déclenché à la première visite de l'onglet) ── */
+  const [showMenuTutorial, setShowMenuTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "menu" && isLoaded){
+      try {
+        if(!localStorage.getItem("menu_tutorial_seen")){
+          setShowMenuTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleMenuTutorialDone = () => {
+    try { localStorage.setItem("menu_tutorial_seen", "1"); } catch(e) {}
+    setShowMenuTutorial(false);
+  };
+
+  /* ── Tutoriel Cuisine (déclenché à la première visite de l'onglet) ── */
+  const [showKitchenTutorial, setShowKitchenTutorial] = useState(false);
+  useEffect(()=>{
+    if(tab === "cuisine" && isLoaded){
+      try {
+        if(!localStorage.getItem("kitchen_tutorial_seen")){
+          setShowKitchenTutorial(true);
+        }
+      } catch(e) {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab]);
+  const handleKitchenTutorialDone = () => {
+    try { localStorage.setItem("kitchen_tutorial_seen", "1"); } catch(e) {}
+    setShowKitchenTutorial(false);
+  };
   const [tables,setTables]=useState(TABLES0);
   const [servers,setServers]=useState(SERVERS0);
   const [queue,setQueue]=useState(()=>{
@@ -915,6 +1052,18 @@ export default function App(){
   ]);
   const [showLedger,setShowLedger]=useState(false);
   const [showBank,setShowBank]=useState(false);
+  const [levelUpData,setLevelUpData]=useState(null);
+  const [showBankTutorial,setShowBankTutorial]=useState(false);
+  const openBank = () => {
+    setShowBank(true);
+    try {
+      if(!localStorage.getItem("bank_tutorial_seen")){
+        localStorage.setItem("bank_tutorial_seen","1");
+        setTimeout(()=>setShowBankTutorial(true),300);
+      }
+    } catch(e) {}
+  };
+  const handleBankTutorialDone = () => setShowBankTutorial(false);
   const [loan,setLoan]=useState(null);
   const [supplierMode,setSupplierMode]=useState("premium");
   const [pendingDeliveries,setPendingDeliveries]=useState([]);
@@ -929,6 +1078,8 @@ export default function App(){
   const [todayChallenges,setTodayChallenges]=useState(()=>pickSeeded(CHALLENGES_POOL, 3, _today));
   const [challengeProgress,setChallengeProgress]=useState({served:0,revenue:0,noLoss:1,highRating:0,fastPlace:0,vip:0,fullHouse:0,tips:0});
   const [challengeClaimed,setChallengeClaimed]=useState({});
+  const [candidatePool,setCandidatePool]=useState([]);
+  const [candidateDate,setCandidateDate]=useState("");
   const [challengeLostToday,setChallengeLostToday]=useState(false);
   const [pendingClaim,setPendingClaim]=useState([]);
   const [objStats,setObjStats]=useState({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
@@ -953,6 +1104,8 @@ export default function App(){
       const today=dailyStats[dailyStats.length-1];
       const isRecord=today&&today.revenue>prevRevenueRef.current&&today.revenue>0;
       setSummaryIsRecord(isRecord);
+      // Journée parfaite si aucun client perdu
+      setObjStats(s=>s._hadLoss?s:{...s,perfectDays:(s.perfectDays||0)+1});
       setShowSummary(true);
     },600000); // 10 minutes
     return()=>clearTimeout(t);
@@ -1027,6 +1180,8 @@ export default function App(){
         if(sv.reputation!=null) setReputation(sv.reputation);
         if(sv.formulas)      setFormulas(sv.formulas);
         if(sv.activeTheme)   setActiveTheme(sv.activeTheme);
+        if(sv.candidatePool) setCandidatePool(sv.candidatePool);
+        if(sv.candidateDate) setCandidateDate(sv.candidateDate);
         setQueue(sv.queue||[]);
       }
       setIsLoaded(true);
@@ -1122,6 +1277,7 @@ export default function App(){
         challengeDate,todayChallenges,challengeProgress,
         challengeClaimed,challengeLostToday,pendingClaim,
         objStats,dailyStats,reputation,formulas,activeTheme,
+        candidatePool,candidateDate,
       });
       setSaveStatus("saved");
       setTimeout(()=>setSaveStatus("idle"),2000);
@@ -1183,12 +1339,14 @@ export default function App(){
       formulas, dailySpecials, challengeDate,
       completedIds, pendingClaim, todayChallenges, challengeProgress,
       challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+      candidatePool, candidateDate,
     };
   },[cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
      reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
      formulas, dailySpecials, challengeDate,
      completedIds, pendingClaim, todayChallenges, challengeProgress,
-     challengeClaimed, challengeLostToday, activeTheme, activeEvent]);
+     challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+     candidatePool, candidateDate]);
 
   useEffect(()=>{
     if (!isLoaded) return;
@@ -1209,6 +1367,7 @@ export default function App(){
   const tablesRef     = useRef(tables);
   const serversRef    = useRef(servers);
   const queueRef      = useRef(queue);
+  const kitchenRef    = useRef(kitchen);
   const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
 
@@ -1219,6 +1378,7 @@ export default function App(){
   useEffect(() => { tablesRef.current     = tables;     }, [tables]);
   useEffect(() => { serversRef.current    = servers;    }, [servers]);
   useEffect(() => { queueRef.current      = queue;      }, [queue]);
+  useEffect(() => { kitchenRef.current    = kitchen;    }, [kitchen]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
   /* ── Hooks métier (remplacent 13 useEffect inline) ── */
@@ -1246,9 +1406,11 @@ export default function App(){
   }, [setTables, setServers]);
   useSalary     ({ setServers, setKitchen, setCash, setLoan, addTx, addToast });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
+  useFreshness  ({ stockRef, kitchenRef, setStock, setComplaints, addToast });
   useEvents     ({
-    stockRef, cashRef, complaintsRef, tablesRef,
+    stockRef, cashRef, complaintsRef, tablesRef, serversRef,
     setStock, setComplaints, setQueue, setCash,
+    setTables, setServers, setKitchen,
     setActiveEvent, addToast, addTx, updateReputation,
   });
   useServerMoral({ setServers, addToast });
@@ -1272,13 +1434,7 @@ export default function App(){
       const after=restoLv(prev+xp);
       if(after.l>before.l){
         const nd=RESTO_LVL[after.l];
-        setTimeout(()=>addToast({
-          icon:nd.icon,
-          title:`Niveau ${nd.l} — ${nd.name} !`,
-          msg:`🎉 ${nd.tables} tables débloquées`,
-          color:nd.color,
-          tab:"tables",
-        }),50);
+        setTimeout(()=>setLevelUpData(nd), 50);
         setObjStats(s=>({...s,restoLevel:after.l}));
       }
       return prev+xp;
@@ -1351,6 +1507,7 @@ export default function App(){
         @keyframes popIn        { 0%{transform:scale(0.82);opacity:0} 65%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
         @keyframes breathe      { 0%,100%{box-shadow:0 0 0 0 rgba(30,92,56,0)} 50%{box-shadow:0 0 0 7px rgba(30,92,56,0.16)} }
         @keyframes breatheAmber { 0%,100%{box-shadow:0 0 0 0 rgba(160,108,8,0)} 50%{box-shadow:0 0 0 6px rgba(160,108,8,0.20)} }
+        @keyframes bankPulse    { 0%,100%{box-shadow:0 2px 10px rgba(160,108,8,0.4);transform:scale(1)} 50%{box-shadow:0 2px 18px rgba(160,108,8,0.7);transform:scale(1.04)} }
         @keyframes toastBar     { from{width:100%} to{width:0%} }
         @keyframes ledPulse     { 0%,100%{opacity:1} 50%{opacity:0.35} }
         @keyframes shimmer      { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
@@ -1414,7 +1571,7 @@ export default function App(){
           :root { --gap: 10px; --pad: 12px; --card-radius: 12px; --font-base: 12px; }
           .desktop-nav { display: none !important; }
           .mobile-nav  { display: flex !important; }
-          .content-area { padding: 12px var(--pad) 90px !important; }
+          .content-area { padding: 12px var(--pad) 60px !important; }
           .badge-alert { font-size: 8px !important; width: 14px !important; height: 14px !important; }
           .hide-mobile { display: none !important; }
           .show-mobile { display: flex !important; }
@@ -1431,7 +1588,7 @@ export default function App(){
           :root { --gap: 12px; --pad: 16px; --card-radius: 14px; }
           .desktop-nav { display: flex !important; }
           .mobile-nav  { display: none !important; }
-          .content-area { padding: 16px var(--pad) !important; }
+          .content-area { padding: 16px var(--pad) 60px !important; }
           .hide-tablet { display: none !important; }
           .resp-grid { grid-template-columns: 1fr 1fr !important; }
           .resp-grid-3 { grid-template-columns: 1fr 1fr !important; }
@@ -1439,10 +1596,13 @@ export default function App(){
         @media (min-width: 1024px) {
           .desktop-nav { display: flex !important; }
           .mobile-nav  { display: none !important; }
-          .content-area { padding: 20px var(--pad) !important; }
+          .content-area { padding: 20px var(--pad) 60px !important; }
           .show-mobile { display: none !important; }
         }
       `}</style>
+
+      {/* Header + Nav — sticky top */}
+      <div style={{position:"sticky",top:0,zIndex:1000,background:C.surface}}>
 
       {/* Header — 2 lignes */}
       <div style={{
@@ -1553,19 +1713,9 @@ export default function App(){
             <span style={{fontSize:9,background:rlD.color+"18",color:rlD.color,
               border:`1px solid ${rlD.color}33`,borderRadius:4,
               padding:"1px 5px",fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap"}}>N{rlD.l}</span>
-          </div>
-          <div style={{flex:1,minWidth:40}}>
-            <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
-              <div style={{height:"100%",
-                width:rl.l>=RESTO_LVL.length-1?"100%":`${rl.pct}%`,
-                background:rlD.color,borderRadius:99,transition:"width 0.6s ease"}}/>
-            </div>
-          </div>
-          <div style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0,whiteSpace:"nowrap"}}>
-            {rl.l>=RESTO_LVL.length-1
-              ? "✦ Max"
-              : `${restoXp}/${rl.next.xpNeeded} XP`
-            }
+            <span style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>
+              {rl.l>=RESTO_LVL.length-1?"✦ Max":`${restoXp}/${rl.next.xpNeeded} XP`}
+            </span>
           </div>
 
           {/* ── Réputation ── */}
@@ -1593,19 +1743,6 @@ export default function App(){
             );
           })()}
 
-          {/* Cash */}
-          <div onClick={()=>setShowLedger(true)} style={{flexShrink:0,display:"flex",alignItems:"center",gap:5,
-            background:cash<200?C.redP:C.greenP,
-            border:`1px solid ${cash<200?C.red:C.green}33`,
-            borderRadius:7,padding:"3px 10px",cursor:"pointer"}}
-            title="Voir le grand livre">
-            <span style={{fontSize:12}}>💰</span>
-            <span style={{fontSize:12,fontWeight:700,
-              color:cash<200?C.red:C.green,fontFamily:F.title,whiteSpace:"nowrap"}}>
-              {cash.toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})} €
-            </span>
-            <span style={{fontSize:9,color:cash<200?C.red:C.green,opacity:0.7}}>▼</span>
-          </div>
           {/* Loan indicator + bank button */}
           <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
             {loan&&(
@@ -1614,13 +1751,15 @@ export default function App(){
                 🏦 −{loan.remaining.toFixed(0)}€
               </div>
             )}
-            <button onClick={()=>setShowBank(true)} title="Banque" style={{
-              padding:"4px 10px",fontSize:11,fontWeight:600,
-              background:loan?C.amberP:C.navyP,
-              border:`1.5px solid ${loan?C.amber:C.navy}44`,
-              borderRadius:7,color:loan?C.amber:C.navy,cursor:"pointer",
-              fontFamily:F.body,display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap"}}>
-              🏦
+            <button onClick={openBank} title="Banque" style={{
+              padding:"6px 12px",fontSize:12,fontWeight:700,
+              background:loan?C.amber:C.navy,
+              border:"none",
+              borderRadius:8,color:"#fff",cursor:"pointer",
+              fontFamily:F.body,display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",
+              boxShadow:loan?`0 2px 10px ${C.amber}66`:`0 2px 10px ${C.navy}44`,
+              animation:loan?"bankPulse 2s ease-in-out infinite":"none"}}>
+              🏦 Banque
             </button>
           </div>
 
@@ -1637,6 +1776,7 @@ export default function App(){
                 challengeDate,todayChallenges,challengeProgress,
                 challengeClaimed,challengeLostToday,pendingClaim,
                 objStats,dailyStats,reputation,formulas,activeTheme,
+                candidatePool,candidateDate,
               });
               setSaveStatus("saved");
               setTimeout(()=>setSaveStatus("idle"),2000);
@@ -1652,7 +1792,8 @@ export default function App(){
               animation:saveStatus==="saving"?"pulse 0.8s ease-in-out infinite":undefined}}>
               {saveStatus==="saved"?"✅":saveStatus==="saving"?"⏳":"💾"}
             </span>
-            <span style={{fontSize:11,fontWeight:700,color:"#fff",whiteSpace:"nowrap"}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#fff",whiteSpace:"nowrap",
+              display:"inline-block",minWidth:"72px",textAlign:"center"}}>
               {saveStatus==="saved"?"Sauvé !":saveStatus==="saving"?"…":"Sauvegarder"}
             </span>
           </button>
@@ -1668,7 +1809,7 @@ export default function App(){
       }}>
         {TABS.map(t=>{
           const readyChallenges=(todayChallenges||[]).filter(ch=>{
-            const val=ch.key==="noLoss"?(challengeLostToday?0:1):
+            const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):
               ch.key==="fullHouse"||ch.key==="vip"?(challengeProgress[ch.key]||0):
               (challengeProgress[ch.key]||0);
             return val>=ch.target&&!(challengeClaimed||{})[ch.id];
@@ -1712,32 +1853,17 @@ export default function App(){
         })}
       </div>
 
-      {/* Content */}
-      <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
-        <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
-        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} restoLvN={rl.l} bp={bp}/>}
-        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} bp={bp}/>}
-        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} bp={bp}/>}
-        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats} bp={bp}/>}
-        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
-        {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
-        {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
-        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} bp={bp}/>}
-        </div>
-      </div>
-
-      {/* Nav Mobile fixe en bas */}
+      {/* Nav Mobile — fixe en haut (dans le wrapper sticky) */}
       <div className="mobile-nav" style={{
-        position:"fixed",bottom:0,left:0,right:0,zIndex:900,
         background:C.surface,
-        borderTop:`1px solid ${C.border}`,
-        boxShadow:"0 -4px 24px rgba(23,18,14,0.12), 0 -1px 4px rgba(23,18,14,0.06)",
+        borderBottom:`1px solid ${C.border}`,
+        boxShadow:"0 2px 8px rgba(23,18,14,0.07)",
         justifyContent:"space-around",alignItems:"stretch",
-        paddingBottom:"env(safe-area-inset-bottom,6px)",
+        paddingTop:"env(safe-area-inset-top,0px)",
       }}>
         {TABS.map(t=>{
           const readyChallenges=(todayChallenges||[]).filter(ch=>{
-            const val=ch.key==="noLoss"?(challengeLostToday?0:1):(challengeProgress[ch.key]||0);
+            const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):(challengeProgress[ch.key]||0);
             return val>=ch.target&&!(challengeClaimed||{})[ch.id];
           }).length;
           const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:0;
@@ -1753,22 +1879,21 @@ export default function App(){
               border:"none",
               display:"flex",flexDirection:"column",alignItems:"center",
               justifyContent:"center",
-              padding:"9px 2px 5px",
+              padding:"7px 2px 8px",
               cursor:"pointer",position:"relative",
-              borderTop:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
-              gap:4,
+              borderBottom:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
+              gap:3,
               transition:"background 0.15s",
             }}>
-              {/* Icon container */}
               <div style={{
-                width:34,height:28,
+                width:34,height:26,
                 display:"flex",alignItems:"center",justifyContent:"center",
                 borderRadius:9,
                 background:active?C.green+"14":"transparent",
                 transition:"background 0.15s",
               }}>
                 <span style={{
-                  fontSize:18,lineHeight:1,
+                  fontSize:17,lineHeight:1,
                   filter:active?"none":"grayscale(0.5) opacity(0.55)",
                   transition:"filter 0.15s",
                 }}>{t.icon}</span>
@@ -1776,27 +1901,49 @@ export default function App(){
               <span style={{
                 fontSize:9,fontWeight:active?700:400,fontFamily:F.body,
                 color:active?C.green:C.muted,
-                whiteSpace:"nowrap",letterSpacing:"0.01em",
-                lineHeight:1,
-              }}>
-                {t.label}
-              </span>
+                whiteSpace:"nowrap",letterSpacing:"0.01em",lineHeight:1,
+              }}>{t.label}</span>
               {badge>0&&(
                 <span style={{
-                  position:"absolute",top:5,right:"calc(50% - 18px)",
+                  position:"absolute",top:4,right:"calc(50% - 18px)",
                   background:C.red,color:"#fff",borderRadius:"50%",
                   width:15,height:15,fontSize:8,fontWeight:800,
                   display:"inline-flex",alignItems:"center",justifyContent:"center",
-                  boxShadow:`0 1px 4px ${C.red}55`,
-                  animation:"popIn 0.3s ease",
-                }}>
-                  {badge}
-                </span>
+                  boxShadow:`0 1px 4px ${C.red}55`,animation:"popIn 0.3s ease",
+                }}>{badge}</span>
               )}
             </button>
           );
         })}
       </div>
+
+      </div>{/* fin wrapper sticky */}
+
+      {/* Content */}
+      <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
+        <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
+        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} restoLvN={rl.l} stock={stock} bp={bp}/>}
+        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
+        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} bp={bp}/>}
+        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats} bp={bp}/>}
+        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
+        {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
+        {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
+        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} bp={bp}/>}
+        </div>
+      </div>
+
+      {/* Barre file d'attente + cash — toujours visible */}
+      {isLoaded && (
+        <QueueBar
+          queue={queue}
+          cash={cash}
+          onTabChange={setTab}
+          isMobile={bp.isMobile}
+          onOpenBank={()=>setShowLedger(true)}
+        />
+      )}
+
 
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
       {showBank&&<BankModal onClose={()=>setShowBank(false)} cash={cash} loan={loan}
@@ -1934,6 +2081,18 @@ export default function App(){
       )}
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
+
+      {/* Dialogues tutoriels — affichés une seule fois chacun */}
+      {levelUpData && <LevelUpModal levelData={levelUpData} onClose={()=>setLevelUpData(null)}/>}
+      {showBankTutorial                  && <BankDialog    onDone={handleBankTutorialDone}/>}
+      {showIntro            && isLoaded && <IntroDialog   onDone={handleIntroDone}/>}
+      {showTablesTutorial   && isLoaded && <TablesDialog  onDone={handleTablesTutorialDone}/>}
+      {showServersTutorial     && isLoaded && <ServersDialog    onDone={handleServersTutorialDone}/>}
+      {showStatsTutorial       && isLoaded && <StatsDialog      onDone={handleStatsTutorialDone}/>}
+      {showObjectivesTutorial  && isLoaded && <ObjectivesDialog onDone={handleObjectivesTutorialDone}/>}
+      {showStockTutorial       && isLoaded && <StockDialog      onDone={handleStockTutorialDone}/>}
+      {showMenuTutorial     && isLoaded && <MenuDialog    onDone={handleMenuTutorialDone}/>}
+      {showKitchenTutorial  && isLoaded && <KitchenDialog onDone={handleKitchenTutorialDone}/>}
     </div>
   );
 }
