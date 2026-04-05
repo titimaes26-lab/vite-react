@@ -483,17 +483,17 @@ export const OBJECTIVES_DEF = [
   { id: "twenty_tables", series: 2, title: "Rush du midi",       desc: "Servez 20 tables",                         icon: "🔥", reward: { cash: 800,  xp: 200 }, condition: (s) => s.totalServed  >= 20   },
   { id: "five_k",        series: 2, title: "Brasserie rentable", desc: "Atteignez 5 000 € de chiffre d'affaires",  icon: "📈", reward: { cash: 600,  xp: 150 }, condition: (s) => s.totalRevenue >= 5000 },
   { id: "upgrade_table", series: 2, title: "Confort amélioré",   desc: "Agrandissez une table",                    icon: "🪑", reward: { cash: 400,  xp: 100 }, condition: (s) => s.tablesUpgraded >= 1  },
-  { id: "bistrot",       series: 2, title: "Bistrot",            desc: "Atteignez le niveau Bistrot (niv. 3)",     icon: "🍺", reward: { cash: 700,  xp: 200 }, condition: (s) => s.restoLevel   >= 3    },
+  { id: "bistrot",       series: 2, title: "Bistrot",            desc: "Atteignez le niveau Bistrot (niv. 3)",     icon: "🍺", reward: { cash: 700,  xp: 0   }, condition: (s) => s.restoLevel   >= 3    },
   // Série 3 — Excellence
   { id: "fifty_tables",  series: 3, title: "Service non-stop",   desc: "Servez 50 tables",                         icon: "🏃", reward: { cash: 1500, xp: 400 }, condition: (s) => s.totalServed  >= 50   },
   { id: "twenty_k",      series: 3, title: "Grand Compte",       desc: "Atteignez 20 000 € de chiffre d'affaires", icon: "💰", reward: { cash: 2000, xp: 500 }, condition: (s) => s.totalRevenue >= 20000},
   { id: "three_upgrades",series: 3, title: "Salle de prestige",  desc: "Agrandissez 3 tables",                     icon: "✨", reward: { cash: 1200, xp: 300 }, condition: (s) => s.tablesUpgraded >= 3  },
-  { id: "brasserie",     series: 3, title: "Restaurant",         desc: "Atteignez le niveau Restaurant (niv. 10)", icon: "🍽", reward: { cash: 1500, xp: 400 }, condition: (s) => s.restoLevel   >= 10   },
+  { id: "brasserie",     series: 3, title: "Restaurant",         desc: "Atteignez le niveau Restaurant (niv. 10)", icon: "🍽", reward: { cash: 1500, xp: 0   }, condition: (s) => s.restoLevel   >= 10   },
   // Série 4 — Légende
   { id: "hundred_tables",series: 4, title: "Centenaire",         desc: "Servez 100 tables",                          icon: "🏆", reward: { cash: 3000, xp: 800  }, condition: (s) => s.totalServed  >= 100  },
   { id: "fifty_k",       series: 4, title: "Empire",             desc: "Atteignez 50 000 € de chiffre d'affaires",   icon: "💎", reward: { cash: 5000, xp: 1000 }, condition: (s) => s.totalRevenue >= 50000},
   { id: "flawless_5",    series: 4, title: "Service légendaire", desc: "Terminez 5 journées sans perdre un client",  icon: "✨", reward: { cash: 4000, xp: 900  }, condition: (s) => (s.perfectDays||0) >= 5},
-  { id: "palace",        series: 4, title: "Grand Restaurant",   desc: "Atteignez le niveau Grand Restaurant (niv. 25)", icon: "👑", reward: { cash: 5000, xp: 1200 }, condition: (s) => s.restoLevel   >= 25   },
+  { id: "palace",        series: 4, title: "Grand Restaurant",   desc: "Atteignez le niveau Grand Restaurant (niv. 25)", icon: "👑", reward: { cash: 5000, xp: 0    }, condition: (s) => s.restoLevel   >= 25   },
 ];
 
 /* ─── Étiquettes & couleurs des séries d'objectifs ───── */
