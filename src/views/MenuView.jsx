@@ -5,7 +5,7 @@
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
 import { C, F } from "../constants/gameData.js";
-import { MENU_THEMES, FORMULA_PRESETS } from "../constants/gameConstants.js";
+import { FORMULA_PRESETS } from "../constants/gameConstants.js";
 import { Badge, Btn, Modal, Lbl, Inp, Sel } from "../components/ui/index.js";
 
 export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActiveTheme,dailyStats,restoLvN=0,bp={}}){
@@ -23,8 +23,6 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
 
   const cats=["Tout","Entrées","Plats","Desserts","Boissons"];
   const catC={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy};
-  const theme=(MENU_THEMES||[]).find(t=>t.id===(activeTheme||"none"))||{id:"none",icon:"📋",name:"Standard",color:C.muted,desc:"",priceMult:1,repBonus:0,xpMult:1,accent:C.bg};
-
   /* ── Calculs par plat ── */
   const dishCost=(m)=>
     (m.ingredients||[]).reduce((sum,ing)=>{
@@ -132,26 +130,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
   const lockedAllCount=menu.filter(m=>!unlocked(m)).length;
 
   return(
-    <div style={{background:theme.accent||C.bg,borderRadius:16,padding:16,transition:"background 0.4s"}}>
-
-      {/* Bandeau thème */}
-      {theme.id!=="none"&&(
-        <div style={{background:theme.color+"18",border:`1.5px solid ${theme.color}33`,
-          borderRadius:10,padding:"8px 14px",marginBottom:12,
-          display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-          <span style={{fontSize:18}}>{theme.icon}</span>
-          <span style={{fontSize:12,fontWeight:700,color:theme.color,fontFamily:F.title}}>
-            Thème : {theme.name}
-          </span>
-          <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>— {theme.desc}</span>
-          <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-            {[`💰 ×${theme.priceMult}`,`⭐ Rép.+${theme.repBonus}`,`🎯 XP×${theme.xpMult}`].map(t=>(
-              <span key={t} style={{fontSize:10,background:theme.color,color:"#fff",
-                borderRadius:20,padding:"2px 8px",fontFamily:F.body,fontWeight:700}}>{t}</span>
-            ))}
-          </div>
-        </div>
-      )}
+    <div style={{background:C.bg,borderRadius:16,padding:16}}>
 
       {/* Alertes stock critique */}
       {criticalDishes.length>0&&(
@@ -179,7 +158,6 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
         {[
           {k:"carte",    icon:"📋", label:"Carte"},
           {k:"formules", icon:"🍽",  label:`Formules${(formulas||[]).filter(f=>f.active).length>0?" ("+(formulas||[]).filter(f=>f.active).length+")":""}`},
-          {k:"themes",   icon:"🎨",  label:"Thèmes"},
           {k:"perf",     icon:"📊",  label:"Performance"},
         ].map(t=>(
           <button key={t.k} onClick={()=>setMainTab(t.k)} style={{
@@ -257,7 +235,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
               const criticalStock=portions<2&&(m.ingredients||[]).length>0;
               const score=perfScore(m);
               const sc=score>=70?C.green:score>=40?C.amber:C.red;
-              const effectivePrice=theme.priceMult!==1?+(m.price*theme.priceMult).toFixed(2):m.price;
+              const effectivePrice=m.price;
 
               return(
                 <div key={m.id} style={{
@@ -287,13 +265,13 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
                     </div>
                     <div style={{flexShrink:0,textAlign:"right"}}>
                       <div style={{fontSize:16,fontWeight:700,
-                        color:isPriceModified?C.purple:theme.priceMult!==1?theme.color:C.terra,
+                        color:isPriceModified?C.purple:C.terra,
                         fontFamily:F.title}}>
                         {effectivePrice}€
                       </div>
-                      {(isPriceModified||theme.priceMult!==1)&&(
+                      {isPriceModified&&(
                         <div style={{fontSize:9,color:C.muted,textDecoration:"line-through",fontFamily:F.body}}>
-                          {m.basePrice||m.price}€
+                          {m.basePrice}€
                         </div>
                       )}
                     </div>
@@ -500,44 +478,6 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
               </div>
             </Modal>
           )}
-        </div>
-      )}
-
-      {/* ══ THÈMES ══ */}
-      {mainTab==="themes"&&(
-        <div>
-          <div style={{fontSize:12,color:C.muted,fontFamily:F.body,marginBottom:16,lineHeight:1.6}}>
-            Le thème modifie visuellement la carte et applique un multiplicateur de prix global + bonus de réputation sur chaque service.
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":"repeat(auto-fill,minmax(240px,1fr))",gap:bp.isMobile?10:14}}>
-            {MENU_THEMES.map(t=>{
-              const isActive=(activeTheme||"none")===t.id;
-              return(
-                <div key={t.id} onClick={()=>setActiveTheme(t.id)} style={{
-                  background:isActive?t.color+"14":C.card,
-                  border:`2px solid ${isActive?t.color:C.border}`,
-                  borderRadius:14,padding:16,cursor:"pointer",
-                  boxShadow:isActive?`0 4px 16px ${t.color}33`:"0 1px 4px rgba(0,0,0,0.06)",
-                  transition:"all 0.2s"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
-                    <div style={{width:44,height:44,background:t.color+"18",border:`2px solid ${t.color}44`,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{t.icon}</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:14,fontWeight:700,color:t.color,fontFamily:F.title}}>
-                        {t.name}
-                        {isActive&&<span style={{marginLeft:6,fontSize:9,background:t.color,color:"#fff",borderRadius:20,padding:"1px 7px",fontFamily:F.body,fontWeight:700}}>Actif</span>}
-                      </div>
-                      <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>{t.desc}</div>
-                    </div>
-                  </div>
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                    {[`💰 ×${t.priceMult}`,`⭐ +${t.repBonus} rép.`,`🎯 ×${t.xpMult} XP`].map(tag=>(
-                      <span key={tag} style={{fontSize:10,background:t.color+"14",color:t.color,border:`1px solid ${t.color}33`,borderRadius:6,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 
