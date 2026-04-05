@@ -687,10 +687,6 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
         borderBottom:`1px solid ${C.border}`,
         display:"flex",alignItems:"center",
         paddingLeft:14,paddingRight:14,gap:14,zIndex:10}}>
-        <span style={{fontSize:13,fontWeight:800,color:C.green,fontFamily:F.title}}>
-          💶 {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})}€
-        </span>
-        <div style={{width:1,height:18,background:C.border}}/>
         <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
           ✅ {tables.filter(t=>t.status==="libre").length}/{tables.length} libres
         </span>

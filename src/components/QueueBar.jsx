@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from "react";
 import { C, F } from "../constants/gameData.js";
 
-export function QueueBar({ queue, cash, onTabChange, isMobile }) {
+export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
   const [now, setNow] = useState(Date.now());
   const rafRef = useRef(null);
 
@@ -36,13 +36,19 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
     }}>
 
       {/* ── Cash ───────────────────────────────────────── */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 6,
-        padding: "0 14px",
-        flexShrink: 0,
-        borderRight: `1px solid ${C.border}`,
-        minWidth: isMobile ? 100 : 130,
-      }}>
+      <div
+        onClick={onOpenBank}
+        title="Voir le grand livre"
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "0 14px",
+          flexShrink: 0,
+          borderRight: `1px solid ${C.border}`,
+          minWidth: isMobile ? 100 : 130,
+          cursor: onOpenBank ? "pointer" : "default",
+          background: onOpenBank ? (cash < 200 ? C.redP : C.greenP) : "transparent",
+          transition: "background 0.2s",
+        }}>
         <span style={{ fontSize: 13 }}>💰</span>
         <span style={{
           fontSize: isMobile ? 12 : 13,
@@ -54,6 +60,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile }) {
         }}>
           {cash.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
         </span>
+        {onOpenBank && <span style={{ fontSize: 9, color: cashColor, opacity: 0.7 }}>▼</span>}
       </div>
 
       {/* ── Titre file d'attente ────────────────────────── */}
