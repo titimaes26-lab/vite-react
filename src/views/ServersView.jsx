@@ -14,6 +14,11 @@ const moralIcon   = (m) => m>=70?"😊":m>=40?"😐":m>=20?"😓":"💀";
 const moralLabel  = (m) => m>=70?"En forme":m>=40?"Fatigué":m>=20?"Épuisé":"Burnout";
 const moralColor  = (m) => m>=70 ? "#236b47" : m>=40 ? "#a86e08" : "#b83025";
 
+// Plages XP, salaire et taux de spécialité des candidats selon le niveau resto
+const _candidateXpRange  = (lv) => [[0,100],[80,350],[300,800],[700,1500],[1200,2500]][Math.min(Math.floor(lv/5),4)];
+const _candidateSalRange = (lv) => [[10,13],[11,15],[13,17],[15,20],[18,25]][Math.min(Math.floor(lv/5),4)];
+const _candidateSpecRate = (lv) => lv<5?0.10:lv<10?0.25:lv<20?0.40:0.60;
+
 
 
 
