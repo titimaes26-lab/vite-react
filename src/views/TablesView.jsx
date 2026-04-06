@@ -806,12 +806,10 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                       const isSelected=selectedClient?.id===g.id;
                       return(
                         <div key={g.id}
-                          onClick={()=>freeT.length>0?toggleSelectClient(g):null}
                           style={{background:isSelected?C.navyP:C.bg,
                             border:`1px solid ${isSelected?C.navy:col+"33"}`,
                             borderLeft:`3px solid ${isSelected?C.navy:col}`,
                             borderRadius:9,padding:"8px 10px",
-                            cursor:freeT.length>0?"pointer":"default",
                             transition:"background 0.15s,border 0.15s"}}>
                           <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
                             <span style={{fontSize:18}}>{g.mood.e}</span>
@@ -820,21 +818,26 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                                 overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</div>
                               <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{g.size}p · {g.mood.l}{g.isVIP?" 🎩":""}</div>
                             </div>
-                            {isSelected&&<span style={{fontSize:9,background:C.navy,color:"#fff",borderRadius:20,padding:"1px 6px",fontFamily:F.body,fontWeight:700,flexShrink:0}}>Choisir table ›</span>}
                           </div>
                           <div style={{height:3,background:col+"22",borderRadius:99,overflow:"hidden",marginBottom:5}}>
                             <div style={{height:"100%",width:`${pct*100}%`,background:col,borderRadius:99,transition:"width 0.3s"}}/>
                           </div>
-                          {isSelected
-                            ?<div style={{fontSize:9,color:C.navy,fontFamily:F.body,textAlign:"center",padding:"2px 0",fontWeight:600}}>
-                              Cliquez sur une table libre sur le plan
+                          {isSelected?(
+                            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                              <div style={{fontSize:9,color:C.navy,fontFamily:F.body,textAlign:"center",padding:"2px 0",fontWeight:600}}>
+                                Cliquez sur une table libre sur le plan
+                              </div>
+                              <Btn full sm v="ghost" onClick={()=>setSelectedClient(null)}>✕ Annuler</Btn>
                             </div>
-                            :freeT.length>0&&aS.length>0
-                            ?<Btn full sm v="primary" onClick={e=>{e.stopPropagation();quickPlace(g);}} icon="➡️">Placer auto</Btn>
-                            :freeT.length>0
-                            ?<Btn full sm v="secondary" onClick={e=>{e.stopPropagation();openAssign(g);}} icon="🪑">Choisir serveur</Btn>
-                            :<div style={{fontSize:9,color:C.muted,fontFamily:F.body,textAlign:"center",padding:"2px 0"}}>{freeT.length===0?"Pas de table":"Pas de serveur"}</div>
-                          }
+                          ):freeT.length>0?(
+                            <div style={{display:"flex",gap:3}}>
+                              {aS.length>0&&<Btn full sm v="primary" onClick={()=>quickPlace(g)} icon="➡️">Placer</Btn>}
+                              <Btn full sm v="navy" onClick={()=>toggleSelectClient(g)} icon="🪑">Table</Btn>
+                              {aS.length===0&&<Btn full sm v="secondary" onClick={()=>openAssign(g)} icon="👤">Serveur</Btn>}
+                            </div>
+                          ):(
+                            <div style={{fontSize:9,color:C.muted,fontFamily:F.body,textAlign:"center",padding:"2px 0"}}>{freeT.length===0?"Pas de table":"Pas de serveur"}</div>
+                          )}
                         </div>
                       );
                     })}
