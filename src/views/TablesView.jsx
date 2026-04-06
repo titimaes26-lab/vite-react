@@ -274,7 +274,8 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,
 function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
   selectedTable,setSelectedTable,
   srvLv,SRV_LVL,calcRating,ratingColor,ratingStars,calcTip,
-  quickPlace,openAssign,checkout,activeSrv,lockedSlots=[]}) {
+  quickPlace,openAssign,checkout,activeSrv,lockedSlots=[],
+  selectedClient,onPlaceClient,onCancelClientSelect}) {
               const n = tables.length + lockedSlots.length;
 
               // ── 1. Grille adaptative ─────────────────────────
@@ -317,6 +318,17 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                 <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{display:"block",position:"absolute",inset:0}}>
                   {/* Fond parquet */}
                   <rect x="0" y="0" width={VW} height={VH} fill="#faf7f0"/>
+
+                  {/* Bandeau mode sélection client */}
+                  {selectedClient&&(
+                    <g>
+                      <rect x="0" y="0" width={VW} height={22} fill="#1a4f9f" opacity="0.92"/>
+                      <text x={VW/2} y={14} textAnchor="middle" fontSize="9" fontWeight="700"
+                        fill="white" fontFamily="sans-serif">
+                        {selectedClient.mood.e} {selectedClient.name} ({selectedClient.size}p) — Cliquez sur une table compatible · Échap pour annuler
+                      </text>
+                    </g>
+                  )}
                   {Array.from({length:Math.ceil(VH/20)+1},(_,i)=>(
                     <line key={`h${i}`} x1="0" y1={i*20} x2={VW} y2={i*20}
                       stroke="#e8e0d0" strokeWidth="0.5"/>
@@ -356,10 +368,11 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                     const isOrdering=t.status==="occupée"&&t.svcUntil&&now<t.svcUntil;
                     const isLibre=t.status==="libre";
                     const myQ=queue.filter(g=>g.size<=t.capacity&&isLibre);
+                    const isClientTarget=selectedClient&&isLibre&&t.capacity>=selectedClient.size;
+                    const isClientIncompat=selectedClient&&isLibre&&t.capacity<selectedClient.size;
 
                     const fill=isNettoyage?"#f5d878":isMange?"#4a9e78":isOrdering?"#3a5f8a":
                       t.status==="occupée"?"#e07a45":myQ.length>0?"#5ab88a":"#c8e6d8";
-
 
                     // Taille selon capacité — garantit que tw+chaises < CELL_W
                     const tw=getTW(t.capacity);
@@ -408,14 +421,29 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                       :null;
 
                     return(
-                      <g key={t.id} onClick={()=>setSelectedTable(t)} style={{cursor:"pointer"}}>
+                      <g key={t.id} onClick={()=>{
+                        if(isClientTarget){onPlaceClient(selectedClient,t);}
+                        else if(selectedClient&&!isLibre){/* occupied/cleaning — ignore */}
+                        else if(selectedClient&&isClientIncompat){/* too small — ignore */}
+                        else{if(selectedClient)onCancelClientSelect();setSelectedTable(t);}
+                      }} style={{cursor:isClientTarget?"crosshair":selectedClient&&!isClientTarget?"not-allowed":"pointer"}}>
 
                         {/* Halo sélection */}
-                        {t.id===selectedTable?.id&&(
+                        {t.id===selectedTable?.id&&!selectedClient&&(
                           <rect x={pos.cx-tw/2-7} y={pos.cy-th/2-7}
                             width={tw+14} height={th+14} rx="13"
                             fill="none" stroke="#1a1612" strokeWidth="2.5"
                             opacity="0.25" strokeDasharray="5 3"/>
+                        )}
+
+                        {/* Halo table cible (mode sélection client) */}
+                        {isClientTarget&&(
+                          <rect x={pos.cx-tw/2-7} y={pos.cy-th/2-7}
+                            width={tw+14} height={th+14} rx="13"
+                            fill="none" stroke="#1a4f9f" strokeWidth="2.5"
+                            opacity="0.6" strokeDasharray="6 3">
+                            <animate attributeName="opacity" values="0.6;0.15;0.6" dur="1s" repeatCount="indefinite"/>
+                          </rect>
                         )}
 
                         {/* Image de table selon capacité */}
@@ -510,7 +538,7 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                         )}
 
                         {/* Pulse attente client */}
-                        {isLibre&&myQ.length>0&&(
+                        {isLibre&&myQ.length>0&&!selectedClient&&(
                           <rect x={pos.cx-tw/2} y={pos.cy-th/2}
                             width={tw} height={th} rx="8"
                             fill="none" stroke={C.green} strokeWidth="2.5"
@@ -550,6 +578,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
   const now = clockNow;
 
   const [selectedTable, setSelectedTable] = useState(null);
+  const [selectedClient, setSelectedClient] = useState(null);
   const [modal, setModal] = useState(null);
   const [tgtT, setTgtT] = useState(null);
   const [tgtS, setTgtS] = useState(null);
@@ -566,6 +595,29 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
   };
 
   const openAssign = (g) => setModal(g);
+
+  const toggleSelectClient = (g) => {
+    setSelectedClient(prev => prev?.id === g.id ? null : g);
+    setSelectedTable(null);
+  };
+
+  useEffect(() => {
+    if (!selectedClient) return;
+    const onKey = (e) => { if (e.key === "Escape") setSelectedClient(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedClient]);
+
+  const placeClientAtTable = (g, table) => {
+    const sv = activeSrv[0];
+    if (!sv) {
+      addToast({icon:"⚠️",title:"Aucun serveur disponible",msg:"Tous les serveurs sont occupés",color:C.red,tab:"tables"});
+      setSelectedClient(null);
+      return;
+    }
+    openKitchen(g, table, sv);
+    setSelectedClient(null);
+  };
 
   const recallGroup = (g) => {
     const newGroup = {
@@ -751,24 +803,36 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                       const col=pct>0.5?C.green:pct>0.25?C.amber:C.red;
                       const freeT=tables.filter(t=>t.status==="libre"&&t.capacity>=g.size);
                       const aS=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
+                      const isSelected=selectedClient?.id===g.id;
                       return(
-                        <div key={g.id} style={{background:C.bg,border:`1px solid ${col}33`,
-                          borderLeft:`3px solid ${col}`,borderRadius:9,padding:"8px 10px"}}>
+                        <div key={g.id}
+                          onClick={()=>freeT.length>0?toggleSelectClient(g):null}
+                          style={{background:isSelected?C.navyP:C.bg,
+                            border:`1px solid ${isSelected?C.navy:col+"33"}`,
+                            borderLeft:`3px solid ${isSelected?C.navy:col}`,
+                            borderRadius:9,padding:"8px 10px",
+                            cursor:freeT.length>0?"pointer":"default",
+                            transition:"background 0.15s,border 0.15s"}}>
                           <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
                             <span style={{fontSize:18}}>{g.mood.e}</span>
                             <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontSize:11,fontWeight:700,color:C.ink,fontFamily:F.body,
+                              <div style={{fontSize:11,fontWeight:700,color:isSelected?C.navy:C.ink,fontFamily:F.body,
                                 overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</div>
                               <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{g.size}p · {g.mood.l}{g.isVIP?" 🎩":""}</div>
                             </div>
+                            {isSelected&&<span style={{fontSize:9,background:C.navy,color:"#fff",borderRadius:20,padding:"1px 6px",fontFamily:F.body,fontWeight:700,flexShrink:0}}>Choisir table ›</span>}
                           </div>
                           <div style={{height:3,background:col+"22",borderRadius:99,overflow:"hidden",marginBottom:5}}>
                             <div style={{height:"100%",width:`${pct*100}%`,background:col,borderRadius:99,transition:"width 0.3s"}}/>
                           </div>
-                          {freeT.length>0&&aS.length>0
-                            ?<Btn full sm v="primary" onClick={()=>quickPlace(g)} icon="➡️">Placer</Btn>
+                          {isSelected
+                            ?<div style={{fontSize:9,color:C.navy,fontFamily:F.body,textAlign:"center",padding:"2px 0",fontWeight:600}}>
+                              Cliquez sur une table libre sur le plan
+                            </div>
+                            :freeT.length>0&&aS.length>0
+                            ?<Btn full sm v="primary" onClick={e=>{e.stopPropagation();quickPlace(g);}} icon="➡️">Placer auto</Btn>
                             :freeT.length>0
-                            ?<Btn full sm v="secondary" onClick={()=>openAssign(g)} icon="🪑">Choisir serveur</Btn>
+                            ?<Btn full sm v="secondary" onClick={e=>{e.stopPropagation();openAssign(g);}} icon="🪑">Choisir serveur</Btn>
                             :<div style={{fontSize:9,color:C.muted,fontFamily:F.body,textAlign:"center",padding:"2px 0"}}>{freeT.length===0?"Pas de table":"Pas de serveur"}</div>
                           }
                         </div>
@@ -860,6 +924,9 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
               quickPlace={quickPlace} openAssign={openAssign}
               checkout={checkout} activeSrv={activeSrv}
               lockedSlots={lockedSlots}
+              selectedClient={selectedClient}
+              onPlaceClient={placeClientAtTable}
+              onCancelClientSelect={()=>setSelectedClient(null)}
             />
           </div>
 
