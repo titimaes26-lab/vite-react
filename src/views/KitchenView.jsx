@@ -10,16 +10,24 @@ import { Btn, XpBar, Badge } from "../components/ui/index.js";
 import { chefLv, commisLv, dishCookTimeWithUpgrades } from "../utils/levelUtils.js";
 import { consumeStock } from "../utils/orderUtils.js";
 
-export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,bp={}}){
+export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,restoLvN=0,bp={}}){
   const chf=kitchen.chef;
   const cl=chefLv(chf.totalXp);
   const clD=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
   const unlockedCommis=clD.commis;
 
-  // Compute upgrade bonuses
-  const upg=kitchen.upgrades||{fourneau:0,four:0,stockage:0,plonge:0};
-  const extraSlots=KITCHEN_UPGRADES.find(u=>u.id==="fourneau").levels.slice(0,upg.fourneau).reduce((s,l)=>s+l.bonus.slots,0);
-  const speedBonus=KITCHEN_UPGRADES.find(u=>u.id==="four").levels.slice(0,upg.four).reduce((s,l)=>s+l.bonus.speed,0);
+  // Compute upgrade bonuses (all slot/speed sources combined)
+  const upg={fourneau:0,four:0,stockage:0,plonge:0,salamandre:0,dressage:0,sousvide:0,brigade:0,...(kitchen.upgrades||{})};
+  const slotSources=["fourneau","dressage","brigade"];
+  const speedSources=["four","salamandre","sousvide"];
+  const extraSlots=slotSources.reduce((tot,id)=>{
+    const item=KITCHEN_UPGRADES.find(u=>u.id===id);
+    return tot+(item?item.levels.slice(0,upg[id]).reduce((s,l)=>s+(l.bonus.slots||0),0):0);
+  },0);
+  const speedBonus=speedSources.reduce((tot,id)=>{
+    const item=KITCHEN_UPGRADES.find(u=>u.id===id);
+    return tot+(item?item.levels.slice(0,upg[id]).reduce((s,l)=>s+(l.bonus.speed||0),0):0);
+  },0);
   const maxConcurrent=4+unlockedCommis+extraSlots;
 
   const upgDishCookTime=(prepTime,chefSpeed,commisCount)=>
@@ -606,6 +614,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
         </div>
         <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(200px,1fr))",gap:bp.isMobile?8:10}}>
           {KITCHEN_UPGRADES.map(upItem=>{
+            const isLocked=restoLvN<(upItem.minRestoLevel||0);
             const curLv=upg[upItem.id]||0;
             const maxLv=upItem.levels.length;
             const nextLv=upItem.levels[curLv]||null;
@@ -618,6 +627,26 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
               if(l.bonus.clean) return `Nettoyage −${l.bonus.clean}s`;
               return "";
             }).filter(Boolean);
+
+            if(isLocked){
+              return(
+                <div key={upItem.id} style={{
+                  background:C.card,opacity:0.55,
+                  border:`1.5px dashed ${C.border}`,
+                  borderRadius:12,padding:12,position:"relative"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                    <span style={{fontSize:20,filter:"grayscale(1)"}}>{upItem.icon}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:700,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{upItem.name}</div>
+                    </div>
+                  </div>
+                  <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>{upItem.desc}</div>
+                  <div style={{marginTop:7,fontSize:10,fontWeight:700,color:C.terra,fontFamily:F.body}}>
+                    🔒 Disponible au niveau {upItem.minRestoLevel}
+                  </div>
+                </div>
+              );
+            }
 
             return(
               <div key={upItem.id} style={{

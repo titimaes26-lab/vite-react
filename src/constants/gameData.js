@@ -20,33 +20,40 @@ const _mkT = (id, name, cap = 2, capLv = 0) => ({
 
 /* ─── Palette de couleurs (thème) ───────────────────── */
 export const C = {
-  bg:      "#f4f0e8",
+  bg:      "#f2ede3",
   surface: "#ffffff",
-  card:    "#fdfbf6",
-  border:  "#ddd4c0",
-  green:   "#2a5c3f",
-  greenL:  "#3d7a57",
-  greenP:  "#eaf3ed",
-  terra:   "#c4622d",
-  terraP:  "#fdf0e8",
-  terraL:  "#e07a45",
-  navy:    "#1c3352",
-  navyP:   "#e8edf4",
-  ink:     "#1a1612",
-  muted:   "#8a7d6a",
-  red:     "#c0392b",
-  redP:    "#fdecea",
-  amber:   "#b87d10",
-  amberP:  "#fdf5e0",
-  purple:  "#6b3fa0",
-  purpleP: "#f0eaf8",
+  surface2:"#faf7f2",
+  card:    "#fdfaf5",
+  border:  "#ddd0b8",
+  green:   "#236b47",
+  greenL:  "#2e8a5a",
+  greenP:  "#e6f4ed",
+  terra:   "#b85a25",
+  terraP:  "#fdeee5",
+  terraL:  "#d4713a",
+  navy:    "#18304f",
+  navyP:   "#e4eaf4",
+  ink:     "#18130e",
+  ink2:    "#2e2419",
+  muted:   "#8a7a65",
+  red:     "#b83025",
+  redP:    "#fce9e8",
+  amber:   "#a86e08",
+  amberP:  "#fdf3dc",
+  purple:  "#5e3492",
+  purpleP: "#ece5f8",
   white:   "#ffffff",
+  shadow1: "rgba(24,19,14,0.06)",
+  shadow2: "rgba(24,19,14,0.12)",
+  shadow3: "rgba(24,19,14,0.20)",
 };
 
 /* ─── Typographie ────────────────────────────────────── */
 export const F = {
-  title: "Georgia,'Times New Roman',serif",
-  body:  "'Segoe UI',system-ui,-apple-system,sans-serif",
+  title:   "'Playfair Display',Georgia,'Times New Roman',serif",
+  display: "'Playfair Display',Georgia,serif",
+  body:    "'Inter','Segoe UI',system-ui,-apple-system,sans-serif",
+  mono:    "'SF Mono','Fira Code',monospace",
 };
 
 /* ─── Niveaux serveurs ───────────────────────────────── */
@@ -79,18 +86,101 @@ export const COMMIS_LVL = [
 
 export const COMMIS_XP_CAP = [80, 200];
 
-/* ─── Niveaux restaurant ─────────────────────────────── */
+/* ─── Niveaux restaurant (50 niveaux, 0–49) ──────────── */
+/*
+  Progression XP : paliers croissants (~+10 % par niveau).
+  Tables : +1 tous les niveaux au début, puis +1 tous les 2-3 niveaux.
+  Max : 30 tables, niveau 49 = « Olympe ».
+
+  Ères :
+    0– 9  Établissements locaux  (muted / green)
+   10–19  Reconnaissance régionale (navy / terra)
+   20–29  Gastronomie étoilée   (amber / purple)
+   30–39  Prestige international  (green / navy)
+   40–49  Légende culinaire      (terra / amber → purple)
+*/
 export const RESTO_LVL = [
-  { l: 0, name: "Café de quartier",  icon: "☕",  tables: 3,  xpNeeded: 0,    color: C.muted  },
-  { l: 1, name: "Bistrot",           icon: "🍺",  tables: 5,  xpNeeded: 300,  color: C.green  },
-  { l: 2, name: "Brasserie",         icon: "🍽",  tables: 7,  xpNeeded: 800,  color: C.navy   },
-  { l: 3, name: "Restaurant",        icon: "⭐",  tables: 9,  xpNeeded: 1800, color: C.terra  },
-  { l: 4, name: "Grand Restaurant",  icon: "🌟",  tables: 11, xpNeeded: 3500, color: C.purple },
-  { l: 5, name: "Palace",            icon: "👑",  tables: 12, xpNeeded: 6000, color: C.amber  },
+  /* ── Ère 1 : Établissements locaux (0–9) ─────────────── */
+  { l:  0, name: "Café de quartier",       icon: "☕",    tables:  3, xpNeeded:      0, color: C.muted  },
+  { l:  1, name: "Snack Bar",              icon: "🥙",    tables:  4, xpNeeded:    300, color: C.muted  },
+  { l:  2, name: "Café-Brasserie",         icon: "🍵",    tables:  5, xpNeeded:    800, color: C.green  },
+  { l:  3, name: "Bistrot",               icon: "🍺",    tables:  6, xpNeeded:  1_800, color: C.green  },
+  { l:  4, name: "Auberge",               icon: "🏡",    tables:  7, xpNeeded:  3_500, color: C.navy   },
+  { l:  5, name: "Taverne",               icon: "🍻",    tables:  8, xpNeeded:  6_000, color: C.navy   },
+  { l:  6, name: "Bouchon",               icon: "🥂",    tables:  9, xpNeeded:  9_000, color: C.terra  },
+  { l:  7, name: "Guinguette",            icon: "🎵",    tables: 10, xpNeeded: 12_500, color: C.terra  },
+  { l:  8, name: "Hostellerie",           icon: "🏠",    tables: 11, xpNeeded: 17_000, color: C.amber  },
+  { l:  9, name: "Estaminet",             icon: "🪵",    tables: 12, xpNeeded: 22_500, color: C.amber  },
+  /* ── Ère 2 : Reconnaissance régionale (10–19) ─────────── */
+  { l: 10, name: "Restaurant",            icon: "🍽️",   tables: 13, xpNeeded: 29_500, color: C.purple },
+  { l: 11, name: "Restaurant Bourgeois",  icon: "🎩",    tables: 14, xpNeeded: 38_000, color: C.purple },
+  { l: 12, name: "Table Gourmande",       icon: "🍴",    tables: 15, xpNeeded: 48_500, color: C.green  },
+  { l: 13, name: "Maison de Maître",      icon: "🏛️",   tables: 15, xpNeeded: 61_000, color: C.green  },
+  { l: 14, name: "Restaurant Gastro.",    icon: "⭐",    tables: 16, xpNeeded: 76_000, color: C.navy   },
+  { l: 15, name: "Table d'Auteur",        icon: "🖋️",   tables: 16, xpNeeded: 94_000, color: C.navy   },
+  { l: 16, name: "Cuisine Créative",      icon: "✨",    tables: 17, xpNeeded:115_000, color: C.terra  },
+  { l: 17, name: "Restaurant Renommé",    icon: "🌟",    tables: 17, xpNeeded:140_000, color: C.terra  },
+  { l: 18, name: "Brasserie de Prestige", icon: "🥇",    tables: 18, xpNeeded:169_000, color: C.amber  },
+  { l: 19, name: "Table du Chef",         icon: "👨‍🍳", tables: 18, xpNeeded:202_000, color: C.amber  },
+  /* ── Ère 3 : Gastronomie étoilée (20–29) ─────────────── */
+  { l: 20, name: "Haute Cuisine",          icon: "🌺",   tables: 19, xpNeeded:240_000, color: C.purple },
+  { l: 21, name: "Maison Étoilée",         icon: "⭐",   tables: 19, xpNeeded:283_000, color: C.purple },
+  { l: 22, name: "Grande Table",           icon: "🍾",   tables: 20, xpNeeded:332_000, color: C.green  },
+  { l: 23, name: "Restaurant d'Exception", icon: "💎",   tables: 20, xpNeeded:387_000, color: C.green  },
+  { l: 24, name: "Cuisine d'Auteur",       icon: "🎨",   tables: 21, xpNeeded:449_000, color: C.navy   },
+  { l: 25, name: "Grand Restaurant",       icon: "🌟",   tables: 21, xpNeeded:518_000, color: C.navy   },
+  { l: 26, name: "Établissement Réputé",   icon: "🏆",   tables: 22, xpNeeded:595_000, color: C.terra  },
+  { l: 27, name: "Maison Gastronomique",   icon: "🌹",   tables: 22, xpNeeded:681_000, color: C.terra  },
+  { l: 28, name: "Cuisine d'Excellence",   icon: "💫",   tables: 23, xpNeeded:776_000, color: C.amber  },
+  { l: 29, name: "Temple Gastronomique",   icon: "🏛️",  tables: 23, xpNeeded:882_000, color: C.amber  },
+  /* ── Ère 4 : Prestige international (30–39) ──────────── */
+  { l: 30, name: "Restaurant 2 Étoiles",   icon: "⭐⭐",  tables: 24, xpNeeded:  999_000, color: C.purple },
+  { l: 31, name: "Grande Maison",          icon: "🏰",   tables: 24, xpNeeded:1_128_000, color: C.purple },
+  { l: 32, name: "Restaurant Légendaire",  icon: "🌠",   tables: 25, xpNeeded:1_270_000, color: C.green  },
+  { l: 33, name: "Maison d'Élite",         icon: "💎",   tables: 25, xpNeeded:1_426_000, color: C.green  },
+  { l: 34, name: "Institut Gastronomique", icon: "🎓",   tables: 26, xpNeeded:1_597_000, color: C.navy   },
+  { l: 35, name: "Palace Gastronomique",   icon: "🏯",   tables: 26, xpNeeded:1_784_000, color: C.navy   },
+  { l: 36, name: "Restaurant 3 Étoiles",   icon: "⭐⭐⭐", tables: 27, xpNeeded:1_988_000, color: C.terra  },
+  { l: 37, name: "Résidence Gastronomique",icon: "✨",   tables: 27, xpNeeded:2_210_000, color: C.terra  },
+  { l: 38, name: "Temple Culinaire",       icon: "🗽",   tables: 28, xpNeeded:2_451_000, color: C.amber  },
+  { l: 39, name: "Maison de Référence",    icon: "🎯",   tables: 28, xpNeeded:2_712_000, color: C.amber  },
+  /* ── Ère 5 : Légende culinaire (40–49) ───────────────── */
+  { l: 40, name: "Légende Culinaire",       icon: "🌟",   tables: 29, xpNeeded:2_994_000, color: C.purple },
+  { l: 41, name: "Patrimoine Gastro.",      icon: "🏛️",  tables: 29, xpNeeded:3_298_000, color: C.purple },
+  { l: 42, name: "Icône Culinaire",         icon: "⚜️",  tables: 30, xpNeeded:3_625_000, color: C.green  },
+  { l: 43, name: "Mythe Gastronomique",     icon: "🌌",   tables: 30, xpNeeded:3_976_000, color: C.green  },
+  { l: 44, name: "Sanctuaire Culinaire",    icon: "🕌",   tables: 30, xpNeeded:4_352_000, color: C.navy   },
+  { l: 45, name: "Haute Gastro. Mondiale",  icon: "🌍",   tables: 30, xpNeeded:4_754_000, color: C.navy   },
+  { l: 46, name: "Palais Gastronomique",    icon: "👑",   tables: 30, xpNeeded:5_183_000, color: C.terra  },
+  { l: 47, name: "Monument Culinaire",      icon: "🗿",   tables: 30, xpNeeded:5_640_000, color: C.terra  },
+  { l: 48, name: "Anthologie Gastro.",      icon: "📜",   tables: 30, xpNeeded:6_126_000, color: C.amber  },
+  { l: 49, name: "Olympe",                  icon: "🌠",   tables: 30, xpNeeded:6_642_000, color: C.purple },
 ];
 
-/* ─── Slots serveurs par niveau resto ────────────────── */
-export const SERVER_SLOTS_BY_LEVEL = { 0: 2, 1: 3, 2: 4, 3: 5, 4: 6, 5: 8 };
+/* ─── Slots serveurs par niveau resto (0–49) ────────────── */
+export const SERVER_SLOTS_BY_LEVEL = {
+   0:  2,  1:  3,  2:  3,  3:  4,  4:  4,  5:  5,  6:  5,  7:  6,  8:  6,  9:  7,
+  10:  8, 11:  8, 12:  9, 13:  9, 14: 10, 15: 10, 16: 11, 17: 11, 18: 12, 19: 12,
+  20: 13, 21: 13, 22: 14, 23: 14, 24: 15, 25: 15, 26: 16, 27: 16, 28: 17, 29: 17,
+  30: 18, 31: 18, 32: 19, 33: 19, 34: 20, 35: 20, 36: 21, 37: 21, 38: 22, 39: 22,
+  40: 23, 41: 23, 42: 24, 43: 24, 44: 25, 45: 25, 46: 25, 47: 25, 48: 25, 49: 25,
+};
+
+/* ─── Exigences de qualité du personnel par niveau restaurant ── */
+/*
+  Chaque entrée décrit le minimum de personnel qualifié requis
+  pour que le restaurant fonctionne à son plein potentiel.
+  tier : 0=Stagiaire 1=Serveur 2=Senior 3=Expert 4=Maître
+  Appliqué dès que restoLv >= atLv
+*/
+export const STAFF_QUALITY_REQ = [
+  { atLv: 10, tier: 1, count: 1, icon: "👔", label: "1 Serveur minimum"  },
+  { atLv: 15, tier: 2, count: 1, icon: "⭐", label: "1 Senior minimum"   },
+  { atLv: 20, tier: 2, count: 2, icon: "⭐", label: "2 Senior minimum"   },
+  { atLv: 25, tier: 3, count: 1, icon: "🎖",  label: "1 Expert minimum"   },
+  { atLv: 30, tier: 3, count: 2, icon: "🎖",  label: "2 Expert minimum"   },
+  { atLv: 40, tier: 4, count: 1, icon: "👑", label: "1 Maître minimum"   },
+];
 
 /* ─── Agrandissements de tables ──────────────────────── */
 export const CAP_UPGRADES = [
@@ -128,12 +218,18 @@ export const NAMES2 = [
    "Veda", "Xavier"
 ];
 
-/* ─── État initial : tables (12 max) ─────────────────── */
+/* ─── État initial : tables (30 max, débloquées progressivement) ── */
 export const TABLES0 = [
   _mkT(1,  "Table 1"),   _mkT(2,  "Table 2"),   _mkT(3,  "Table 3"),
   _mkT(4,  "Table 4"),   _mkT(5,  "Table 5"),   _mkT(6,  "Table 6"),
   _mkT(7,  "Table 7"),   _mkT(8,  "Table 8"),   _mkT(9,  "Table 9"),
   _mkT(10, "Table 10"),  _mkT(11, "Table 11"),  _mkT(12, "Table 12"),
+  _mkT(13, "Table 13"),  _mkT(14, "Table 14"),  _mkT(15, "Table 15"),
+  _mkT(16, "Table 16"),  _mkT(17, "Table 17"),  _mkT(18, "Table 18"),
+  _mkT(19, "Table 19"),  _mkT(20, "Table 20"),  _mkT(21, "Table 21"),
+  _mkT(22, "Table 22"),  _mkT(23, "Table 23"),  _mkT(24, "Table 24"),
+  _mkT(25, "Table 25"),  _mkT(26, "Table 26"),  _mkT(27, "Table 27"),
+  _mkT(28, "Table 28"),  _mkT(29, "Table 29"),  _mkT(30, "Table 30"),
 ];
 
 /* ─── État initial : serveurs ────────────────────────── */
@@ -186,12 +282,22 @@ export const STOCK0 = [
   { id: 22, name: "Eau minérale",  qty: 48,  unit: "btl",    alert: 12,   cat: "Boissons", price: 0.5  },
 ].map(item => ({ ...item, freshness: 100 }));
 
+/* ─── Ingrédients premium — injectés au déblocage du plat ── */
+// Non présents dans STOCK0 ; ajoutés automatiquement quand le plat se débloque.
+export const PREMIUM_STOCK = [
+  { id: 23, name: "Truffe noire",    qty: 50,  unit: "g",      alert: 10,   cat: "Fins",     price: 2.8  },
+  { id: 24, name: "Homard vivant",   qty: 4,   unit: "pcs",    alert: 1,    cat: "Poissons", price: 45   },
+  { id: 25, name: "Pigeonneau",      qty: 6,   unit: "pcs",    alert: 1,    cat: "Viandes",  price: 22   },
+  { id: 26, name: "Champagne",       qty: 12,  unit: "btl",    alert: 3,    cat: "Boissons", price: 28   },
+].map(item => ({ ...item, freshness: 100 }));
+
 /* ─── État initial : menu (plats définis par recette) ── */
-// prepTime : temps de préparation de base en secondes (avant bonus chef)
+// prepTime    : temps de préparation de base en secondes (avant bonus chef)
+// unlockLevel : niveau restaurant minimum requis pour utiliser ce plat
 export const MENU0 = [
   // ── Entrées ──────────────────────────────────────────
   {
-    id: 1, name: "Salade César", cat: "Entrées", price: 14, prepTime: 45,
+    id: 1, name: "Salade César", cat: "Entrées", price: 14, prepTime: 45, unlockLevel: 0,
     ingredients: [
       { stockId: 5,  qty: 1    },  // laitue romaine
       { stockId: 14, qty: 0.06 },  // parmesan
@@ -200,7 +306,7 @@ export const MENU0 = [
     ],
   },
   {
-    id: 2, name: "Soupe à l'oignon", cat: "Entrées", price: 11, prepTime: 90,
+    id: 2, name: "Soupe à l'oignon", cat: "Entrées", price: 11, prepTime: 90, unlockLevel: 0,
     ingredients: [
       { stockId: 6,  qty: 0.35 },  // oignons
       { stockId: 11, qty: 0.05 },  // beurre
@@ -209,16 +315,33 @@ export const MENU0 = [
     ],
   },
   {
-    id: 3, name: "Foie gras maison", cat: "Entrées", price: 22, prepTime: 60,
+    id: 3, name: "Foie gras maison", cat: "Entrées", price: 22, prepTime: 60, unlockLevel: 7,
     ingredients: [
       { stockId: 4,  qty: 0.12 },  // foie gras
       { stockId: 11, qty: 0.02 },  // beurre
       { stockId: 17, qty: 0.01 },  // sucre (chutney)
     ],
   },
+  {
+    id: 12, name: "Tartare de bœuf", cat: "Entrées", price: 18, prepTime: 50, unlockLevel: 10,
+    ingredients: [
+      { stockId: 1,  qty: 0.18 },  // bœuf
+      { stockId: 6,  qty: 0.03 },  // oignons
+      { stockId: 19, qty: 0.02 },  // huile d'olive
+      { stockId: 13, qty: 1    },  // œufs (jaune)
+    ],
+  },
+  {
+    id: 13, name: "Velouté de truffe", cat: "Entrées", price: 38, prepTime: 80, unlockLevel: 20,
+    ingredients: [
+      { stockId: 23, qty: 8    },  // truffe noire (g)
+      { stockId: 12, qty: 0.15 },  // crème fraîche
+      { stockId: 11, qty: 0.03 },  // beurre
+    ],
+  },
   // ── Plats ────────────────────────────────────────────
   {
-    id: 4, name: "Entrecôte 300g", cat: "Plats", price: 28, prepTime: 75,
+    id: 4, name: "Entrecôte 300g", cat: "Plats", price: 28, prepTime: 75, unlockLevel: 0,
     ingredients: [
       { stockId: 1,  qty: 0.35 },  // bœuf
       { stockId: 11, qty: 0.06 },  // beurre
@@ -227,7 +350,7 @@ export const MENU0 = [
     ],
   },
   {
-    id: 5, name: "Saumon grillé", cat: "Plats", price: 24, prepTime: 120,
+    id: 5, name: "Saumon grillé", cat: "Plats", price: 24, prepTime: 120, unlockLevel: 3,
     ingredients: [
       { stockId: 2,  qty: 0.25 },  // saumon
       { stockId: 11, qty: 0.04 },  // beurre
@@ -236,7 +359,7 @@ export const MENU0 = [
     ],
   },
   {
-    id: 6, name: "Poulet rôti", cat: "Plats", price: 19, prepTime: 105,
+    id: 6, name: "Poulet rôti", cat: "Plats", price: 19, prepTime: 105, unlockLevel: 0,
     ingredients: [
       { stockId: 3,  qty: 1    },  // poulet
       { stockId: 11, qty: 0.07 },  // beurre
@@ -245,7 +368,7 @@ export const MENU0 = [
     ],
   },
   {
-    id: 7, name: "Risotto champignons", cat: "Plats", price: 18, prepTime: 180,
+    id: 7, name: "Risotto champignons", cat: "Plats", price: 18, prepTime: 180, unlockLevel: 5,
     ingredients: [
       { stockId: 18, qty: 0.15 },  // riz arborio
       { stockId: 7,  qty: 0.2  },  // champignons
@@ -255,9 +378,36 @@ export const MENU0 = [
       { stockId: 20, qty: 0.15 },  // vin blanc
     ],
   },
+  {
+    id: 14, name: "Homard rôti", cat: "Plats", price: 55, prepTime: 150, unlockLevel: 15,
+    ingredients: [
+      { stockId: 24, qty: 1    },  // homard vivant
+      { stockId: 11, qty: 0.08 },  // beurre
+      { stockId: 8,  qty: 0.02 },  // ail
+      { stockId: 10, qty: 1    },  // thym
+    ],
+  },
+  {
+    id: 15, name: "Filet de bœuf Wellington", cat: "Plats", price: 72, prepTime: 210, unlockLevel: 25,
+    ingredients: [
+      { stockId: 1,  qty: 0.30 },  // bœuf
+      { stockId: 7,  qty: 0.15 },  // champignons (duxelles)
+      { stockId: 16, qty: 0.12 },  // farine (pâte feuilletée)
+      { stockId: 11, qty: 0.05 },  // beurre
+    ],
+  },
+  {
+    id: 16, name: "Pigeonneau en croûte", cat: "Plats", price: 90, prepTime: 240, unlockLevel: 35,
+    ingredients: [
+      { stockId: 25, qty: 1    },  // pigeonneau
+      { stockId: 7,  qty: 0.12 },  // champignons
+      { stockId: 16, qty: 0.10 },  // farine
+      { stockId: 11, qty: 0.06 },  // beurre
+    ],
+  },
   // ── Desserts ─────────────────────────────────────────
   {
-    id: 8, name: "Crème brûlée", cat: "Desserts", price: 9, prepTime: 75,
+    id: 8, name: "Crème brûlée", cat: "Desserts", price: 9, prepTime: 75, unlockLevel: 0,
     ingredients: [
       { stockId: 12, qty: 0.2  },  // crème fraîche
       { stockId: 13, qty: 3    },  // œufs
@@ -265,7 +415,7 @@ export const MENU0 = [
     ],
   },
   {
-    id: 9, name: "Tarte Tatin", cat: "Desserts", price: 10, prepTime: 105,
+    id: 9, name: "Tarte Tatin", cat: "Desserts", price: 10, prepTime: 105, unlockLevel: 3,
     ingredients: [
       { stockId: 9,  qty: 0.35 },  // pommes
       { stockId: 11, qty: 0.08 },  // beurre
@@ -273,14 +423,39 @@ export const MENU0 = [
       { stockId: 16, qty: 0.1  },  // farine
     ],
   },
+  {
+    id: 17, name: "Soufflé au Grand Marnier", cat: "Desserts", price: 14, prepTime: 120, unlockLevel: 12,
+    ingredients: [
+      { stockId: 13, qty: 4    },  // œufs
+      { stockId: 12, qty: 0.1  },  // crème fraîche
+      { stockId: 17, qty: 0.08 },  // sucre
+    ],
+  },
+  {
+    id: 18, name: "Mille-feuille Passion", cat: "Desserts", price: 16, prepTime: 130, unlockLevel: 22,
+    ingredients: [
+      { stockId: 16, qty: 0.15 },  // farine (feuilletage)
+      { stockId: 11, qty: 0.07 },  // beurre
+      { stockId: 12, qty: 0.12 },  // crème fraîche (pâtissière)
+      { stockId: 17, qty: 0.06 },  // sucre
+    ],
+  },
   // ── Boissons ─────────────────────────────────────────
   {
-    id: 10, name: "Bordeaux 75cl", cat: "Boissons", price: 32, prepTime: 8,
+    id: 10, name: "Bordeaux 75cl", cat: "Boissons", price: 32, prepTime: 8, unlockLevel: 0,
     ingredients: [{ stockId: 21, qty: 1 }],
   },
   {
-    id: 11, name: "Eau minérale 1L", cat: "Boissons", price: 5, prepTime: 5,
+    id: 11, name: "Eau minérale 1L", cat: "Boissons", price: 5, prepTime: 5, unlockLevel: 0,
     ingredients: [{ stockId: 22, qty: 1 }],
+  },
+  {
+    id: 19, name: "Vin blanc AOC", cat: "Boissons", price: 18, prepTime: 6, unlockLevel: 5,
+    ingredients: [{ stockId: 20, qty: 1 }],  // vin blanc
+  },
+  {
+    id: 20, name: "Champagne Millésimé", cat: "Boissons", price: 75, prepTime: 10, unlockLevel: 10,
+    ingredients: [{ stockId: 26, qty: 1 }],  // champagne
   },
 ];
 
@@ -321,7 +496,7 @@ export const KITCHEN0 = {
   cooking:     [],
   done:        [],
   totalDishes: 0,
-  upgrades:    { fourneau: 0, four: 0, stockage: 0, plonge: 0 },
+  upgrades:    { fourneau: 0, four: 0, stockage: 0, plonge: 0, salamandre: 0, dressage: 0, sousvide: 0, brigade: 0 },
 };
 
 /* ─── Améliorations de cuisine ───────────────────────── */
@@ -329,6 +504,7 @@ export const KITCHEN_UPGRADES = [
   {
     id: "fourneau", icon: "🔥", name: "Fourneau supplémentaire",
     desc: "Ajoute +1 feu de cuisson simultané.",
+    minRestoLevel: 0,
     levels: [
       { l: 1, cost: 600,  bonus: { slots: 1 }, label: "+1 feu (5 total)" },
       { l: 2, cost: 1200, bonus: { slots: 1 }, label: "+1 feu (6 total)" },
@@ -338,6 +514,7 @@ export const KITCHEN_UPGRADES = [
   {
     id: "four", icon: "🏺", name: "Four professionnel",
     desc: "Réduit le temps de cuisson de tous les plats.",
+    minRestoLevel: 0,
     levels: [
       { l: 1, cost: 800,  bonus: { speed: 0.15 }, label: "−15 % temps de cuisson" },
       { l: 2, cost: 1800, bonus: { speed: 0.15 }, label: "−30 % temps de cuisson" },
@@ -347,6 +524,7 @@ export const KITCHEN_UPGRADES = [
   {
     id: "stockage", icon: "🧊", name: "Chambre froide",
     desc: "Double la capacité de stock et ralentit la dégradation de la fraîcheur des aliments.",
+    minRestoLevel: 0,
     levels: [
       { l: 1, cost: 1000, bonus: { storage: 1 }, label: "Capacité ×2 · Fraîcheur −50%" },
       { l: 2, cost: 2500, bonus: { storage: 1 }, label: "Capacité ×3 · Fraîcheur −75%" },
@@ -355,9 +533,45 @@ export const KITCHEN_UPGRADES = [
   {
     id: "plonge", icon: "🚿", name: "Station de plonge",
     desc: "Réduit le temps de nettoyage des tables.",
+    minRestoLevel: 0,
     levels: [
       { l: 1, cost: 500,  bonus: { clean: 20 }, label: "Nettoyage −20s (40s)" },
       { l: 2, cost: 1200, bonus: { clean: 20 }, label: "Nettoyage −20s (20s)" },
+    ],
+  },
+  {
+    id: "salamandre", icon: "🔆", name: "Salamandre pro",
+    desc: "Grill de finition haute performance — accélère la cuisson de tous les plats.",
+    minRestoLevel: 10,
+    levels: [
+      { l: 1, cost: 2000, bonus: { speed: 0.20 }, label: "−17 % temps de cuisson" },
+      { l: 2, cost: 4500, bonus: { speed: 0.40 }, label: "−28 % temps de cuisson supplémentaire" },
+    ],
+  },
+  {
+    id: "dressage", icon: "🪨", name: "Plan de travail grand chef",
+    desc: "Surface de travail en marbre massif — espace supplémentaire pour plus de plats simultanés.",
+    minRestoLevel: 20,
+    levels: [
+      { l: 1, cost: 5000, bonus: { slots: 1 }, label: "+1 plat simultané" },
+      { l: 2, cost: 9500, bonus: { slots: 1 }, label: "+1 plat simultané (total +2)" },
+    ],
+  },
+  {
+    id: "sousvide", icon: "💧", name: "Cuiseur sous-vide",
+    desc: "Cuisson basse température ultra-précise — drastiquement plus rapide pour les plats de prestige.",
+    minRestoLevel: 30,
+    levels: [
+      { l: 1, cost: 8000,  bonus: { speed: 0.30 }, label: "−23 % temps de cuisson" },
+      { l: 2, cost: 14000, bonus: { speed: 0.50 }, label: "−33 % temps de cuisson supplémentaire" },
+    ],
+  },
+  {
+    id: "brigade", icon: "👨‍🍳", name: "Brigade étoilée",
+    desc: "Recrutement d'une brigade complète — débloque 2 feux supplémentaires en permanence.",
+    minRestoLevel: 40,
+    levels: [
+      { l: 1, cost: 20000, bonus: { slots: 2 }, label: "+2 feux de cuisson simultanés" },
     ],
   },
 ];
@@ -410,17 +624,17 @@ export const OBJECTIVES_DEF = [
   { id: "twenty_tables", series: 2, title: "Rush du midi",       desc: "Servez 20 tables",                         icon: "🔥", reward: { cash: 800,  xp: 200 }, condition: (s) => s.totalServed  >= 20   },
   { id: "five_k",        series: 2, title: "Brasserie rentable", desc: "Atteignez 5 000 € de chiffre d'affaires",  icon: "📈", reward: { cash: 600,  xp: 150 }, condition: (s) => s.totalRevenue >= 5000 },
   { id: "upgrade_table", series: 2, title: "Confort amélioré",   desc: "Agrandissez une table",                    icon: "🪑", reward: { cash: 400,  xp: 100 }, condition: (s) => s.tablesUpgraded >= 1  },
-  { id: "bistrot",       series: 2, title: "Bistrot",            desc: "Atteignez le niveau Bistrot",              icon: "🍺", reward: { cash: 700,  xp: 200 }, condition: (s) => s.restoLevel   >= 1    },
+  { id: "bistrot",       series: 2, title: "Bistrot",            desc: "Atteignez le niveau Bistrot (niv. 3)",     icon: "🍺", reward: { cash: 700,  xp: 0   }, condition: (s) => s.restoLevel   >= 3    },
   // Série 3 — Excellence
   { id: "fifty_tables",  series: 3, title: "Service non-stop",   desc: "Servez 50 tables",                         icon: "🏃", reward: { cash: 1500, xp: 400 }, condition: (s) => s.totalServed  >= 50   },
   { id: "twenty_k",      series: 3, title: "Grand Compte",       desc: "Atteignez 20 000 € de chiffre d'affaires", icon: "💰", reward: { cash: 2000, xp: 500 }, condition: (s) => s.totalRevenue >= 20000},
   { id: "three_upgrades",series: 3, title: "Salle de prestige",  desc: "Agrandissez 3 tables",                     icon: "✨", reward: { cash: 1200, xp: 300 }, condition: (s) => s.tablesUpgraded >= 3  },
-  { id: "brasserie",     series: 3, title: "Brasserie",          desc: "Atteignez le niveau Brasserie",            icon: "🍽", reward: { cash: 1500, xp: 400 }, condition: (s) => s.restoLevel   >= 2    },
+  { id: "brasserie",     series: 3, title: "Restaurant",         desc: "Atteignez le niveau Restaurant (niv. 10)", icon: "🍽", reward: { cash: 1500, xp: 0   }, condition: (s) => s.restoLevel   >= 10   },
   // Série 4 — Légende
   { id: "hundred_tables",series: 4, title: "Centenaire",         desc: "Servez 100 tables",                          icon: "🏆", reward: { cash: 3000, xp: 800  }, condition: (s) => s.totalServed  >= 100  },
   { id: "fifty_k",       series: 4, title: "Empire",             desc: "Atteignez 50 000 € de chiffre d'affaires",   icon: "💎", reward: { cash: 5000, xp: 1000 }, condition: (s) => s.totalRevenue >= 50000},
   { id: "flawless_5",    series: 4, title: "Service légendaire", desc: "Terminez 5 journées sans perdre un client",  icon: "✨", reward: { cash: 4000, xp: 900  }, condition: (s) => (s.perfectDays||0) >= 5},
-  { id: "palace",        series: 4, title: "Le Palace",          desc: "Atteignez le niveau Palace",                 icon: "👑", reward: { cash: 5000, xp: 1200 }, condition: (s) => s.restoLevel   >= 5    },
+  { id: "palace",        series: 4, title: "Grand Restaurant",   desc: "Atteignez le niveau Grand Restaurant (niv. 25)", icon: "👑", reward: { cash: 5000, xp: 0    }, condition: (s) => s.restoLevel   >= 25   },
 ];
 
 /* ─── Étiquettes & couleurs des séries d'objectifs ───── */

@@ -3,8 +3,8 @@
    Extrait du monolithe restaurant-manager.jsx
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
-import { C, F, LOAN_OPTIONS } from "../constants/gameData";
-import { Btn, Modal } from "../components/ui";
+import { C, F, LOAN_OPTIONS } from "../../constants/gameData";
+import { Btn, Modal } from "../ui";
 
 export function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
   const takeLoan=(opt)=>{

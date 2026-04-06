@@ -1,5 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+// ── Services ───────────────────────────────────────────
+import { saveGame, loadGame, SAVE_KEY } from "./src/services/persistence.js";
+import { sendToGDevelop, buildGDevelopPayload, sanitizeSave } from "./src/services/gdevelopBridge.js";
+
+// ── Données serveurs ───────────────────────────────────
+import { SRV_SPECIALTIES, pickSpecialty, TRAINING_CATALOG, getMaxMoral } from "./src/constants/serverData.js";
+
+// ── Composants supplémentaires ─────────────────────────
+import { BankModal }         from "./src/components/system/BankModal.jsx";
+import { HelpModal }         from "./src/components/system/HelpModal.jsx";
+import { DailySummaryModal } from "./src/components/DailySummaryModal.jsx";
+import { useBreakpoint, rVal, rGrid } from "./src/hooks/useBreakpoint.js";
+
 /* ═══════════════════════════════════════════════════════
    Imports modulaires — extraits du monolithe original
    Chaque module est indépendant et testable unitairement.
@@ -11,14 +24,14 @@ import {
   SRV_LVL, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
   RESTO_LVL, SERVER_SLOTS_BY_LEVEL, CAP_UPGRADES,
   MOODS, NAMES1, NAMES2,
-  TABLES0, SERVERS0, STOCK0, MENU0, COMPLAINTS0, KITCHEN0,
+  TABLES0, SERVERS0, STOCK0, MENU0, PREMIUM_STOCK, COMPLAINTS0, KITCHEN0,
   KITCHEN_UPGRADES, SUPPLIERS, LOAN_OPTIONS,
   CHALLENGES_POOL, OBJECTIVES_DEF, SERIES_LABELS, SERIES_COLORS,
   GAME_EVENTS, TABS,
 } from "./src/constants/gameData.js";
 
 import {
-  REP_THRESHOLDS, REP_DELTA, MENU_THEMES, FORMULA_PRESETS,
+  REP_THRESHOLDS, REP_DELTA, FORMULA_PRESETS,
   MORAL_PAUSE_GAIN, getRepTier,
 } from "./src/constants/gameConstants.js";
 
@@ -57,6 +70,7 @@ import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/
 import { Toasts } from "./src/components/system/Toasts.jsx";
 import { IntroDialog, TablesDialog, ServersDialog, BankDialog, StatsDialog, ObjectivesDialog, StockDialog, MenuDialog, KitchenDialog } from "./src/components/IntroDialog.jsx";
 import { LevelUpModal } from "./src/components/LevelUpModal.jsx";
+import { QueueBar }    from "./src/components/QueueBar.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./src/views/TablesView.jsx";
@@ -67,836 +81,6 @@ import { StockView }      from "./src/views/StockView.jsx";
 import { ComplaintsView } from "./src/views/ComplaintsView.jsx";
 import { StatsView }      from "./src/views/StatsView.jsx";
 import { ObjectivesView } from "./src/views/ObjectivesView.jsx";
-
-/* ─── Sauvegarde localStorage ─────────────────────────── */
-const SAVE_KEY = "resto_save_v1";
-
-const saveToLocalStorage = (state) => {
-    if (!window.localStorage) {
-        console.error("LocalStorage non supporté sur ce navigateur");
-        return;
-    }
-    try {
-        const payload = JSON.stringify({
-            ...state,
-            savedAt: Date.now()
-        });
-        window.localStorage.setItem(SAVE_KEY, payload);
-    } catch (error) {
-        if (error.name === 'QuotaExceededError') {
-            alert("Espace de stockage saturé sur la tablette !");
-        } else {
-            console.warn("Erreur de sauvegarde :", error);
-        }
-    }
-};
-
-const saveGame = (state) => saveToLocalStorage(state);
-
-const loadGame = async () => {
-    try {
-        if (!window.localStorage) return null;
-        const raw = window.localStorage.getItem(SAVE_KEY);
-        if (!raw) return null;
-        return JSON.parse(raw);
-    } catch(e) { return null; }
-};
-
-// resetGame est appelé depuis l'intérieur du composant App
-// pour pouvoir réinitialiser les états React sans reload
-
-/* ─── Pont de communication React ↔ GDevelop ──────────── */
-// Envoie un message structuré au parent (GDevelop via iframe)
-const sendToGDevelop = (payload) => {
-  try {
-    window.parent.postMessage({ source: "react-ui", payload }, "*");
-  } catch(e) {
-    console.warn("[GDevelop Bridge] postMessage échoué :", e);
-  }
-};
-
-// Construit le payload standardisé depuis les états React
-const buildGDevelopPayload = ({
-  cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
-  reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
-  formulas, dailySpecials, challengeDate,
-  completedIds, pendingClaim, todayChallenges, challengeProgress,
-  challengeClaimed, challengeLostToday, activeTheme, activeEvent,
-  candidatePool, candidateDate,
-}) => {
-  const rl       = restoLv(restoXp);
-  const cl       = chefLv(kitchen?.chef?.totalXp || 0);
-  const themeObj = MENU_THEMES.find(t => t.id === activeTheme) || MENU_THEMES[0];
-  return {
-    argent: cash,
-    niveaux: {
-      restaurant: {
-        niveau    : rl.l,
-        nom       : RESTO_LVL[rl.l]?.name || "",
-        xp        : restoXp,
-        xpProchain: rl.next?.xpNeeded || 0,
-        pct       : rl.pct,
-      },
-      chef: {
-        niveau  : cl.l,
-        nom     : CHEF_LVL[Math.min(cl.l, CHEF_LVL.length-1)]?.name || "",
-        prenom  : kitchen?.chef?.name || "",
-        xp      : kitchen?.chef?.totalXp || 0,
-        vitesse : CHEF_LVL[Math.min(cl.l, CHEF_LVL.length-1)]?.speed || 1,
-        salaire : kitchen?.chef?.salary || 0,
-      },
-      serveurs: (servers || []).map(s => {
-        const sl = srvLv(s.totalXp);
-        return {
-          id           : s.id,
-          nom          : s.name,
-          niveau       : sl.l,
-          xp           : s.totalXp,
-          statut       : s.status,
-          salaire      : s.salary,
-          moral        : s.moral ?? 100,
-          note         : s.rating ?? 0,
-          specialite   : s.specialty ? { id: s.specialty.id, nom: s.specialty.name } : null,
-          serviceJusqua: s.serviceUntil || null,
-          nettoyageJusqua: s.cleanUntil || null,
-        };
-      }),
-      commis: (kitchen?.commis || []).map(c => {
-        const cLv = commisLv(c.totalXp);
-        return { id: c.id, nom: c.name, niveau: cLv.l, xp: c.totalXp, statut: c.status, salaire: c.salary };
-      }),
-    },
-    inventaire: (stock || []).map(s => ({
-      id: s.id, nom: s.name, quantite: s.qty, unite: s.unit,
-      alerte: s.qty <= s.alert, prix: s.price, categorie: s.cat,
-    })),
-    menu: (menu || []).map(m => ({
-      id: m.id, nom: m.name, prix: m.price, categorie: m.cat,
-      actif: m.active !== false, special: m.isSpecial || false,
-    })),
-    formules: (formulas || []).map(f => ({
-      id: f.id, nom: f.name, actif: f.active, remise: f.discount,
-    })),
-    platsSpeciaux: (dailySpecials || []).map(s => ({
-      id: s.id, nom: s.name, prix: s.price, categorie: s.cat,
-    })),
-    clients: {
-      enAttente      : (queue || []).length,
-      enRappel       : (waitlist || []).length,
-      tablesOccupees : (tables || []).filter(t => t.status === "occupée" || t.status === "mange").length,
-      tablesLibres   : (tables || []).filter(t => t.status === "libre").length,
-      tablesNettoyage: (tables || []).filter(t => t.status === "nettoyage").length,
-      totalServis    : objStats?.totalServed    || 0,
-      totalPerdus    : (dailyStats || []).reduce((s, d) => s + (d.lost || 0), 0),
-      chiffreAffaires: objStats?.totalRevenue   || 0,
-    },
-    tables: (tables || []).map(t => ({
-      id      : t.id,
-      nom     : t.name,
-      statut  : t.status,
-      capacite: t.capacity,
-      serveur : t.server || null,
-      groupe  : t.group ? { taille: t.group.size, nom: t.group.name, humeur: t.group.mood?.l, vip: t.group.isVIP || false } : null,
-      commande: (t.order || []).length,
-      nettoyageJusqua: t.cleanUntil || null,
-      serveurNettoyage: t.cleanServer || null,
-    })),
-    cuisine: {
-      platsEnCuisson : (kitchen?.cooking || []).length,
-      platsEnAttente : (kitchen?.queue   || []).length,
-      platsPretsNb   : (kitchen?.done    || []).length,
-      totalCuisines  : kitchen?.totalDishes || 0,
-      ameliorations  : kitchen?.upgrades || {},
-    },
-    timers: (kitchen?.cooking || []).map(d => ({
-      id      : String(d.id),
-      finishAt: d.startedAt + d.timerMax * 1000,
-      label   : d.name + (d.tableName ? " · " + d.tableName : ""),
-      tableId : d.tableId || null,
-      cat     : d.cat || "",
-    })),
-    platsPretsAServir: (kitchen?.done || []).map(d => ({
-      id: String(d.id), nom: d.name, tableId: d.tableId, tableName: d.tableName || "", cat: d.cat || "",
-    })),
-    reputation,
-    transactions   : (transactions || []).slice(0, 50),
-    pret           : loan,
-    livraisons     : (pendingDeliveries || []).map(d => ({
-      id: d.id, nom: d.name, quantite: d.qty, arriveeAt: d.arrivesAt,
-    })),
-    plaintes: (complaints || []).slice(0, 20).map(c => ({
-      id: c.id, message: c.message, date: c.date,
-    })),
-    fournisseur: supplierMode || "premium",
-    objectifs: {
-      completedIds,
-      pendingClaim,
-      stats       : objStats,
-      defisJour   : (todayChallenges || []).map(ch => ({
-        id: ch.id, titre: ch.title, icone: ch.icon,
-        recompense: ch.reward,
-        reclame   : !!(challengeClaimed || {})[ch.id],
-      })),
-      dateDefis   : challengeDate || "",
-      progression : challengeProgress,
-      clientPerduAujourdhui: challengeLostToday,
-    },
-    statsJournalieres: dailyStats,
-    theme: {
-      id       : themeObj.id,
-      nom      : themeObj.name,
-      prixMult : themeObj.priceMult,
-      repBonus : themeObj.repBonus,
-      xpMult   : themeObj.xpMult,
-    },
-    evenement    : activeEvent,
-    // Données brutes prêtes à renvoyer via INIT pour restaurer l'état React
-    saveData: {
-      argent             : cash,
-      restoXp,
-      stock,
-      servers,
-      tables,
-      kitchen,
-      objStats,
-      dailyStats,
-      completedIds,
-      challengeProgress,
-      challengeClaimed,
-      challengeLostToday,
-      loan,
-      reputation,
-      transactions,
-      pendingDeliveries,
-      pendingClaim,
-      activeTheme,
-      activeEvent,
-      candidatePool,
-      candidateDate,
-    },
-    savedAt      : Date.now(),
-  };
-};
-
-// Nettoie les états liés aux timers qui ne sont plus valides après un rechargement
-const sanitizeSave = (save) => {
-  const now = Date.now();
-  const savedTables = (save.tables || []).map(t => {
-    if (t.status === "nettoyage") {
-      // Si le timer est déjà démarré et expiré → libérer la table
-      if (t.cleanUntil && now >= t.cleanUntil)
-        return { ...t, status: "libre", server: null, cleanUntil: null, cleanDur: null, cleanServer: null, freedAt: now };
-      // Sinon (en attente d'un serveur ou en cours) → conserver l'état
-      return t;
-    }
-    if (t.status === "mange") return { ...t, eatUntil: null, eatDur: null };
-    if (t.status === "occupée") return { ...t, svcUntil: null };
-    return t;
-  });
-  // Merge avec TABLES0 pour garantir que toutes les tables existent
-  const tables = TABLES0.map(t0 => savedTables.find(t => t.id === t0.id) || t0);
-  const servers = (save.servers || []).map(s =>
-    (s.status === "service" || s.status === "nettoyage")
-      ? { ...s, status: "actif", serviceUntil: null, cleanUntil: null }
-      : s
-  );
-  const kitchen = save.kitchen ? {
-    ...save.kitchen,
-    queue: [...(save.kitchen.queue || []), ...(save.kitchen.cooking || []).map(d => ({
-      ...d, startedAt: undefined, timerMax: undefined
-    }))],
-    cooking: [],
-    done: save.kitchen.done || [],
-  } : null;
-  const stock = (save.stock || STOCK0).map(item => ({
-    ...item, freshness: item.freshness ?? 100,
-  }));
-  return { ...save, tables, servers, kitchen, stock, queue: [],
-    candidatePool: save.candidatePool || [],
-    candidateDate: save.candidateDate || "",
-  };
-};
-
-/* ─── Palette ─────────────────────────────────────────── */
-
-
-/* ─── XP / Level system ───────────────────────────────── */
-
-
-
-
-/* ─── Spécialités serveurs ───────────────────────────── */
-const SRV_SPECIALTIES = [
-  { id:"speed",    icon:"⚡", name:"Rapidité",     color:"#1c3352", desc:"−30% temps de prise de commande",  tipMult:1.0,  speedMult:0.70 },
-  { id:"charm",    icon:"✨", name:"Charme",        color:"#6b3fa0", desc:"Pourboires +20%",                  tipMult:1.20, speedMult:1.0  },
-  { id:"sommelier",icon:"🍷", name:"Sommelier",     color:"#c4622d", desc:"Boissons commandées +30%",         tipMult:1.10, speedMult:1.0  },
-  { id:"vip",      icon:"🎩", name:"Gestion VIP",   color:"#b87d10", desc:"Patience clients VIP +30s",        tipMult:1.15, speedMult:1.0  },
-];
-const pickSpecialty = () => SRV_SPECIALTIES[Math.floor(Math.random()*SRV_SPECIALTIES.length)];
-
-/* ─── Catalogue de formations serveurs ───────────────── */
-const TRAINING_CATALOG = [
-  {
-    id:"accueil", icon:"🤝", name:"Accueil & Relation client",
-    color:C.purple,
-    desc:"Améliore la satisfaction client et les pourboires.",
-    levels:[
-      { l:1, name:"Initiation",  cost:80,  xp:40,  moralBonus:5,  effect:"Pourboires +5%",       specialtyId:"charm",   desc:"Introduction aux techniques d'accueil." },
-      { l:2, name:"Avancé",     cost:180, xp:100, moralBonus:8,  effect:"Pourboires +12%",      specialtyId:"charm",   desc:"Gestion des situations délicates et fidélisation." },
-      { l:3, name:"Expert",     cost:350, xp:200, moralBonus:15, effect:"Pourboires +20% + Moral max", specialtyId:"charm", desc:"Maîtrise complète de l'expérience client." },
-    ]
-  },
-  {
-    id:"service", icon:"⚡", name:"Rapidité & Efficacité",
-    color:C.navy,
-    desc:"Réduit les temps de prise de commande.",
-    levels:[
-      { l:1, name:"Initiation",  cost:70,  xp:35,  moralBonus:0,  effect:"Commandes −10%",        specialtyId:"speed",   desc:"Optimisation des déplacements en salle." },
-      { l:2, name:"Avancé",     cost:160, xp:90,  moralBonus:5,  effect:"Commandes −20%",        specialtyId:"speed",   desc:"Gestion simultanée de plusieurs tables." },
-      { l:3, name:"Expert",     cost:320, xp:180, moralBonus:10, effect:"Commandes −30% + XP×2", specialtyId:"speed",   desc:"Technique de service professionnel haute performance." },
-    ]
-  },
-  {
-    id:"sommellerie", icon:"🍷", name:"Sommellerie & Boissons",
-    color:C.terra,
-    desc:"Augmente les ventes et la qualité du service boissons.",
-    levels:[
-      { l:1, name:"Initiation",  cost:90,  xp:45,  moralBonus:5,  effect:"Ventes boissons +15%",  specialtyId:"sommelier", desc:"Bases de la dégustation et des accords mets-vins." },
-      { l:2, name:"Avancé",     cost:200, xp:110, moralBonus:8,  effect:"Ventes boissons +25%",  specialtyId:"sommelier", desc:"Connaissance approfondie des crus et spiritueux." },
-      { l:3, name:"Expert",     cost:400, xp:220, moralBonus:12, effect:"Ventes boissons +40%",  specialtyId:"sommelier", desc:"Certification sommelier — conseils personnalisés." },
-    ]
-  },
-  {
-    id:"prestige", icon:"🎩", name:"Gestion VIP & Prestige",
-    color:C.amber,
-    desc:"Optimise le service des clients importants.",
-    levels:[
-      { l:1, name:"Initiation",  cost:100, xp:50,  moralBonus:5,  effect:"Patience VIP +15s",     specialtyId:"vip",     desc:"Protocole de service haut de gamme." },
-      { l:2, name:"Avancé",     cost:220, xp:120, moralBonus:10, effect:"Patience VIP +30s",     specialtyId:"vip",     desc:"Gestion des personnalités et critiques gastronomiques." },
-      { l:3, name:"Expert",     cost:450, xp:240, moralBonus:15, effect:"Patience VIP +45s + XP×2", specialtyId:"vip",  desc:"Excellence absolue — label Palace." },
-    ]
-  },
-  {
-    id:"bienetre", icon:"🧘", name:"Bien-être & Gestion du stress",
-    color:C.green,
-    desc:"Améliore la résistance à la fatigue et le moral.",
-    levels:[
-      { l:1, name:"Initiation",  cost:60,  xp:30,  moralBonus:20, effect:"Moral max +10",         specialtyId:null,      desc:"Techniques de récupération rapide." },
-      { l:2, name:"Avancé",     cost:130, xp:70,  moralBonus:35, effect:"Moral max +20 + drain −50%", specialtyId:null,  desc:"Gestion de la fatigue en service intensif." },
-      { l:3, name:"Expert",     cost:280, xp:140, moralBonus:60, effect:"Moral plein + immunité burnout", specialtyId:null, desc:"Résilience professionnelle complète." },
-    ]
-  },
-];
-// Max moral bonus (cumul toutes formations bien-être)
-const getMaxMoral = (sv) => {
-  const bienetre = (sv.trainings||{})["bienetre"] || 0;
-  return 100 + (bienetre>=1?10:0) + (bienetre>=2?10:0);
-};
-
-
-
-/* ─── HELP_SECTIONS ──────────────────────────────────────── */
-const HELP_SECTIONS=[
-  {
-    icon:"⊞", title:"Tables",
-    color:"#1e5c38",
-    items:[
-      {q:"Arrivée des clients",a:"Un nouveau groupe arrive toutes les 30 secondes (65 % de chance). La taille du groupe ne dépasse jamais la capacité maximale des tables libres. La file d'attente reste active même si vous changez d'onglet."},
-      {q:"Humeur et patience",a:"🤩 Enthousiaste (45s, ×1.5 XP) · 😊 Détendu (35s) · 😐 Neutre (25s) · 😑 Pressé (18s) · 😤 Impatient (11s, ×0.6 XP). La barre de patience passe du vert au rouge — si elle atteint 0, le groupe part sans consommer."},
-      {q:"Plan de salle / Vue grille",a:"Basculez entre le plan SVG et la vue grille via le bouton 🗺 / ⊞. Le plan montre toutes les tables avec leur statut coloré. Cliquez une table pour ouvrir son panneau de détail latéral."},
-      {q:"Timeline de phases",a:"Chaque table affiche une barre de 4 segments : 🛎 Commande (bleu) → 🔥 Cuisine (orange) → 🍴 Repas (vert) → 🧹 Nettoyage (jaune). Chaque segment se remplit progressivement. La phase cuisine utilise le plat le plus long encore en cuisson."},
-      {q:"Placement automatique",a:"Si une table libre et un serveur actif sont disponibles, cliquez sur ▶ Placer pour installer le groupe automatiquement. Sinon, utilisez la modale pour choisir table et serveur manuellement."},
-      {q:"Prise de commande",a:"Le serveur prend la commande selon la taille du groupe : 30s (2p), 1 min (4p), 1m30 (6p). La carte affiche 🛎 avec un compte à rebours et la barre de phase se remplit."},
-      {q:"Repas en cours",a:"Une fois les plats servis, la table passe en 🍴 repas. Le temps correspond aux ⅔ du plat le plus long. Le bouton Encaisser est verrouillé pendant ce délai."},
-      {q:"Nettoyage",a:"Après l'encaissement, un serveur nettoie pendant 1 minute (réduit par l'amélioration Station de plonge). La table redevient libre automatiquement."},
-      {q:"Agrandir une table",a:"Sur chaque table libre, un bouton permet d'augmenter la capacité : 2→4 couverts pour 800 €, puis 4→6 couverts pour 1 800 €. Des groupes plus grands arriveront ensuite."},
-      {q:"File d'attente — rappel",a:"Si un groupe part avant d'être placé, il reste rappelable 2 minutes dans la liste d'attente. Cliquez ↩ Rappeler pour le remettre en tête de file avec +15s de patience."},
-      {q:"Réorganiser la file",a:"Les boutons ↑↓ sur chaque ticket de la file permettent de prioriser les groupes. Un indicateur de backlog (temps total estimé) s'affiche en haut."},
-    ]
-  },
-  {
-    icon:"👤", title:"Serveurs",
-    color:"#162d4a",
-    items:[
-      {q:"Équipe et slots",a:"Le restaurant démarre avec 2 serveurs. Des slots supplémentaires se débloquent avec le niveau du restaurant : 3 au Bistrot, 4 à la Brasserie, jusqu'à 8 au Palace."},
-      {q:"Statuts",a:"Actif → disponible. En pause → indisponible, non payé. 🛎 En service → prend une commande ou nettoie. Seuls les serveurs actifs (moral > 10) sont assignés automatiquement."},
-      {q:"Moral",a:"Le moral baisse de 1 point toutes les 5 minutes si le serveur est actif. Il remonte pendant les pauses. En dessous de 10 (💀 Burnout), le serveur n'est plus disponible. Utilisez 🎁 Prime 50€ pour remonter un moral bas."},
-      {q:"Spécialités",a:"Débloquées au niveau 2 : ⚡ Rapidité (−30% temps commande), ✨ Charme (+20% pourboires), 🍷 Sommelier (+10% pourboires), 🎩 VIP (+15% pourboires). Améliorées au niveau 4."},
-      {q:"Formations",a:"5 domaines de formation : Accueil, Rapidité, Sommellerie, Prestige VIP, Bien-être. Chaque domaine a 3 niveaux progressifs. Les formations améliorent les spécialités et le moral maximal."},
-      {q:"Expérience et niveau",a:"Les serveurs gagnent de l'XP à chaque encaissement. 5 niveaux : 🎓 Stagiaire → 👑 Maître. Les pourboires augmentent aussi avec le niveau."},
-      {q:"Salaire",a:"Les serveurs actifs sont payés toutes les heures réelles. En pause ou au repos, ils ne sont pas payés."},
-    ]
-  },
-  {
-    icon:"👨‍🍳", title:"Cuisine",
-    color:"#b85520",
-    items:[
-      {q:"Piano de cuisine",a:"Le centre de l'onglet affiche un piano SVG avec N brûleurs. Les flammes s'animent en orange pendant la cuisson, passent au vert à 80% de progression, avec vapeur quand c'est presque prêt."},
-      {q:"Tickets de commande",a:"Chaque table a un ticket ordonnable (boutons ↑↓). Le ticket change de couleur selon l'attente : 🟢 < 3 min · 🟡 3–5 min · 🔴 > 5 min. Un badge indique les tickets en retard."},
-      {q:"Feux de cuisson",a:"4 feux de base + commis débloqués + améliorations Fourneau. Cliquez ▶ sur un plat ou « Tout démarrer » pour remplir les feux libres."},
-      {q:"Temps de cuisson",a:"Réduit par le niveau du chef (×1.0 à ×3.0), les commis (+15% chacun) et l'amélioration Four professionnel (jusqu'à −50%)."},
-      {q:"Servir une table",a:"Quand tous les plats d'une table sont prêts (✅ PRÊT), le bouton 🍽 Servir apparaît. La table passe en phase repas avant encaissement."},
-      {q:"Chef et commis",a:"Le chef gagne +12 XP par plat. Les commis gagnent 40% de ce montant. 3 commis débloqués aux niveaux 2 et 4 du chef (niveaux 1, 2 et 3 selon l'avancement)."},
-      {q:"Améliorations cuisine",a:"🔥 Fourneau (+1 feu, 3 niveaux) · 🏺 Four professionnel (−50% temps, 3 niveaux) · 🧊 Chambre froide (capacité stock ×3, 2 niveaux) · 🚿 Station de plonge (nettoyage −40s, 2 niveaux)."},
-    ]
-  },
-  {
-    icon:"📋", title:"Menu",
-    color:"#5c2e96",
-    items:[
-      {q:"4 sous-onglets",a:"📋 Carte (plats actifs), 🍽 Formules (menus combinés), 🎨 Thèmes (modificateurs globaux), 📊 Performance (analyse de rentabilité)."},
-      {q:"Prix dynamique",a:"Sur chaque carte, ajustez le prix : −10%, −5%, +5%, +10%, +20%. Le bouton ↺ réinitialise au prix de base. Les prix ajustés s'appliquent aux nouvelles commandes."},
-      {q:"Activer / Désactiver",a:"Le bouton ⏸ retire un plat du menu sans le supprimer. Les plats désactivés ne sont plus commandés par les clients."},
-      {q:"Score de rentabilité",a:"Chaque plat a un score composé : 40% marge brute + 40% popularité + 20% disponibilité stock. Badge 🔥 pour le plat le mieux noté."},
-      {q:"Formules",a:"3 modèles : Menu Découverte (−12%, 3 services), Menu Express (−8%, 2 services), Menu Prestige (−15%, 4 services). Configurez les plats de chaque catégorie puis activez."},
-      {q:"Thèmes",a:"🍺 Bistrot (×0.90 prix) · ⭐ Gastronomique (×1.15 prix, +5 rép, +20% XP) · 🌿 Saisonnier (+8 rép, +10% XP). Le thème actif s'applique à chaque encaissement."},
-      {q:"Plats du jour",a:"2 plats aléatoires sont mis en avant chaque heure avec −20% de réduction. Ils apparaissent dans la file d'attente et dans l'onglet Tables."},
-    ]
-  },
-  {
-    icon:"📦", title:"Stocks",
-    color:"#162d4a",
-    items:[
-      {q:"3 modes de vue",a:"⊞ Cartes (défaut, accordéon par catégorie), ☰ Liste (tableau compact), 📊 Graphique (barres horizontales triées par urgence). Triez par urgence, catégorie ou alphabétique."},
-      {q:"Prévision rupture",a:"Le bloc 🔮 calcule combien de repas chaque ingrédient peut encore couvrir selon les recettes actives. Couleur : ✓ vert (>10 repas) · ⚠ orange (<10) · ⛔ rouge (<3 ou épuisé)."},
-      {q:"Commander selon prévision",a:"Le bouton 🛒 Commander réapprovisionne automatiquement les 3 ingrédients les plus critiques jusqu'au niveau optimal, en tenant compte du fournisseur actif."},
-      {q:"Fournisseurs",a:"⚡ Grossiste Premium : prix plein, livraison instantanée. 🚚 Fournisseur Local : −20% mais livraison en 2 minutes. Les livraisons en cours s'affichent avec une barre de progression."},
-      {q:"Accordéon catégories",a:"Cliquez sur l'en-tête d'une catégorie pour la réduire ou l'agrandir. Le badge rouge indique combien d'alertes il y a dans chaque catégorie sans avoir à dérouler."},
-      {q:"KPI inventaire",a:"4 métriques en haut : alertes stock, valeur totale de l'inventaire, ruptures prévues, nombre d'articles. Mis à jour en temps réel."},
-    ]
-  },
-  {
-    icon:"🎯", title:"Objectifs & Défis",
-    color:"#a06c08",
-    items:[
-      {q:"Séries d'objectifs",a:"16 objectifs en 4 séries : Premiers pas, Croissance, Excellence, Légende. Chaque objectif complété donne des espèces et de l'XP restaurant. Cliquez Récupérer pour encaisser."},
-      {q:"Défis quotidiens",a:"3 défis renouvelés chaque jour, tirés au sort selon la date. Catégories : clients servis, recettes, notes, rush express, service VIP, salle comble, pourboires. Récompenses immédiates."},
-      {q:"Jalons de progression",a:"Une frise chronologique affiche 6 jalons clés (10 clients, 50 clients, 1k€, 5k€, 20k€, Palace). Les jalons atteints s'illuminent en or."},
-      {q:"Badge et notifications",a:"Un badge rouge sur l'onglet Objectifs indique les récompenses prêtes + défis quotidiens complétés. Les toasts sont cliquables pour y accéder directement."},
-    ]
-  },
-  {
-    icon:"💰", title:"Finances",
-    color:"#a06c08",
-    items:[
-      {q:"Caisse",a:"Le restaurant démarre avec 5 000 €. Affiché en vert (≥ 200 €) ou rouge (critique). Cliquez sur 💰 pour ouvrir le Grand Livre."},
-      {q:"Résultat du jour",a:"Dans l'onglet Statistiques : revenus encaissés, dépenses du jour et résultat net. La masse salariale active (chef + commis + serveurs) est détaillée en €/h."},
-      {q:"Grand livre",a:"Toutes les transactions avec résumé Recettes / Dépenses / Résultat net. Limité aux 200 dernières entrées."},
-      {q:"Prêts bancaires",a:"3 options : Petit prêt (1 500€), Standard (4 000€), Grand prêt (9 000€). Remboursement automatique par mensualités horaires. Un seul prêt actif à la fois. Remboursement anticipé possible."},
-      {q:"Salaires",a:"Débités automatiquement toutes les heures réelles. Seuls les personnels actifs sont payés. Les commis non débloqués ne sont pas comptés."},
-    ]
-  },
-  {
-    icon:"📊", title:"Statistiques",
-    color:"#1e5c38",
-    items:[
-      {q:"Graphiques linéaires",a:"3 courbes SVG interactives : Revenus, Clients servis, Réputation. Passez la souris sur un point pour voir la valeur exacte. Un indicateur ↗/↘ montre la tendance vs j−1."},
-      {q:"Période",a:"Sélecteur 3 jours / 5 jours pour zoomer ou élargir la vue."},
-      {q:"Analyse financière",a:"Compte de résultat du jour (revenus, dépenses, résultat net), masse salariale active, camembert de répartition des revenus par catégorie de menu, panier moyen."},
-      {q:"Réputation",a:"Jauge circulaire SVG avec palier actuel, effets sur les pourboires et le taux de spawn clients. Barre de progression vers le palier suivant."},
-      {q:"Tableau journalier",a:"Les N derniers jours : clients servis, perdus, taux de service (barre colorée) et revenus. La ligne du jour est mise en avant."},
-    ]
-  },
-  {
-    icon:"⭐", title:"Réputation",
-    color:"#5c2e96",
-    items:[
-      {q:"5 paliers",a:"💀 Désastreuse (0–19) · 😟 Dégradée (20–39) · 😐 Neutre (40–59) · 😊 Appréciée (60–79) · 🌟 Réputée (80+). Chaque palier modifie les pourboires et le taux d'arrivée des clients."},
-      {q:"Gain de réputation",a:"★★★★★ +4 pts · ★★★★ +2 pts · ★★★ 0 pt · ★★ −4 pts · ★ −8 pts. Client VIP servi +6 pts. Bonus selon le thème de menu actif."},
-      {q:"Perte de réputation",a:"Client perdu −3 pts · Plainte −5 pts · Amende inspection −6 pts · Passage inspection réussie +3 pts."},
-      {q:"Effets en jeu",a:"Les pourboires et le taux de spawn clients sont multipliés par le modificateur du palier (×0.5 à ×1.25). Visible dans le header et l'onglet Statistiques."},
-    ]
-  },
-  {
-    icon:"⚠", title:"Plaintes",
-    color:"#b85520",
-    items:[
-      {q:"Génération automatique",a:"Une plainte est générée automatiquement si la note est ≤ 2 étoiles lors d'un encaissement, ou en cas d'amende d'inspection sanitaire."},
-      {q:"Liste des plaintes",a:"Triées de la plus récente à la plus ancienne. Badge ● NOUVEAU sur les plaintes non encore consultées. Priorités : haute (rouge), moyenne (orange), basse (bleu)."},
-      {q:"Alerte header",a:"L'alerte 💬 indique le nombre de nouvelles plaintes. Cliquez dessus pour accéder directement à l'onglet — le badge disparaît après consultation."},
-    ]
-  },
-  {
-    icon:"🏆", title:"Niveau Restaurant",
-    color:"#a06c08",
-    items:[
-      {q:"Progression",a:"Chaque encaissement ajoute de l'XP (modifié par l'humeur du groupe, le statut VIP et le thème de menu). La barre dans le header indique l'avancement."},
-      {q:"Déblocage des tables",a:"☕ Café de quartier (3 tables) → 🍺 Bistrot (5) → 🍽 Brasserie (7) → ⭐ Restaurant (9) → 🌟 Grand Restaurant (11) → 👑 Palace (12 tables)."},
-      {q:"Déblocage des serveurs",a:"Bistrot +1 slot (3 total) → Brasserie +1 (4) → Restaurant +1 (5) → Grand Restaurant +1 (6) → Palace +2 (8 serveurs maximum)."},
-      {q:"Événements aléatoires",a:"Toutes les 4 minutes réelles : 🔍 Inspection sanitaire (amende ou bonus), ⚡ Rush inattendu (3 groupes ajoutés), 🧊 Panne frigo (stocks réduits), 🎩 Critique Michelin (client VIP)."},
-    ]
-  },
-];
-
-/* ─── BankModal (inliné — fichier supprimé du repo) ─────── */
-function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
-  const takeLoan=(opt)=>{
-    if(loan){addToast({icon:"🏦",title:"Prêt en cours",msg:"Remboursez d'abord votre emprunt actuel.",color:C.red});return;}
-    const totalDue=+(opt.amount*(1+opt.rate)).toFixed(2);
-    setLoan({id:opt.id,label:opt.label,amount:opt.amount,remaining:totalDue,
-      rate:opt.rate,takenAt:Date.now(),repayPerHour:opt.monthly});
-    setCash(c=>+(c+opt.amount).toFixed(2));
-    addTx("revenu",`Prêt bancaire — ${opt.label} (${opt.amount}€)`,opt.amount);
-    addToast({icon:"🏦",title:`Prêt accordé — +${opt.amount} €`,
-      msg:`Remboursement : ${opt.monthly}€/h · Total : ${totalDue}€`,color:C.navy,tab:"stats"});
-    onClose();
-  };
-  const repayNow=()=>{
-    if(!loan)return;
-    if(cash<loan.remaining){addToast({icon:"❌",title:"Fonds insuffisants",msg:`Il vous manque ${(loan.remaining-cash).toFixed(2)}€`,color:C.red});return;}
-    setCash(c=>+(c-loan.remaining).toFixed(2));
-    addTx("remboursement",`Remboursement anticipé — ${loan.label}`,loan.remaining);
-    addToast({icon:"🎉",title:"Prêt soldé !",msg:"Votre emprunt est entièrement remboursé.",color:C.green,tab:"stats"});
-    setLoan(null);
-    onClose();
-  };
-  return(
-    <Modal title="🏦 Banque" onClose={onClose}>
-      <div style={{display:"flex",flexDirection:"column",gap:18}}>
-
-        {/* Active loan status */}
-        {loan?(
-          <div style={{background:C.amberP,border:`1.5px solid ${C.amber}44`,borderRadius:12,padding:"14px 16px"}}>
-            <div style={{fontSize:12,fontWeight:700,color:C.amber,fontFamily:F.title,marginBottom:8}}>
-              📋 Prêt en cours — {loan.label}
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-              {[
-                {l:"Montant initial",v:`${loan.amount.toFixed(2)} €`},
-                {l:"Restant dû",v:`${loan.remaining.toFixed(2)} €`,c:C.red},
-                {l:"Mensualité",v:`${loan.repayPerHour.toFixed(0)} €/h`},
-                {l:"Taux",v:`${(loan.rate*100).toFixed(1)} %`},
-              ].map(r=>(
-                <div key={r.l} style={{background:C.surface,borderRadius:8,padding:"8px 10px"}}>
-                  <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginBottom:2}}>{r.l}</div>
-                  <div style={{fontSize:14,fontWeight:700,color:r.c||C.ink,fontFamily:F.title}}>{r.v}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{height:8,background:C.border,borderRadius:99,overflow:"hidden",marginBottom:12}}>
-              <div style={{height:"100%",borderRadius:99,background:C.amber,
-                width:`${Math.max(0,100-(loan.remaining/loan.amount/(1+loan.rate))*100)}%`,
-                transition:"width 0.4s"}}/>
-            </div>
-            <Btn full v="primary" onClick={repayNow}
-              icon={cash>=loan.remaining?"💸":"🔒"}>
-              {cash>=loan.remaining?`Rembourser en avance (${loan.remaining.toFixed(2)} €)`:"Fonds insuffisants"}
-            </Btn>
-          </div>
-        ):(
-          <div style={{background:C.greenP,border:`1px solid ${C.green}33`,
-            borderRadius:10,padding:"10px 14px",fontSize:12,color:C.green,fontFamily:F.body}}>
-            ✅ Aucun emprunt actif — vous pouvez contracter un prêt.
-          </div>
-        )}
-
-        {/* Loan options */}
-        <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>Nouveaux prêts disponibles</div>
-        {LOAN_OPTIONS.map(opt=>{
-          const totalDue=+(opt.amount*(1+opt.rate)).toFixed(2);
-          const disabled=!!loan;
-          return(
-            <div key={opt.id} style={{background:disabled?C.bg:C.card,
-              border:`1.5px solid ${disabled?C.border:C.navy+"44"}`,
-              borderRadius:12,padding:"14px 16px",opacity:disabled?0.55:1,
-              display:"flex",alignItems:"center",gap:14}}>
-              <span style={{fontSize:28,flexShrink:0}}>{opt.icon}</span>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:3}}>
-                  {opt.label} — {opt.amount.toLocaleString("fr-FR")} €
-                </div>
-                <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
-                  Taux {(opt.rate*100).toFixed(1)}% · Mensualités {opt.monthly}€/h · Total dû {totalDue}€
-                </div>
-              </div>
-              <Btn v={disabled?"disabled":"primary"} onClick={()=>!disabled&&takeLoan(opt)}>
-                Emprunter
-              </Btn>
-            </div>
-          );
-        })}
-
-        {/* Fine print */}
-        <div style={{fontSize:10,color:C.muted,fontFamily:F.body,textAlign:"center",lineHeight:1.5}}>
-          Les mensualités sont déduites automatiquement chaque heure. En cas d'insolvabilité,
-          le remboursement est différé jusqu'à disponibilité des fonds.
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-/* ─── HelpModal (inliné — fichier supprimé du repo) ─────── */
-function HelpModal({onClose}){
-  const [sec,setSec]=useState(0);
-  const s=HELP_SECTIONS[sec];
-  return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",
-      zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
-      onClick={onClose}>
-      <div style={{background:C.surface,borderRadius:20,width:"100%",maxWidth:780,
-        maxHeight:"88vh",display:"flex",flexDirection:"column",overflow:"hidden",
-        boxShadow:"0 24px 80px rgba(0,0,0,0.25)"}}
-        onClick={e=>e.stopPropagation()}>
-
-        {/* Header */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-          padding:"20px 24px",borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:38,height:38,background:C.green,borderRadius:10,
-              display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>
-              ❓
-            </div>
-            <div>
-              <div style={{fontSize:17,fontWeight:700,color:C.ink,fontFamily:F.title}}>Guide utilisateur</div>
-              <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>Toutes les fonctionnalités expliquées</div>
-            </div>
-          </div>
-          <button onClick={onClose} style={{background:C.border,border:"none",borderRadius:8,
-            width:32,height:32,cursor:"pointer",fontSize:16,color:C.muted,
-            display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
-        </div>
-
-        <div style={{display:"flex",flex:1,overflow:"hidden"}}>
-          {/* Sidebar */}
-          <div style={{width:170,borderRight:`1px solid ${C.border}`,padding:"12px 8px",
-            display:"flex",flexDirection:"column",gap:3,flexShrink:0,overflowY:"auto",
-            background:C.bg}}>
-            {HELP_SECTIONS.map((hs,i)=>(
-              <button key={i} onClick={()=>setSec(i)} style={{
-                background:sec===i?hs.color+"18":"transparent",
-                border:`1.5px solid ${sec===i?hs.color+"44":"transparent"}`,
-                borderRadius:9,padding:"9px 11px",cursor:"pointer",
-                display:"flex",alignItems:"center",gap:9,
-                color:sec===i?hs.color:C.muted,
-                fontWeight:sec===i?700:400,
-                fontSize:12,fontFamily:F.body,textAlign:"left",
-                transition:"all 0.15s"}}>
-                <span style={{fontSize:16,flexShrink:0}}>{hs.icon}</span>
-                <span>{hs.title}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Content */}
-          <div style={{flex:1,padding:"24px 28px",overflowY:"auto"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
-              <span style={{fontSize:26}}>{s.icon}</span>
-              <div style={{fontSize:20,fontWeight:700,color:s.color,fontFamily:F.title}}>{s.title}</div>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:14}}>
-              {s.items.map((it,i)=>(
-                <div key={i} style={{background:C.card,border:`1.5px solid ${s.color}22`,
-                  borderLeft:`4px solid ${s.color}`,borderRadius:10,padding:"14px 16px"}}>
-                  <div style={{fontSize:13,fontWeight:700,color:s.color,
-                    fontFamily:F.body,marginBottom:6}}>
-                    {it.q}
-                  </div>
-                  <div style={{fontSize:12,color:C.ink,fontFamily:F.body,
-                    lineHeight:1.6}}>
-                    {it.a}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-/* ═══════════════════════════════════════════════════════
-   DAILY SUMMARY MODAL — Résumé de fin de journée (A)
-═══════════════════════════════════════════════════════ */
-
-
-/* ─── DailySummaryModal ─────────────────────────────────── */
-function DailySummaryModal({onClose,dailyStats,objStats,servers,menu,transactions,prevRecord,isRecord}){
-  const today=dailyStats[dailyStats.length-1]||{served:0,lost:0,revenue:0,date:""};
-  const totalClients=today.served+today.lost;
-  const rate=totalClients>0?Math.round((today.served/totalClients)*100):0;
-  const rateColor=rate>=80?C.green:rate>=50?C.amber:C.red;
-
-  // Meilleur serveur (plus de XP total)
-  const bestSrv=[...servers].sort((a,b)=>b.totalXp-a.totalXp)[0];
-
-  // Plat le plus commandé (depuis les transactions du jour)
-  const dishCount={};
-  transactions.filter(t=>t.type==="revenu"&&t.label.includes("×")).forEach(t=>{
-    const m=t.label.match(/(\d+)× ([^,)]+)/g);
-    if(m) m.forEach(s=>{
-      const [,q,n]=s.match(/(\d+)× (.+)/);
-      dishCount[n]=(dishCount[n]||0)+parseInt(q);
-    });
-  });
-  const topDish=Object.entries(dishCount).sort((a,b)=>b[1]-a[1])[0];
-
-  // Objectif du lendemain
-  const nextRevTarget=[500,1000,2000,5000,10000].find(t=>t>objStats.totalRevenue)||10000;
-
-  return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:10050,
-      display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{background:C.surface,borderRadius:22,width:"100%",maxWidth:460,
-        boxShadow:"0 32px 80px rgba(0,0,0,0.35)",overflow:"hidden",
-        animation:"popIn 0.4s ease"}}>
-
-        {/* Header */}
-        <div style={{background:`linear-gradient(135deg,${C.green},${C.greenL})`,
-          padding:"24px 28px 20px",textAlign:"center",position:"relative"}}>
-          {isRecord&&(
-            <div style={{position:"absolute",top:12,right:16,
-              background:"#f5d878",color:"#7a5a00",borderRadius:20,
-              padding:"3px 10px",fontSize:10,fontWeight:800,letterSpacing:"0.06em"}}>
-              🏆 RECORD !
-            </div>
-          )}
-          <div style={{fontSize:40,marginBottom:8}}>📊</div>
-          <div style={{fontSize:22,fontWeight:800,color:"#fff",fontFamily:F.title}}>
-            Bilan de la journée
-          </div>
-          <div style={{fontSize:12,color:"rgba(255,255,255,0.75)",fontFamily:F.body,marginTop:4}}>
-            {today.date}
-          </div>
-        </div>
-
-        {/* Stats principales */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:0,
-          borderBottom:`1px solid ${C.border}`}}>
-          {[
-            {icon:"✅",val:today.served,label:"Servis",color:C.green,bg:C.greenP},
-            {icon:"😤",val:today.lost,label:"Perdus",color:C.red,bg:C.redP},
-            {icon:"💶",val:today.revenue.toFixed(0)+"€",label:"Revenus",color:C.amber,bg:C.amberP},
-          ].map(s=>(
-            <div key={s.label} style={{background:s.bg,padding:"16px 10px",textAlign:"center",
-              borderRight:`1px solid ${C.border}`}}>
-              <div style={{fontSize:20,marginBottom:4}}>{s.icon}</div>
-              <div style={{fontSize:22,fontWeight:800,color:s.color,fontFamily:F.title,lineHeight:1}}>{s.val}</div>
-              <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:3}}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{padding:"20px 24px",display:"flex",flexDirection:"column",gap:14}}>
-
-          {/* Taux de service */}
-          <div>
-            <div style={{display:"flex",justifyContent:"space-between",
-              fontSize:11,fontFamily:F.body,marginBottom:6}}>
-              <span style={{color:C.muted}}>Taux de service</span>
-              <span style={{fontWeight:700,color:rateColor}}>{rate}%</span>
-            </div>
-            <div style={{height:8,background:C.border,borderRadius:99,overflow:"hidden"}}>
-              <div style={{height:"100%",width:`${rate}%`,background:rateColor,
-                borderRadius:99,transition:"width 1s ease"}}/>
-            </div>
-          </div>
-
-          {/* Meilleur serveur + plat */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            {bestSrv&&(
-              <div style={{background:C.navyP,border:`1px solid ${C.navy}22`,
-                borderRadius:12,padding:"12px 14px"}}>
-                <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:4}}>⭐ Meilleur serveur</div>
-                <div style={{fontSize:13,fontWeight:700,color:C.navy,fontFamily:F.title}}>{bestSrv.name}</div>
-                <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>{bestSrv.totalXp} XP</div>
-              </div>
-            )}
-            {topDish&&(
-              <div style={{background:C.terraP,border:`1px solid ${C.terra}22`,
-                borderRadius:12,padding:"12px 14px"}}>
-                <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:4}}>🍽 Plat n°1</div>
-                <div style={{fontSize:13,fontWeight:700,color:C.terra,fontFamily:F.title,
-                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{topDish[0]}</div>
-                <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>{topDish[1]}× commandé</div>
-              </div>
-            )}
-          </div>
-
-          {/* Objectif demain */}
-          <div style={{background:C.purpleP,border:`1px solid ${C.purple}22`,
-            borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",gap:12}}>
-            <span style={{fontSize:22}}>🎯</span>
-            <div>
-              <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:2}}>Objectif demain</div>
-              <div style={{fontSize:13,fontWeight:700,color:C.purple,fontFamily:F.title}}>
-                Atteindre {nextRevTarget.toLocaleString("fr-FR")} € de CA total
-              </div>
-              <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                {(nextRevTarget-objStats.totalRevenue).toLocaleString("fr-FR")} € restants
-              </div>
-            </div>
-          </div>
-
-          <button onClick={onClose} style={{
-            padding:"12px",borderRadius:12,border:"none",
-            background:C.green,color:"#fff",cursor:"pointer",
-            fontSize:14,fontWeight:700,fontFamily:F.body,
-            boxShadow:`0 4px 16px ${C.green}44`}}>
-            Continuer →
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function useBreakpoint(){
-  const [bp,setBp]=useState(()=>({
-    w:typeof window!=="undefined"?window.innerWidth:1280,
-    isMobile:typeof window!=="undefined"?window.innerWidth<640:false,
-    isTablet:typeof window!=="undefined"?window.innerWidth>=640&&window.innerWidth<1024:false,
-    isDesktop:typeof window!=="undefined"?window.innerWidth>=1024:true,
-    isSmall:typeof window!=="undefined"?window.innerWidth<480:false,
-  }));
-  useEffect(()=>{
-    const update=()=>{
-      const w=window.innerWidth;
-      setBp({
-        w,
-        isMobile:w<640,
-        isTablet:w>=640&&w<1024,
-        isDesktop:w>=1024,
-        isSmall:w<480,
-      });
-    };
-    // Use ResizeObserver if available, fallback to resize event
-    if(typeof ResizeObserver!=="undefined"){
-      const ro=new ResizeObserver(update);
-      ro.observe(document.documentElement);
-      return()=>ro.disconnect();
-    } else {
-      window.addEventListener("resize",update,{passive:true});
-      return()=>window.removeEventListener("resize",update);
-    }
-  },[]);
-  return bp;
-}
-
-/* ── Helpers responsive ── */
-// Retourne la valeur selon breakpoint: rVal(bp, mobile, tablet, desktop)
-const rVal=(bp,mobile,tablet,desktop)=>bp.isMobile?mobile:bp.isTablet?tablet:desktop;
-// Grid columns helper
-const rGrid=(bp,m=1,t=2,d=3)=>`repeat(${bp.isMobile?m:bp.isTablet?t:d},1fr)`;
-
-
-/* ── Objectifs de progression ── */
-
-/* ── Défis quotidiens ── */
-const ALL_CHALLENGES=[
-  {id:"ch_served",   key:"served",   icon:"🍽", title:"Service express",      desc:"Servir 10 clients aujourd'hui",            target:10,  reward:{cash:80, xp:120}},
-  {id:"ch_revenue",  key:"revenue",  icon:"💶", title:"Journée dorée",        desc:"Encaisser 500€ dans la journée",           target:500, reward:{cash:100,xp:150}},
-  {id:"ch_rating",   key:"highRating",icon:"⭐",title:"Service 5 étoiles",    desc:"Obtenir 5 notes ≥ 4★",                    target:5,   reward:{cash:60, xp:100}},
-  {id:"ch_noloss",   key:"noLoss",   icon:"😊", title:"Zéro abandon",         desc:"Aucun client ne repart sans être servi",   target:1,   reward:{cash:70, xp:90 }},
-  {id:"ch_fast",     key:"fastPlace",icon:"⚡", title:"Placement rapide",     desc:"Placer 8 groupes en un clic",              target:8,   reward:{cash:50, xp:80 }},
-  {id:"ch_vip",      key:"vip",      icon:"🎩", title:"Service VIP",          desc:"Servir un client VIP",                     target:1,   reward:{cash:150,xp:200}},
-  {id:"ch_tips",     key:"tips",     icon:"💰", title:"Maître du pourboire",  desc:"Encaisser 50€ de pourboires",              target:50,  reward:{cash:60, xp:100}},
-  {id:"ch_fullhouse",key:"fullHouse",icon:"🏠", title:"Salle comble",         desc:"Avoir 5 tables occupées simultanément",    target:1,   reward:{cash:90, xp:130}},
-];
-
-// pickDailyChallenges → remplacé par pickSeeded(CHALLENGES_POOL, 3, dateStr)
-
-
 
 export default function App(){
   const bp=useBreakpoint();
@@ -1040,7 +224,6 @@ export default function App(){
   const [menu,setMenu]=useState(MENU0);
   const [stock,setStock]=useState(STOCK0);
   const [formulas,setFormulas]=useState([]); // [{id, presetId, name, items:[{menuId,cat}], active}]
-  const [activeTheme,setActiveTheme]=useState("none");
   const [complaints,setComplaints]=useState(COMPLAINTS0);
   const [kitchen,setKitchen]=useState(KITCHEN0);
   const [toasts,setToasts]=useState([]);
@@ -1144,7 +327,6 @@ export default function App(){
     setReputation(50);
     setWaitlist([]);
     setFormulas([]);
-    setActiveTheme("none");
     setTab("tables");
     setShowResetModal(false);
   },[]);
@@ -1178,7 +360,6 @@ export default function App(){
         if(sv.dailyStats)    setDailyStats(sv.dailyStats);
         if(sv.reputation!=null) setReputation(sv.reputation);
         if(sv.formulas)      setFormulas(sv.formulas);
-        if(sv.activeTheme)   setActiveTheme(sv.activeTheme);
         if(sv.candidatePool) setCandidatePool(sv.candidatePool);
         if(sv.candidateDate) setCandidateDate(sv.candidateDate);
         setQueue(sv.queue||[]);
@@ -1260,7 +441,7 @@ export default function App(){
      restoXp,cash,loan,supplierMode,pendingDeliveries,
      completedIds,challengeProgress,challengeClaimed,
      challengeLostToday,pendingClaim,objStats,dailyStats,reputation,
-     formulas,activeTheme]);
+     formulas]);
 
   // Toutes les 5s : sauvegarder si dirty
   useEffect(()=>{
@@ -1275,7 +456,7 @@ export default function App(){
         pendingDeliveries,dailySpecials,completedIds,
         challengeDate,todayChallenges,challengeProgress,
         challengeClaimed,challengeLostToday,pendingClaim,
-        objStats,dailyStats,reputation,formulas,activeTheme,
+        objStats,dailyStats,reputation,formulas,
         candidatePool,candidateDate,
       });
       setSaveStatus("saved");
@@ -1311,7 +492,6 @@ export default function App(){
         if (payload.pendingClaim)          setPendingClaim(payload.pendingClaim);
         if (payload.challengeClaimed)      setChallengeClaimed(payload.challengeClaimed);
         if (payload.challengeLostToday != null) setChallengeLostToday(payload.challengeLostToday);
-        if (payload.activeTheme)           setActiveTheme(payload.activeTheme);
         if (payload.activeEvent  != null)  setActiveEvent(payload.activeEvent);
         console.info("[GDevelop Bridge] Init reçu ✓", payload);
         // Confirmer la réception à GDevelop
@@ -1337,14 +517,14 @@ export default function App(){
       reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
       formulas, dailySpecials, challengeDate,
       completedIds, pendingClaim, todayChallenges, challengeProgress,
-      challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+      challengeClaimed, challengeLostToday, activeEvent,
       candidatePool, candidateDate,
     };
   },[cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
      reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
      formulas, dailySpecials, challengeDate,
      completedIds, pendingClaim, todayChallenges, challengeProgress,
-     challengeClaimed, challengeLostToday, activeTheme, activeEvent,
+     challengeClaimed, challengeLostToday, activeEvent,
      candidatePool, candidateDate]);
 
   useEffect(()=>{
@@ -1434,6 +614,29 @@ export default function App(){
       if(after.l>before.l){
         const nd=RESTO_LVL[after.l];
         setTimeout(()=>setLevelUpData(nd), 50);
+        // Débloquer les plats dont unlockLevel correspond au nouveau niveau
+        const newlyUnlocked=MENU0.filter(
+          d=>(d.unlockLevel??0)>before.l&&(d.unlockLevel??0)<=after.l
+        );
+        const neededStockIds=new Set(
+          newlyUnlocked.flatMap(d=>(d.ingredients||[]).map(i=>i.stockId))
+        );
+        const premiumToAdd=PREMIUM_STOCK.filter(p=>neededStockIds.has(p.id));
+        if(premiumToAdd.length>0){
+          setStock(s=>{
+            const existing=new Set(s.map(item=>item.id));
+            const toAdd=premiumToAdd.filter(p=>!existing.has(p.id));
+            return toAdd.length>0?[...s,...toAdd]:s;
+          });
+        }
+        const unlockedNames=newlyUnlocked.map(d=>d.name).join(", ");
+        setTimeout(()=>addToast({
+          icon:nd.icon,
+          title:`Niveau ${nd.l} — ${nd.name} !`,
+          msg:`🎉 ${nd.tables} tables débloquées${unlockedNames?` · 🍽 ${unlockedNames}`:""}`,
+          color:nd.color,
+          tab:"tables",
+        }),50);
         setObjStats(s=>({...s,restoLevel:after.l}));
       }
       return prev+xp;
@@ -1570,7 +773,7 @@ export default function App(){
           :root { --gap: 10px; --pad: 12px; --card-radius: 12px; --font-base: 12px; }
           .desktop-nav { display: none !important; }
           .mobile-nav  { display: flex !important; }
-          .content-area { padding: 12px var(--pad) 90px !important; }
+          .content-area { padding: 12px var(--pad) 60px !important; }
           .badge-alert { font-size: 8px !important; width: 14px !important; height: 14px !important; }
           .hide-mobile { display: none !important; }
           .show-mobile { display: flex !important; }
@@ -1587,7 +790,7 @@ export default function App(){
           :root { --gap: 12px; --pad: 16px; --card-radius: 14px; }
           .desktop-nav { display: flex !important; }
           .mobile-nav  { display: none !important; }
-          .content-area { padding: 16px var(--pad) !important; }
+          .content-area { padding: 16px var(--pad) 60px !important; }
           .hide-tablet { display: none !important; }
           .resp-grid { grid-template-columns: 1fr 1fr !important; }
           .resp-grid-3 { grid-template-columns: 1fr 1fr !important; }
@@ -1595,10 +798,13 @@ export default function App(){
         @media (min-width: 1024px) {
           .desktop-nav { display: flex !important; }
           .mobile-nav  { display: none !important; }
-          .content-area { padding: 20px var(--pad) !important; }
+          .content-area { padding: 20px var(--pad) 60px !important; }
           .show-mobile { display: none !important; }
         }
       `}</style>
+
+      {/* Header + Nav — sticky top */}
+      <div style={{position:"sticky",top:0,zIndex:1000,background:C.surface}}>
 
       {/* Header — 2 lignes */}
       <div style={{
@@ -1709,19 +915,9 @@ export default function App(){
             <span style={{fontSize:9,background:rlD.color+"18",color:rlD.color,
               border:`1px solid ${rlD.color}33`,borderRadius:4,
               padding:"1px 5px",fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap"}}>N{rlD.l}</span>
-          </div>
-          <div style={{flex:1,minWidth:40}}>
-            <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
-              <div style={{height:"100%",
-                width:rl.l>=RESTO_LVL.length-1?"100%":`${rl.pct}%`,
-                background:rlD.color,borderRadius:99,transition:"width 0.6s ease"}}/>
-            </div>
-          </div>
-          <div style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0,whiteSpace:"nowrap"}}>
-            {rl.l>=RESTO_LVL.length-1
-              ? "✦ Max"
-              : `${restoXp}/${rl.next.xpNeeded} XP`
-            }
+            <span style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>
+              {rl.l>=RESTO_LVL.length-1?"✦ Max":`${restoXp}/${rl.next.xpNeeded} XP`}
+            </span>
           </div>
 
           {/* ── Réputation ── */}
@@ -1749,19 +945,6 @@ export default function App(){
             );
           })()}
 
-          {/* Cash */}
-          <div onClick={()=>setShowLedger(true)} style={{flexShrink:0,display:"flex",alignItems:"center",gap:5,
-            background:cash<200?C.redP:C.greenP,
-            border:`1px solid ${cash<200?C.red:C.green}33`,
-            borderRadius:7,padding:"3px 10px",cursor:"pointer"}}
-            title="Voir le grand livre">
-            <span style={{fontSize:12}}>💰</span>
-            <span style={{fontSize:12,fontWeight:700,
-              color:cash<200?C.red:C.green,fontFamily:F.title,whiteSpace:"nowrap"}}>
-              {cash.toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})} €
-            </span>
-            <span style={{fontSize:9,color:cash<200?C.red:C.green,opacity:0.7}}>▼</span>
-          </div>
           {/* Loan indicator + bank button */}
           <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
             {loan&&(
@@ -1794,7 +977,7 @@ export default function App(){
                 pendingDeliveries,dailySpecials,completedIds,
                 challengeDate,todayChallenges,challengeProgress,
                 challengeClaimed,challengeLostToday,pendingClaim,
-                objStats,dailyStats,reputation,formulas,activeTheme,
+                objStats,dailyStats,reputation,formulas,
                 candidatePool,candidateDate,
               });
               setSaveStatus("saved");
@@ -1872,28 +1055,13 @@ export default function App(){
         })}
       </div>
 
-      {/* Content */}
-      <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
-        <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
-        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} restoLvN={rl.l} stock={stock} bp={bp}/>}
-        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
-        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} bp={bp}/>}
-        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats} bp={bp}/>}
-        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
-        {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
-        {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
-        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} bp={bp}/>}
-        </div>
-      </div>
-
-      {/* Nav Mobile fixe en bas */}
+      {/* Nav Mobile — fixe en haut (dans le wrapper sticky) */}
       <div className="mobile-nav" style={{
-        position:"fixed",bottom:0,left:0,right:0,zIndex:900,
         background:C.surface,
-        borderTop:`1px solid ${C.border}`,
-        boxShadow:"0 -4px 24px rgba(23,18,14,0.12), 0 -1px 4px rgba(23,18,14,0.06)",
+        borderBottom:`1px solid ${C.border}`,
+        boxShadow:"0 2px 8px rgba(23,18,14,0.07)",
         justifyContent:"space-around",alignItems:"stretch",
-        paddingBottom:"env(safe-area-inset-bottom,6px)",
+        paddingTop:"env(safe-area-inset-top,0px)",
       }}>
         {TABS.map(t=>{
           const readyChallenges=(todayChallenges||[]).filter(ch=>{
@@ -1913,22 +1081,21 @@ export default function App(){
               border:"none",
               display:"flex",flexDirection:"column",alignItems:"center",
               justifyContent:"center",
-              padding:"9px 2px 5px",
+              padding:"7px 2px 8px",
               cursor:"pointer",position:"relative",
-              borderTop:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
-              gap:4,
+              borderBottom:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
+              gap:3,
               transition:"background 0.15s",
             }}>
-              {/* Icon container */}
               <div style={{
-                width:34,height:28,
+                width:34,height:26,
                 display:"flex",alignItems:"center",justifyContent:"center",
                 borderRadius:9,
                 background:active?C.green+"14":"transparent",
                 transition:"background 0.15s",
               }}>
                 <span style={{
-                  fontSize:18,lineHeight:1,
+                  fontSize:17,lineHeight:1,
                   filter:active?"none":"grayscale(0.5) opacity(0.55)",
                   transition:"filter 0.15s",
                 }}>{t.icon}</span>
@@ -1936,27 +1103,49 @@ export default function App(){
               <span style={{
                 fontSize:9,fontWeight:active?700:400,fontFamily:F.body,
                 color:active?C.green:C.muted,
-                whiteSpace:"nowrap",letterSpacing:"0.01em",
-                lineHeight:1,
-              }}>
-                {t.label}
-              </span>
+                whiteSpace:"nowrap",letterSpacing:"0.01em",lineHeight:1,
+              }}>{t.label}</span>
               {badge>0&&(
                 <span style={{
-                  position:"absolute",top:5,right:"calc(50% - 18px)",
+                  position:"absolute",top:4,right:"calc(50% - 18px)",
                   background:C.red,color:"#fff",borderRadius:"50%",
                   width:15,height:15,fontSize:8,fontWeight:800,
                   display:"inline-flex",alignItems:"center",justifyContent:"center",
-                  boxShadow:`0 1px 4px ${C.red}55`,
-                  animation:"popIn 0.3s ease",
-                }}>
-                  {badge}
-                </span>
+                  boxShadow:`0 1px 4px ${C.red}55`,animation:"popIn 0.3s ease",
+                }}>{badge}</span>
               )}
             </button>
           );
         })}
       </div>
+
+      </div>{/* fin wrapper sticky */}
+
+      {/* Content */}
+      <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
+        <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
+        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} restoLvN={rl.l} stock={stock} bp={bp}/>}
+        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
+        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} bp={bp}/>}
+        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} dailyStats={dailyStats} bp={bp}/>}
+        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
+        {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
+        {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
+        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} bp={bp}/>}
+        </div>
+      </div>
+
+      {/* Barre file d'attente + cash — toujours visible */}
+      {isLoaded && (
+        <QueueBar
+          queue={queue}
+          cash={cash}
+          onTabChange={setTab}
+          isMobile={bp.isMobile}
+          onOpenBank={()=>setShowLedger(true)}
+        />
+      )}
+
 
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
       {showBank&&<BankModal onClose={()=>setShowBank(false)} cash={cash} loan={loan}

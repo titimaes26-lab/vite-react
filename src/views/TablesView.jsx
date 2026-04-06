@@ -5,7 +5,7 @@
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect } from "react";
 import { C, F, CAP_UPGRADES, SRV_LVL, GAME_EVENTS, RESTO_LVL } from "../constants/gameData.js";
-import { MENU_THEMES, getRepTier } from "../constants/gameConstants.js";
+import { getRepTier } from "../constants/gameConstants.js";
 import { REP_DELTA } from "../constants/gameConstants.js";
 import { Badge, Btn, Sel, Modal, XpBar, Lbl, Inp } from "../components/ui/index.js";
 import { srvLv, calcRating, ratingColor, ratingStars, calcTip, restoXpFromCheckout, srvXpFromCheckout } from "../utils/levelUtils.js";
@@ -15,7 +15,7 @@ import { buildKitchenTickets, svcDuration, eatDuration, calcBill } from "../util
 /* ═══════════════════════════════════════════════════════
    DetailPanel — Panneau de détail d'une table sélectionnée
 ═══════════════════════════════════════════════════════ */
-function DetailPanel({t,tables,servers,kitchen,queue,now,cash,menuTheme,
+function DetailPanel({t,tables,servers,kitchen,queue,now,cash,
   C,F,quickPlace,openAssign,checkout,
   addTx,setCash,addToast,setTables,onTableUpgrade,CAP_UPGRADES,
   calcRating,ratingColor,ratingStars}) {
@@ -26,7 +26,7 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,menuTheme,
               const isNettoyage=tLive.status==="nettoyage";
               const isOrdering=tLive.status==="occupée"&&tLive.svcUntil&&now<tLive.svcUntil;
               const bill=isMange?tLive.order.reduce((s,o)=>s+o.price*o.qty,0):0;
-              const themedBill=+(bill*menuTheme.priceMult).toFixed(2);
+              const themedBill=+bill.toFixed(2);
               const isEating=isMange&&tLive.eatUntil&&now<tLive.eatUntil;
               const eatSecsLeft=isEating?Math.ceil((tLive.eatUntil-now)/1000):0;
               const cleanSecsLeft=isNettoyage&&tLive.cleanUntil?Math.max(0,Math.ceil((tLive.cleanUntil-now)/1000)):0;
@@ -272,7 +272,7 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,menuTheme,
    SvgFloorPlan — Plan de salle SVG animé
 ═══════════════════════════════════════════════════════ */
 function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
-  selectedTable,setSelectedTable,menuTheme,
+  selectedTable,setSelectedTable,
   srvLv,SRV_LVL,calcRating,ratingColor,ratingStars,calcTip,
   quickPlace,openAssign,checkout,activeSrv,lockedSlots=[]}) {
               const n = tables.length + lockedSlots.length;
@@ -360,16 +360,13 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                     const fill=isNettoyage?"#f5d878":isMange?"#4a9e78":isOrdering?"#3a5f8a":
                       t.status==="occupée"?"#e07a45":myQ.length>0?"#5ab88a":"#c8e6d8";
 
-                    const stroke=t.id===selectedTable?.id?"#1a1612":
-                      t.group?.isVIP?"#d4af37":fill;
-                    const strokeW=t.id===selectedTable?.id?3:1.5;
 
                     // Taille selon capacité — garantit que tw+chaises < CELL_W
                     const tw=getTW(t.capacity);
                     const th=getTH(t.capacity);
 
                     const bill=isMange?t.order.reduce((s,o)=>s+o.price*o.qty,0):0;
-                    const themedBill=+(bill*menuTheme.priceMult).toFixed(2);
+                    const themedBill=+bill.toFixed(2);
                     const isEating=isMange&&t.eatUntil&&now<t.eatUntil;
                     const eatPct=isEating?
                       Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):
@@ -421,33 +418,27 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                             opacity="0.25" strokeDasharray="5 3"/>
                         )}
 
-                        {/* Chaises latérales */}
-                        {[{dx:-(tw/2+7),dy:0},{dx:tw/2+7,dy:0}].map((ch,ci)=>(
-                          <ellipse key={`s${ci}`}
-                            cx={pos.cx+ch.dx} cy={pos.cy+ch.dy}
-                            rx="5" ry="7" fill="#d4c9b0" opacity="0.75"/>
-                        ))}
-                        {/* Chaises haut/bas si 4p+ */}
-                        {t.capacity>=4&&[{dx:0,dy:-(th/2+7)},{dx:0,dy:th/2+7}].map((ch,ci)=>(
-                          <ellipse key={`tb${ci}`}
-                            cx={pos.cx+ch.dx} cy={pos.cy+ch.dy}
-                            rx="7" ry="5" fill="#d4c9b0" opacity="0.75"/>
-                        ))}
-                        {/* Chaises supplémentaires si 6p */}
-                        {t.capacity>=6&&[
-                          {dx:-(tw/2+7),dy:-th/4},{dx:-(tw/2+7),dy:th/4},
-                          {dx:tw/2+7,     dy:-th/4},{dx:tw/2+7,     dy:th/4},
-                        ].map((ch,ci)=>(
-                          <ellipse key={`ex${ci}`}
-                            cx={pos.cx+ch.dx} cy={pos.cy+ch.dy}
-                            rx="4" ry="6" fill="#d4c9b0" opacity="0.65"/>
-                        ))}
+                        {/* Image de table selon capacité */}
+                        <image
+                          href={t.capacity<=2?"/table-2.png":t.capacity<=4?"/table-4.png":"/table-6.png"}
+                          x={pos.cx-CELL_W/2} y={pos.cy-CELL_H/2}
+                          width={CELL_W} height={CELL_H}
+                          preserveAspectRatio="xMidYMid meet"
+                        />
 
-                        {/* Surface de la table */}
-                        <rect x={pos.cx-tw/2} y={pos.cy-th/2}
-                          width={tw} height={th} rx="8"
-                          fill={fill} stroke={stroke} strokeWidth={strokeW}
-                          opacity={isLibre&&myQ.length===0?0.85:1}/>
+                        {/* Overlay coloré selon statut (transparent si libre) */}
+                        {!isLibre&&(
+                          <rect x={pos.cx-tw/2} y={pos.cy-th/2}
+                            width={tw} height={th} rx="8"
+                            fill={fill} opacity="0.45"/>
+                        )}
+
+                        {/* Halo VIP */}
+                        {t.group?.isVIP&&(
+                          <rect x={pos.cx-tw/2-3} y={pos.cy-th/2-3}
+                            width={tw+6} height={th+6} rx="10"
+                            fill="none" stroke="#d4af37" strokeWidth="2" opacity="0.8"/>
+                        )}
 
                         {/* Barre progression — phase unique + timer */}
                         {isActive&&svgPhase>=0&&(
@@ -554,9 +545,8 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
               );
 }
 
-export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,activeTheme,restoLvN=0,stock=[],bp={}}) {
+export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,stock=[],bp={}}) {
 
-  const menuTheme = MENU_THEMES.find(m=>m.id===activeTheme)||MENU_THEMES[0];
   const now = clockNow;
 
   const [selectedTable, setSelectedTable] = useState(null);
@@ -593,7 +583,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     const t = tables.find(x=>x.id===tid);
     if (!t?.group) return;
     const bill = t.order.reduce((s,o)=>s+o.price*o.qty,0);
-    const themedBill = +(bill*menuTheme.priceMult).toFixed(2);
+    const themedBill = +bill.toFixed(2);
     const hasStaleIngredient = t.order.some(o=>{
       const mi=menu.find(m=>m.id===o.id);
       if(!mi)return false;
@@ -640,7 +630,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     const speedMult = srv.specialty?.id==="speed"?(srv.specialty.speedMult||1.0):1.0;
     const svcDur = Math.round((g.size<=2?30000:g.size<=4?60000:90000)*speedMult);
     const svcUntil = Date.now()+svcDur;
-    const orderLines = generateOrderWithSpecials(g, menu);
+    const orderLines = generateOrderWithSpecials(g, menu, restoLvN);
     const kitchenTickets = buildKitchenTickets(orderLines, table);
     const drinkTickets = kitchenTickets.filter(d=>d.cat==="Boissons");
     const foodTickets  = kitchenTickets.filter(d=>d.cat!=="Boissons");
@@ -674,14 +664,14 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
 
   const activeTables = tables;
 
+  // Seul le prochain slot verrouillé est affiché (SVG + liste)
   const lockedSlots = (() => {
-    const slots = [];
     let prev = tables.length;
     for (const lv of RESTO_LVL.filter(l => l.l > restoLvN)) {
-      for (let i = prev; i < lv.tables; i++) slots.push({ num: i + 1, unlocksAt: lv });
+      if (prev < lv.tables) return [{ num: prev + 1, unlocksAt: lv }];
       prev = lv.tables;
     }
-    return slots;
+    return [];
   })();
 
   return(
@@ -696,10 +686,6 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
         borderBottom:`1px solid ${C.border}`,
         display:"flex",alignItems:"center",
         paddingLeft:14,paddingRight:14,gap:14,zIndex:10}}>
-        <span style={{fontSize:13,fontWeight:800,color:C.green,fontFamily:F.title}}>
-          💶 {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})}€
-        </span>
-        <div style={{width:1,height:18,background:C.border}}/>
         <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
           ✅ {tables.filter(t=>t.status==="libre").length}/{tables.length} libres
         </span>
@@ -734,75 +720,131 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
       {!bp.isMobile&&(
         <div style={{flex:1,display:"flex",flexDirection:"row",minHeight:0,overflow:"hidden"}}>
 
-          {/* ── Panneau gauche — File d'attente ─────────── */}
-          {(queue.length>0||waitlist.length>0)&&(
+          {/* ── Panneau gauche — File d'attente + Détail table ── */}
+          {(queue.length>0||waitlist.length>0||selectedTable)&&(
             <div style={{
-              width:200,flexShrink:0,
+              width:bp.isTablet?210:240,flexShrink:0,
               borderRight:`1px solid ${C.border}`,
               background:C.surface,
               display:"flex",flexDirection:"column",
               overflowY:"hidden",
             }}>
-              <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,
-                fontWeight:700,fontSize:12,color:C.navy,fontFamily:F.title,
-                display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                🚶 File d'attente
-                {queue.length>=5&&<span style={{fontSize:9,background:C.redP,color:C.red,
-                  borderRadius:20,padding:"1px 6px",fontWeight:700,fontFamily:F.body,
-                  animation:"pulse 1.2s infinite"}}>🚨</span>}
-              </div>
-              <div style={{overflowY:"auto",flex:1,padding:8,display:"flex",
-                flexDirection:"column",gap:6}}>
-                {queue.map(g=>{
-                  const pct=Math.max(0,(g.expiresAt-now)/(g.patMax*1000));
-                  const col=pct>0.5?C.green:pct>0.25?C.amber:C.red;
-                  const freeT=tables.filter(t=>t.status==="libre"&&t.capacity>=g.size);
-                  const aS=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
-                  return(
-                    <div key={g.id} style={{background:C.bg,border:`1px solid ${col}33`,
-                      borderLeft:`3px solid ${col}`,borderRadius:9,padding:"8px 10px"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
-                        <span style={{fontSize:18}}>{g.mood.e}</span>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:11,fontWeight:700,color:C.ink,fontFamily:F.body,
-                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</div>
-                          <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{g.size}p · {g.mood.l}{g.isVIP?" 🎩":""}</div>
-                        </div>
-                      </div>
-                      <div style={{height:3,background:col+"22",borderRadius:99,overflow:"hidden",marginBottom:5}}>
-                        <div style={{height:"100%",width:`${pct*100}%`,background:col,borderRadius:99,transition:"width 0.3s"}}/>
-                      </div>
-                      {freeT.length>0&&aS.length>0
-                        ?<Btn full sm v="primary" onClick={()=>quickPlace(g)} icon="➡️">Placer</Btn>
-                        :freeT.length>0
-                        ?<Btn full sm v="secondary" onClick={()=>openAssign(g)} icon="🪑">Choisir serveur</Btn>
-                        :<div style={{fontSize:9,color:C.muted,fontFamily:F.body,textAlign:"center",padding:"2px 0"}}>{freeT.length===0?"Pas de table":"Pas de serveur"}</div>
-                      }
-                    </div>
-                  );
-                })}
-                {waitlist.length>0&&(
-                  <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8,marginTop:4}}>
-                    <div style={{fontSize:9,color:C.muted,fontFamily:F.body,fontWeight:600,
-                      textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:5}}>📞 Rappelables</div>
-                    {waitlist.map(g=>{
-                      const rem=Math.max(0,Math.ceil((g.recallUntil-now)/1000));
+
+              {/* File d'attente */}
+              {(queue.length>0||waitlist.length>0)&&(
+                <>
+                  <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,
+                    fontWeight:700,fontSize:12,color:C.navy,fontFamily:F.title,
+                    display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                    🚶 File d'attente
+                    {queue.length>=5&&<span style={{fontSize:9,background:C.redP,color:C.red,
+                      borderRadius:20,padding:"1px 6px",fontWeight:700,fontFamily:F.body,
+                      animation:"pulse 1.2s infinite"}}>🚨</span>}
+                  </div>
+                  <div style={{overflowY:"auto",padding:8,display:"flex",
+                    flexDirection:"column",gap:6,
+                    maxHeight: selectedTable ? "40%" : undefined,
+                    flex: selectedTable ? "0 0 auto" : 1,
+                  }}>
+                    {queue.map(g=>{
+                      const pct=Math.max(0,(g.expiresAt-now)/(g.patMax*1000));
+                      const col=pct>0.5?C.green:pct>0.25?C.amber:C.red;
+                      const freeT=tables.filter(t=>t.status==="libre"&&t.capacity>=g.size);
+                      const aS=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
                       return(
-                        <div key={"w"+g.id} style={{background:C.bg,borderRadius:8,
-                          padding:"5px 8px",marginBottom:3,display:"flex",alignItems:"center",gap:6}}>
-                          <span style={{fontSize:13}}>{g.mood.e}</span>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:10,fontWeight:600,color:C.ink,fontFamily:F.body,
-                              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</div>
-                            <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{g.size}p · {rem}s</div>
+                        <div key={g.id} style={{background:C.bg,border:`1px solid ${col}33`,
+                          borderLeft:`3px solid ${col}`,borderRadius:9,padding:"8px 10px"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
+                            <span style={{fontSize:18}}>{g.mood.e}</span>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:11,fontWeight:700,color:C.ink,fontFamily:F.body,
+                                overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</div>
+                              <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{g.size}p · {g.mood.l}{g.isVIP?" 🎩":""}</div>
+                            </div>
                           </div>
-                          <Btn sm v="ghost" onClick={()=>recallGroup(g)}>📞</Btn>
+                          <div style={{height:3,background:col+"22",borderRadius:99,overflow:"hidden",marginBottom:5}}>
+                            <div style={{height:"100%",width:`${pct*100}%`,background:col,borderRadius:99,transition:"width 0.3s"}}/>
+                          </div>
+                          {freeT.length>0&&aS.length>0
+                            ?<Btn full sm v="primary" onClick={()=>quickPlace(g)} icon="➡️">Placer</Btn>
+                            :freeT.length>0
+                            ?<Btn full sm v="secondary" onClick={()=>openAssign(g)} icon="🪑">Choisir serveur</Btn>
+                            :<div style={{fontSize:9,color:C.muted,fontFamily:F.body,textAlign:"center",padding:"2px 0"}}>{freeT.length===0?"Pas de table":"Pas de serveur"}</div>
+                          }
                         </div>
                       );
                     })}
+                    {waitlist.length>0&&(
+                      <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8,marginTop:4}}>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body,fontWeight:600,
+                          textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:5}}>📞 Rappelables</div>
+                        {waitlist.map(g=>{
+                          const rem=Math.max(0,Math.ceil((g.recallUntil-now)/1000));
+                          return(
+                            <div key={"w"+g.id} style={{background:C.bg,borderRadius:8,
+                              padding:"5px 8px",marginBottom:3,display:"flex",alignItems:"center",gap:6}}>
+                              <span style={{fontSize:13}}>{g.mood.e}</span>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:10,fontWeight:600,color:C.ink,fontFamily:F.body,
+                                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.name}</div>
+                                <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{g.size}p · {rem}s</div>
+                              </div>
+                              <Btn sm v="ghost" onClick={()=>recallGroup(g)}>📞</Btn>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
+
+              {/* Détail table sélectionnée — en dessous de la file */}
+              {selectedTable&&(
+                <div style={{
+                  flex:1,minHeight:0,
+                  borderTop: (queue.length>0||waitlist.length>0) ? `1px solid ${C.border}` : undefined,
+                  display:"flex",flexDirection:"column",
+                  overflowY:"hidden",
+                }}>
+                  <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,
+                    display:"flex",justifyContent:"space-between",alignItems:"center",
+                    flexShrink:0}}>
+                    <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+                      📋 {selectedTable.name}
+                    </span>
+                    <button onClick={()=>setSelectedTable(null)} style={{
+                      background:"none",border:"none",fontSize:16,cursor:"pointer",
+                      color:C.muted,padding:"0 4px",lineHeight:1}}>✕</button>
+                  </div>
+                  <div style={{padding:10,flex:1,overflowY:"auto"}}>
+                    <DetailPanel
+                      t={selectedTable}
+                      tables={tables}
+                      servers={servers}
+                      kitchen={kitchen}
+                      queue={queue}
+                      now={now}
+                      cash={cash}
+                      C={C} F={F}
+                      quickPlace={quickPlace}
+                      openAssign={openAssign}
+                      checkout={checkout}
+                      setSelectedTable={setSelectedTable}
+                      addTx={addTx}
+                      setCash={setCash}
+                      addToast={addToast}
+                      setTables={setTables}
+                      onTableUpgrade={onTableUpgrade}
+                      CAP_UPGRADES={CAP_UPGRADES}
+                      calcRating={calcRating}
+                      ratingColor={ratingColor}
+                      ratingStars={ratingStars}
+                    />
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
 
@@ -812,7 +854,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
               tables={tables} servers={servers} kitchen={kitchen}
               queue={queue} now={now} C={C} F={F}
               selectedTable={selectedTable} setSelectedTable={setSelectedTable}
-              srvLv={srvLv} SRV_LVL={SRV_LVL} menuTheme={menuTheme}
+              srvLv={srvLv} SRV_LVL={SRV_LVL}
               calcRating={calcRating} ratingColor={ratingColor}
               ratingStars={ratingStars} calcTip={calcTip}
               quickPlace={quickPlace} openAssign={openAssign}
@@ -820,54 +862,6 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
               lockedSlots={lockedSlots}
             />
           </div>
-
-          {/* ── Panneau droit — Détail table sélectionnée ── */}
-          {selectedTable&&(
-            <div style={{
-              width:bp.isTablet?220:255,flexShrink:0,
-              borderLeft:`1px solid ${C.border}`,
-              background:C.surface,
-              display:"flex",flexDirection:"column",
-              overflowY:"hidden",
-            }}>
-              <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,
-                display:"flex",justifyContent:"space-between",alignItems:"center",
-                flexShrink:0}}>
-                <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>
-                  📋 {selectedTable.name}
-                </span>
-                <button onClick={()=>setSelectedTable(null)} style={{
-                  background:"none",border:"none",fontSize:16,cursor:"pointer",
-                  color:C.muted,padding:"0 4px",lineHeight:1}}>✕</button>
-              </div>
-              <div style={{padding:10,flex:1,overflowY:"auto"}}>
-                <DetailPanel
-                  t={selectedTable}
-                  tables={tables}
-                  servers={servers}
-                  kitchen={kitchen}
-                  queue={queue}
-                  now={now}
-                  cash={cash}
-                  menuTheme={menuTheme}
-                  C={C} F={F}
-                  quickPlace={quickPlace}
-                  openAssign={openAssign}
-                  checkout={checkout}
-                  setSelectedTable={setSelectedTable}
-                  addTx={addTx}
-                  setCash={setCash}
-                  addToast={addToast}
-                  setTables={setTables}
-                  onTableUpgrade={onTableUpgrade}
-                  CAP_UPGRADES={CAP_UPGRADES}
-                  calcRating={calcRating}
-                  ratingColor={ratingColor}
-                  ratingStars={ratingStars}
-                />
-              </div>
-            </div>
-          )}
 
         </div>
       )}
@@ -890,7 +884,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
               const ckT=kitchen.cooking.filter(d=>d.tableId===t.id);
               const slw=ckT.length>0?ckT.reduce((a,b)=>(b.startedAt+b.timerMax*1000)>(a.startedAt+a.timerMax*1000)?b:a):null;
               const pc=ph===0?Math.min(100,Math.round((1-(Math.max(0,(t.svcUntil-now))/((t.svcUntil-t.placedAt)||1)))*100)):ph===1?(slw?Math.min(100,Math.round(((now-slw.startedAt)/(slw.timerMax*1000))*100)):0):ph===2?(isEm?Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):100):ph===3?(t.cleanUntil?Math.min(100,Math.round(((t.cleanDur*1000-(t.cleanUntil-now))/(t.cleanDur*1000))*100)):0):0;
-              const bl=isMm?+(t.order.reduce((s,o)=>s+o.price*o.qty,0)*menuTheme.priceMult).toFixed(2):0;
+              const bl=isMm?+t.order.reduce((s,o)=>s+o.price*o.qty,0).toFixed(2):0;
               return(
                 <div key={t.id} style={{background:C.surface,
                   border:`1.5px solid ${ph>=0?pC+"55":C.border}`,
