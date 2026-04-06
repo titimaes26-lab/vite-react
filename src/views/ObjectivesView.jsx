@@ -109,7 +109,7 @@ export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,today
           {label:"1k€ CA",key:"totalRevenue",target:1000,icon:"💶"},
           {label:"5k€ CA",key:"totalRevenue",target:5000,icon:"💰"},
           {label:"20k€ CA",key:"totalRevenue",target:20000,icon:"🏆"},
-          {label:"Palace",key:"restoLevel",target:5,icon:"👑"},
+          {label:"Grand Restaurant",key:"restoLevel",target:25,icon:"👑"},
         ];
         const vals={totalServed:objStats?.totalServed||0,totalRevenue:objStats?.totalRevenue||0,restoLevel:restoLvN||0};
         return(

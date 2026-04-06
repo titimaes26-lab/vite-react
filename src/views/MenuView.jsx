@@ -5,10 +5,10 @@
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
 import { C, F } from "../constants/gameData.js";
-import { MENU_THEMES, FORMULA_PRESETS } from "../constants/gameConstants.js";
+import { FORMULA_PRESETS } from "../constants/gameConstants.js";
 import { Badge, Btn, Modal, Lbl, Inp, Sel } from "../components/ui/index.js";
 
-export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,setActiveTheme,dailyStats,bp={}}){
+export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,restoLvN=0,bp={}}){
   const [mainTab,setMainTab]=useState("carte");
   const [catFilter,setCatFilter]=useState("Tout");
   const [sortBy,setSortBy]=useState("cat");
@@ -23,8 +23,6 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
 
   const cats=["Tout","Entrées","Plats","Desserts","Boissons"];
   const catC={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy};
-  const theme=(MENU_THEMES||[]).find(t=>t.id===(activeTheme||"none"))||{id:"none",icon:"📋",name:"Standard",color:C.muted,desc:"",priceMult:1,repBonus:0,xpMult:1,accent:C.bg};
-
   /* ── Calculs par plat ── */
   const dishCost=(m)=>
     (m.ingredients||[]).reduce((sum,ing)=>{
@@ -55,14 +53,16 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
   };
 
   /* ── Tri ── */
+  const unlocked=(m)=>(m.unlockLevel??0)<=restoLvN;
   const base=catFilter==="Tout"?menu:menu.filter(m=>m.cat===catFilter);
-  const sorted=[...base].sort((a,b)=>{
+  const sorted=[...base.filter(unlocked)].sort((a,b)=>{
     if(sortBy==="margin")  return (dishMargin(b)||0)-(dishMargin(a)||0);
     if(sortBy==="popular") return (b.orderCount||0)-(a.orderCount||0);
     if(sortBy==="stock")   return portionsLeft(a)-portionsLeft(b);
     if(sortBy==="score")   return perfScore(b)-perfScore(a);
     return 0;
   });
+  const locked=base.filter(m=>!unlocked(m)).sort((a,b)=>(a.unlockLevel??0)-(b.unlockLevel??0));
   const maxOrders=Math.max(...menu.map(m=>m.orderCount||0),1);
 
   /* ── Helpers ── */
@@ -125,30 +125,12 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
     setModal(false);
   };
 
-  const criticalDishes=menu.filter(m=>m.enabled!==false&&portionsLeft(m)<2&&portionsLeft(m)>=0&&(m.ingredients||[]).length>0);
-  const disabledCount=menu.filter(m=>m.enabled===false).length;
+  const criticalDishes=menu.filter(m=>m.enabled!==false&&unlocked(m)&&portionsLeft(m)<2&&portionsLeft(m)>=0&&(m.ingredients||[]).length>0);
+  const disabledCount=menu.filter(m=>m.enabled===false&&unlocked(m)).length;
+  const lockedAllCount=menu.filter(m=>!unlocked(m)).length;
 
   return(
-    <div style={{background:theme.accent||C.bg,borderRadius:16,padding:16,transition:"background 0.4s"}}>
-
-      {/* Bandeau thème */}
-      {theme.id!=="none"&&(
-        <div style={{background:theme.color+"18",border:`1.5px solid ${theme.color}33`,
-          borderRadius:10,padding:"8px 14px",marginBottom:12,
-          display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-          <span style={{fontSize:18}}>{theme.icon}</span>
-          <span style={{fontSize:12,fontWeight:700,color:theme.color,fontFamily:F.title}}>
-            Thème : {theme.name}
-          </span>
-          <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>— {theme.desc}</span>
-          <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-            {[`💰 ×${theme.priceMult}`,`⭐ Rép.+${theme.repBonus}`,`🎯 XP×${theme.xpMult}`].map(t=>(
-              <span key={t} style={{fontSize:10,background:theme.color,color:"#fff",
-                borderRadius:20,padding:"2px 8px",fontFamily:F.body,fontWeight:700}}>{t}</span>
-            ))}
-          </div>
-        </div>
-      )}
+    <div style={{background:C.bg,borderRadius:16,padding:16}}>
 
       {/* Alertes stock critique */}
       {criticalDishes.length>0&&(
@@ -176,7 +158,6 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
         {[
           {k:"carte",    icon:"📋", label:"Carte"},
           {k:"formules", icon:"🍽",  label:`Formules${(formulas||[]).filter(f=>f.active).length>0?" ("+(formulas||[]).filter(f=>f.active).length+")":""}`},
-          {k:"themes",   icon:"🎨",  label:"Thèmes"},
           {k:"perf",     icon:"📊",  label:"Performance"},
         ].map(t=>(
           <button key={t.k} onClick={()=>setMainTab(t.k)} style={{
@@ -213,6 +194,13 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
                   ⏸ {disabledCount} désactivé{disabledCount>1?"s":""}
                 </span>
               )}
+              {lockedAllCount>0&&(
+                <span style={{fontSize:11,background:C.purpleP,color:C.purple,
+                  border:`1px solid ${C.purple}33`,borderRadius:20,padding:"4px 10px",
+                  fontFamily:F.body,fontWeight:600}}>
+                  🔒 {lockedAllCount} à débloquer
+                </span>
+              )}
             </div>
             <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
               <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>Trier :</span>
@@ -247,7 +235,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
               const criticalStock=portions<2&&(m.ingredients||[]).length>0;
               const score=perfScore(m);
               const sc=score>=70?C.green:score>=40?C.amber:C.red;
-              const effectivePrice=theme.priceMult!==1?+(m.price*theme.priceMult).toFixed(2):m.price;
+              const effectivePrice=m.price;
 
               return(
                 <div key={m.id} style={{
@@ -277,13 +265,13 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
                     </div>
                     <div style={{flexShrink:0,textAlign:"right"}}>
                       <div style={{fontSize:16,fontWeight:700,
-                        color:isPriceModified?C.purple:theme.priceMult!==1?theme.color:C.terra,
+                        color:isPriceModified?C.purple:C.terra,
                         fontFamily:F.title}}>
                         {effectivePrice}€
                       </div>
-                      {(isPriceModified||theme.priceMult!==1)&&(
+                      {isPriceModified&&(
                         <div style={{fontSize:9,color:C.muted,textDecoration:"line-through",fontFamily:F.body}}>
-                          {m.basePrice||m.price}€
+                          {m.basePrice}€
                         </div>
                       )}
                     </div>
@@ -344,6 +332,60 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
               );
             })}
           </div>
+
+          {/* ── Plats verrouillés ── */}
+          {locked.length>0&&(
+            <div style={{marginTop:20}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,
+                borderTop:`2px dashed ${C.purple}44`,paddingTop:14}}>
+                <span style={{fontSize:16}}>🔒</span>
+                <span style={{fontSize:13,fontWeight:700,color:C.purple,fontFamily:F.title}}>
+                  Plats à débloquer
+                </span>
+                <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
+                  — disponibles en progressant en niveau
+                </span>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(220px,1fr))",gap:bp.isMobile?8:10}}>
+                {locked.map(m=>{
+                  const cc=catC[m.cat]||C.navy;
+                  const lvReq=m.unlockLevel??0;
+                  return(
+                    <div key={m.id} style={{
+                      background:C.bg,
+                      border:`1.5px dashed ${C.purple}44`,
+                      borderRadius:14,padding:14,opacity:0.65,
+                      position:"relative",overflow:"hidden"}}>
+                      {/* overlay verrou */}
+                      <div style={{position:"absolute",top:8,right:10,
+                        background:C.purple,color:"#fff",fontSize:10,fontWeight:800,
+                        borderRadius:20,padding:"2px 10px",letterSpacing:"0.5px"}}>
+                        🔒 Niv.{lvReq}
+                      </div>
+                      <div style={{fontSize:13,fontWeight:600,color:C.muted,
+                        fontFamily:F.title,lineHeight:1.3,marginBottom:6,
+                        paddingRight:60}}>
+                        {m.name}
+                      </div>
+                      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
+                        <Badge color={cc} sm>{m.cat}</Badge>
+                        <span style={{fontSize:9,background:C.amberP,color:C.amber,borderRadius:5,padding:"1px 5px",fontFamily:F.body,fontWeight:600}}>
+                          ⏱{m.prepTime>=60?`${Math.floor(m.prepTime/60)}m`:m.prepTime+"s"}
+                        </span>
+                        <span style={{fontSize:9,background:C.purpleP,color:C.purple,borderRadius:5,padding:"1px 5px",fontFamily:F.body,fontWeight:700}}>
+                          {m.price}€
+                        </span>
+                      </div>
+                      <div style={{fontSize:10,color:C.purple,fontFamily:F.body,fontWeight:600,
+                        background:C.purpleP,borderRadius:6,padding:"4px 8px",textAlign:"center"}}>
+                        Disponible au niveau {lvReq}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -436,44 +478,6 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,activeTheme,se
               </div>
             </Modal>
           )}
-        </div>
-      )}
-
-      {/* ══ THÈMES ══ */}
-      {mainTab==="themes"&&(
-        <div>
-          <div style={{fontSize:12,color:C.muted,fontFamily:F.body,marginBottom:16,lineHeight:1.6}}>
-            Le thème modifie visuellement la carte et applique un multiplicateur de prix global + bonus de réputation sur chaque service.
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":"repeat(auto-fill,minmax(240px,1fr))",gap:bp.isMobile?10:14}}>
-            {MENU_THEMES.map(t=>{
-              const isActive=(activeTheme||"none")===t.id;
-              return(
-                <div key={t.id} onClick={()=>setActiveTheme(t.id)} style={{
-                  background:isActive?t.color+"14":C.card,
-                  border:`2px solid ${isActive?t.color:C.border}`,
-                  borderRadius:14,padding:16,cursor:"pointer",
-                  boxShadow:isActive?`0 4px 16px ${t.color}33`:"0 1px 4px rgba(0,0,0,0.06)",
-                  transition:"all 0.2s"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
-                    <div style={{width:44,height:44,background:t.color+"18",border:`2px solid ${t.color}44`,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{t.icon}</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:14,fontWeight:700,color:t.color,fontFamily:F.title}}>
-                        {t.name}
-                        {isActive&&<span style={{marginLeft:6,fontSize:9,background:t.color,color:"#fff",borderRadius:20,padding:"1px 7px",fontFamily:F.body,fontWeight:700}}>Actif</span>}
-                      </div>
-                      <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>{t.desc}</div>
-                    </div>
-                  </div>
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                    {[`💰 ×${t.priceMult}`,`⭐ +${t.repBonus} rép.`,`🎯 ×${t.xpMult} XP`].map(tag=>(
-                      <span key={tag} style={{fontSize:10,background:t.color+"14",color:t.color,border:`1px solid ${t.color}33`,borderRadius:6,padding:"2px 8px",fontFamily:F.body,fontWeight:600}}>{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 

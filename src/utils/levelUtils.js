@@ -117,6 +117,31 @@ export const restoLv = (xp) => {
 };
 
 /* ─────────────────────────────────────────────────────
+   PLAFOND DE TIER SERVEUR par niveau restaurant
+   Tier 0=Stagiaire · 1=Serveur · 2=Senior · 3=Expert · 4=Maître
+   Un restaurant peu prestigieux ne peut pas former/recruter
+   des serveurs de haut rang.
+───────────────────────────────────────────────────── */
+
+/**
+ * Tier maximum qu'un serveur peut atteindre dans ce restaurant.
+ * @param {number} restoLv - niveau du restaurant (0–49)
+ * @returns {number} tier cap (1–4)
+ */
+export const srvTierCap = (restoLv) => {
+  if (restoLv < 5)  return 1;   // Serveur max  (ère locale débutante)
+  if (restoLv < 10) return 2;   // Senior max   (ère locale expérimentée)
+  if (restoLv < 20) return 3;   // Expert max   (reconnaissance régionale)
+  return 4;                      // Maître max   (gastronomie étoilée +)
+};
+
+/**
+ * Niveau restaurant auquel chaque tier de serveur se déverrouille.
+ * Index = tier (0–4).
+ */
+export const TIER_UNLOCK_LV = [0, 0, 5, 10, 20];
+
+/* ─────────────────────────────────────────────────────
    CUISINE — Temps de cuisson effectif
    Formule : max(5s, round(prepTime / (chefSpeed × (1 + commisCount × 0.15))))
    + bonus four si appliqué via upgDishCookTime (voir KitchenView)

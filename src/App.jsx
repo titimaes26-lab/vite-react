@@ -18,7 +18,7 @@ import {
   SRV_LVL, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
   RESTO_LVL, SERVER_SLOTS_BY_LEVEL, CAP_UPGRADES,
   MOODS, NAMES1, NAMES2,
-  TABLES0, SERVERS0, STOCK0, MENU0, COMPLAINTS0, KITCHEN0,
+  TABLES0, SERVERS0, STOCK0, MENU0, PREMIUM_STOCK, COMPLAINTS0, KITCHEN0,
   KITCHEN_UPGRADES, SUPPLIERS, LOAN_OPTIONS,
   CHALLENGES_POOL, GAME_EVENTS, TABS,
 } from "./constants/gameData";
@@ -437,10 +437,26 @@ export default function App(){
       const after=restoLv(prev+xp);
       if(after.l>before.l){
         const nd=RESTO_LVL[after.l];
+        // Ingrédients premium à injecter pour les plats qui se débloquent
+        const newlyUnlocked=MENU0.filter(
+          d=>(d.unlockLevel??0)>before.l&&(d.unlockLevel??0)<=after.l
+        );
+        const neededStockIds=new Set(
+          newlyUnlocked.flatMap(d=>(d.ingredients||[]).map(i=>i.stockId))
+        );
+        const premiumToAdd=PREMIUM_STOCK.filter(p=>neededStockIds.has(p.id));
+        if(premiumToAdd.length>0){
+          setStock(s=>{
+            const existing=new Set(s.map(item=>item.id));
+            const toAdd=premiumToAdd.filter(p=>!existing.has(p.id));
+            return toAdd.length>0?[...s,...toAdd]:s;
+          });
+        }
+        const unlockedNames=newlyUnlocked.map(d=>d.name).join(", ");
         setTimeout(()=>addToast({
           icon:nd.icon,
           title:`Niveau ${nd.l} — ${nd.name} !`,
-          msg:`🎉 ${nd.tables} tables débloquées`,
+          msg:`🎉 ${nd.tables} tables débloquées${unlockedNames?` · 🍽 ${unlockedNames}`:""}`,
           color:nd.color,
           tab:"tables",
         }),50);
@@ -878,10 +894,10 @@ export default function App(){
       {/* Content */}
       <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
-        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} bp={bp}/>}
+        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} restoLvN={rl.l} bp={bp}/>}
         {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} bp={bp}/>}
         {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} bp={bp}/>}
-        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats} bp={bp}/>}
+        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats} restoLvN={rl.l} bp={bp}/>}
         {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
         {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
         {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}

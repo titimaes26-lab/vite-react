@@ -1,135 +1,9 @@
 /* ═══════════════════════════════════════════════════════
-   src/views/ComplaintsView.jsx
-   Extrait du monolithe restaurant-manager.jsx
-   Dépendances déclarées dans les imports ci-dessous.
+   src/constants/helpContent.js
+   Contenu textuel du guide utilisateur in-game.
 ═══════════════════════════════════════════════════════ */
-import { useState } from "react";
-import { C, F } from "../constants/gameData.js";
-import { Card, Badge, Modal, Lbl, Inp, Sel, Btn } from "../components/ui/index.js";
 
-export function ComplaintsView({complaints,setComplaints,tables,servers,seenIds}){
-  const [modal,setModal]=useState(false);
-  const [form,setForm]=useState({date:"",table:"",server:"",type:"Qualité plat",desc:"",status:"nouveau",prio:"moyenne"});
-  const [filter,setFilter]=useState("Tout");
-  const types=["Qualité plat","Délai service","Attitude personnel","Facture incorrecte","Propreté","Autre"];
-  const filtered=[...(filter==="Tout"?complaints:complaints.filter(c=>c.status===filter))].sort((a,b)=>b.date.localeCompare(a.date));
-  const save=()=>{
-    setComplaints(p=>[...p,{id:Date.now(),...form,table:+form.table}]);
-    setModal(false);
-  };
-  const cnt={
-    nouveau:complaints.filter(c=>c.status==="nouveau").length,
-    "en cours":complaints.filter(c=>c.status==="en cours").length,
-    résolu:complaints.filter(c=>c.status==="résolu").length,
-  };
-  const prioC={haute:C.red,moyenne:C.terra,basse:C.navy};
-  const statC={résolu:C.green,"en cours":C.amber,nouveau:C.red};
-  const statBg={résolu:C.greenP,"en cours":C.amberP,nouveau:C.redP};
-  return(
-    <div>
-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        {filtered.length===0&&(
-          <div style={{color:C.muted,fontSize:13,fontStyle:"italic",fontFamily:F.body,padding:"16px 0"}}>
-            Aucune plainte dans cette catégorie.
-          </div>
-        )}
-        {filtered.map(c=>(
-          <Card key={c.id} accent={(statC[c.status]||C.muted)+"44"}>
-            <div style={{display:"flex",justifyContent:"space-between",
-              alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
-              <div style={{flex:1}}>
-                <div style={{display:"flex",gap:7,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
-                  <Badge color={prioC[c.prio]||C.muted} sm>{c.prio}</Badge>
-                  <Badge color={statC[c.status]||C.muted} bg={statBg[c.status]||C.bg} sm>
-                    {c.status}
-                  </Badge>
-                  {!seenIds?.has(c.id)&&c.status==="nouveau"&&(
-                    <span style={{
-                      background:C.red,color:"#fff",
-                      fontSize:9,fontWeight:800,letterSpacing:"0.06em",
-                      borderRadius:4,padding:"2px 7px",fontFamily:F.body,
-                      textTransform:"uppercase",animation:"pulse 1.2s infinite"}}>
-                      ● NOUVEAU
-                    </span>
-                  )}
-                  <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
-                    Table {c.table} · {c.server} · {c.date}
-                  </span>
-                </div>
-                <div style={{fontWeight:600,color:C.ink,fontSize:14,marginBottom:4,fontFamily:F.title}}>
-                  {c.type}
-                </div>
-                <div style={{color:C.muted,fontSize:13,fontFamily:F.body}}>{c.desc}</div>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-      {modal&&(
-        <Modal title="Signaler une plainte" onClose={()=>setModal(false)}>
-          <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div><Lbl>Date</Lbl><Inp type="date" value={form.date} onChange={e=>setForm(p=>({...p,date:e.target.value}))}/></div>
-              <div>
-                <Lbl>Table</Lbl>
-                <Sel value={form.table} onChange={e=>setForm(p=>({...p,table:e.target.value}))}>
-                  <option value="">Sélectionner…</option>
-                  {tables.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
-                </Sel>
-              </div>
-            </div>
-            <div>
-              <Lbl>Serveur</Lbl>
-              <Sel value={form.server} onChange={e=>setForm(p=>({...p,server:e.target.value}))}>
-                <option value="">Sélectionner…</option>
-                {servers.map(s=><option key={s.id} value={s.name}>{s.name}</option>)}
-              </Sel>
-            </div>
-            <div>
-              <Lbl>Type</Lbl>
-              <Sel value={form.type} onChange={e=>setForm(p=>({...p,type:e.target.value}))}>
-                {types.map(t=><option key={t}>{t}</option>)}
-              </Sel>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div>
-                <Lbl>Priorité</Lbl>
-                <Sel value={form.prio} onChange={e=>setForm(p=>({...p,prio:e.target.value}))}>
-                  <option value="basse">Basse</option>
-                  <option value="moyenne">Moyenne</option>
-                  <option value="haute">Haute</option>
-                </Sel>
-              </div>
-              <div>
-                <Lbl>Statut</Lbl>
-                <Sel value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>
-                  <option value="nouveau">Nouveau</option>
-                  <option value="en cours">En cours</option>
-                </Sel>
-              </div>
-            </div>
-            <div>
-              <Lbl>Description</Lbl>
-              <textarea value={form.desc} onChange={e=>setForm(p=>({...p,desc:e.target.value}))} rows={3}
-                style={{background:C.white,border:`1.5px solid ${C.border}`,borderRadius:9,
-                  padding:"9px 13px",color:C.ink,fontSize:13,fontFamily:F.body,
-                  outline:"none",width:"100%",boxSizing:"border-box",resize:"vertical"}}/>
-            </div>
-            <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:6}}>
-              <Btn onClick={()=>setModal(false)} v="ghost">Annuler</Btn>
-              <Btn onClick={save} v="terra">Enregistrer</Btn>
-            </div>
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   HELP MODAL — Guide utilisateur
-═══════════════════════════════════════════════════════ */
-const HELP_SECTIONS=[
+export const HELP_SECTIONS = [
   {
     icon:"⊞", title:"Tables",
     color:"#1e5c38",
@@ -143,6 +17,7 @@ const HELP_SECTIONS=[
       {q:"Repas en cours",a:"Une fois les plats servis, la table passe en 🍴 repas. Le temps correspond aux ⅔ du plat le plus long. Le bouton Encaisser est verrouillé pendant ce délai."},
       {q:"Nettoyage",a:"Après l'encaissement, un serveur nettoie pendant 1 minute (réduit par l'amélioration Station de plonge). La table redevient libre automatiquement."},
       {q:"Agrandir une table",a:"Sur chaque table libre, un bouton permet d'augmenter la capacité : 2→4 couverts pour 800 €, puis 4→6 couverts pour 1 800 €. Des groupes plus grands arriveront ensuite."},
+      {q:"File d'attente — rappel",a:"Si un groupe part avant d'être placé, il reste rappelable 2 minutes dans la liste d'attente. Cliquez ↩ Rappeler pour le remettre en tête de file avec +15s de patience."},
       {q:"Réorganiser la file",a:"Les boutons ↑↓ sur chaque ticket de la file permettent de prioriser les groupes. Un indicateur de backlog (temps total estimé) s'affiche en haut."},
     ]
   },
@@ -181,6 +56,8 @@ const HELP_SECTIONS=[
       {q:"Activer / Désactiver",a:"Le bouton ⏸ retire un plat du menu sans le supprimer. Les plats désactivés ne sont plus commandés par les clients."},
       {q:"Score de rentabilité",a:"Chaque plat a un score composé : 40% marge brute + 40% popularité + 20% disponibilité stock. Badge 🔥 pour le plat le mieux noté."},
       {q:"Formules",a:"3 modèles : Menu Découverte (−12%, 3 services), Menu Express (−8%, 2 services), Menu Prestige (−15%, 4 services). Configurez les plats de chaque catégorie puis activez."},
+      {q:"Thèmes",a:"🍺 Bistrot (×0.90 prix) · ⭐ Gastronomique (×1.15 prix, +5 rép, +20% XP) · 🌿 Saisonnier (+8 rép, +10% XP). Le thème actif s'applique à chaque encaissement."},
+      {q:"Plats du jour",a:"2 plats aléatoires sont mis en avant chaque heure avec −20% de réduction. Ils apparaissent dans la file d'attente et dans l'onglet Tables."},
     ]
   },
   {
@@ -257,4 +134,3 @@ const HELP_SECTIONS=[
     ]
   },
 ];
-

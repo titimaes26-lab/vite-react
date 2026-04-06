@@ -4,9 +4,9 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL } from "../constants/gameData.js";
+import { C, F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL, STAFF_QUALITY_REQ } from "../constants/gameData.js";
 import { Badge, Card, Btn, Modal, Lbl, Inp, Sel, XpBar } from "../components/ui/index.js";
-import { srvLv } from "../utils/levelUtils.js";
+import { srvLv, srvTierCap, TIER_UNLOCK_LV } from "../utils/levelUtils.js";
 import { rName } from "../utils/randomUtils.js";
 /* ─── Helpers locaux ────────────────────────────────── */
 const moralIcon   = (m) => m>=70?"😊":m>=40?"😐":m>=20?"😓":"💀";
@@ -23,6 +23,11 @@ const SRV_SPECIALTIES = [
 ];;
 
 const pickSpecialty = () => SRV_SPECIALTIES[Math.floor(Math.random()*SRV_SPECIALTIES.length)];
+
+/* ─── Helpers de scaling candidats par niveau resto ─── */
+const _candidateXpRange  = (lv) => lv<5?[0,80]:lv<10?[20,160]:lv<20?[60,280]:lv<30?[140,440]:[280,960];
+const _candidateSalRange = (lv) => lv<5?[10,14]:lv<10?[11,16]:lv<20?[12,20]:lv<30?[14,24]:[16,30];
+const _candidateSpecRate = (lv) => lv<5?0.30:lv<10?0.40:lv<20?0.55:lv<30?0.65:0.75;
 
 const TRAINING_CATALOG = [
   {
@@ -146,24 +151,35 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
     setTrainId(null);
   };
 
-  const maxSlots = SERVER_SLOTS_BY_LEVEL[Math.min(restoLvN||0,5)]||2;
+  const maxSlots = SERVER_SLOTS_BY_LEVEL[Math.min(restoLvN||0, RESTO_LVL.length-1)]||2;
   const canHire  = servers.length < maxSlots;
   // Coût de recrutement : 3× le salaire horaire
   const hireCost = Math.round(+(form.salary||12)*3);
   const canAfford = cash >= hireCost;
 
+  // ── Plafond de tier serveur lié au niveau resto ──────
+  const tierCap = srvTierCap(restoLvN||0);
 
-  // Générer un pool de 9 candidats reproductibles par date
-  const generatePool = (dateStr) => {
-    let seed = dateStr.split("").reduce((a,c)=>a+c.charCodeAt(0), 0);
+  // ── Exigence de qualité du personnel active ──────────
+  const activeReq = [...STAFF_QUALITY_REQ].reverse().find(r => (restoLvN||0) >= r.atLv) || null;
+  const nextReq   = STAFF_QUALITY_REQ.find(r => (restoLvN||0) < r.atLv) || null;
+  const reqMet    = !activeReq || servers.filter(s => srvLv(s.totalXp||0).l >= activeReq.tier).length >= activeReq.count;
+
+
+  // Générer un pool de 9 candidats reproductibles par date, qualité liée au niveau resto
+  const generatePool = (dateStr, restoLv = 0) => {
+    let seed = dateStr.split("").reduce((a,c)=>a+c.charCodeAt(0), 0) + restoLv * 17;
     const rng = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
     const names1=["Alice","Bruno","Clara","Denis","Elena","Félix","Gina","Hugo","Iris","Jean","Katia","Luc","Mona","Noé","Olivia","Paul","Rosa","Sam","Tina","Vera"];
     const names2=["Martin","Dupont","Bernard","Thomas","Robert","Petit","Moreau","Simon","Laurent","Michel"];
+    const [xpMin,xpMax]   = _candidateXpRange(restoLv);
+    const [salMin,salMax] = _candidateSalRange(restoLv);
+    const specRate        = _candidateSpecRate(restoLv);
     return Array.from({length:9}, (_,i) => {
-      const salary  = Math.round(rng()*8+10);
-      const xp      = Math.round(rng()*180);
+      const salary  = Math.round(rng()*(salMax-salMin)+salMin);
+      const xp      = Math.round(rng()*(xpMax-xpMin)+xpMin);
       const moral   = Math.round(rng()*30+70);
-      const hasSpec = rng() > 0.5;
+      const hasSpec = rng() < specRate;
       const specIdx = Math.floor(rng()*SRV_SPECIALTIES.length);
       const name    = names1[Math.floor(rng()*names1.length)]+" "+names2[Math.floor(rng()*names2.length)];
       return {
@@ -182,7 +198,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
   const openHire = () => {
     const today = new Date().toLocaleDateString("fr-FR");
     if(candidateDate !== today || candidatePool.length === 0) {
-      setCandidatePool(generatePool(today));
+      setCandidatePool(generatePool(today, restoLvN||0));
       setCandidateDate(today);
     }
     setModal("hire");
@@ -281,6 +297,60 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
         </Btn>
       </div>
 
+      {/* ── Bandeau exigences & plafond ── */}
+      <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}}>
+
+        {/* Plafond de tier */}
+        <div style={{flex:1,minWidth:200,background:C.navyP,border:`1px solid ${C.navy}33`,
+          borderRadius:10,padding:"9px 14px",display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:18}}>🎓</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,fontWeight:700,color:C.navy,fontFamily:F.body}}>
+              Tier max : {SRV_LVL[Math.min(tierCap,SRV_LVL.length-1)].icon} {SRV_LVL[Math.min(tierCap,SRV_LVL.length-1)].name}
+            </div>
+            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:1}}>
+              {tierCap < 4
+                ? `${SRV_LVL[Math.min(tierCap+1,SRV_LVL.length-1)].icon} ${SRV_LVL[Math.min(tierCap+1,SRV_LVL.length-1)].name} débloqué au restaurant niv. ${TIER_UNLOCK_LV[tierCap+1]}`
+                : "Tous les tiers débloqués ✨"}
+            </div>
+          </div>
+        </div>
+
+        {/* Exigence de personnel */}
+        <div style={{flex:1,minWidth:200,
+          background:activeReq?(reqMet?C.greenP:C.redP):C.bg,
+          border:`1px solid ${activeReq?(reqMet?C.green:C.red):C.border}33`,
+          borderRadius:10,padding:"9px 14px",display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:18}}>{activeReq?(reqMet?"✅":"⚠️"):"🟢"}</span>
+          <div style={{flex:1}}>
+            {activeReq ? (
+              <>
+                <div style={{fontSize:11,fontWeight:700,
+                  color:reqMet?C.green:C.red,fontFamily:F.body}}>
+                  {reqMet?"Exigence remplie":"Exigence non remplie"} — {activeReq.icon} {activeReq.label}
+                </div>
+                <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:1}}>
+                  {reqMet
+                    ? nextReq
+                      ? `Prochaine : ${nextReq.icon} ${nextReq.label} au niv. ${nextReq.atLv}`
+                      : "Exigence maximale atteinte"
+                    : `Recrutez ou formez pour atteindre le niveau requis`}
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{fontSize:11,fontWeight:700,color:C.muted,fontFamily:F.body}}>
+                  Aucune exigence pour ce niveau
+                </div>
+                <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:1}}>
+                  {nextReq ? `Première exigence : ${nextReq.icon} ${nextReq.label} au niv. ${nextReq.atLv}` : ""}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* ── Grille des serveurs ── */}
       <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"repeat(auto-fill,minmax(270px,1fr))",gap:bp.isMobile?10:13}}>
         {servers.map(sv=>{
@@ -361,14 +431,32 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                 </div>
               ):null}
 
-              {/* Barre XP */}
+              {/* Barre XP + plafond de tier */}
               <div style={{marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",
-                  fontSize:10,color:C.muted,marginBottom:4,fontFamily:F.body}}>
-                  <span>XP · Niv.{sl.l}</span>
-                  <span style={{color:slD.color,fontWeight:600}}>{sl.r}/{sl.n}</span>
-                </div>
-                <XpBar xp={sl.r} needed={sl.n} color={slD.color}/>
+                {sl.l >= tierCap ? (
+                  <>
+                    <div style={{display:"flex",justifyContent:"space-between",
+                      fontSize:10,marginBottom:4,fontFamily:F.body}}>
+                      <span style={{color:C.muted}}>XP · Niv.{sl.l} <span style={{color:C.amber,fontWeight:700}}>🔒 Plafonné</span></span>
+                      <span style={{color:C.amber,fontWeight:600}}>{sl.r}/{sl.n}</span>
+                    </div>
+                    <XpBar xp={sl.r} needed={sl.n} color={C.amber}/>
+                    {tierCap < 4 && (
+                      <div style={{fontSize:9,color:C.amber,fontFamily:F.body,marginTop:3,fontWeight:600}}>
+                        {SRV_LVL[Math.min(tierCap+1,SRV_LVL.length-1)].icon} Tier suivant débloqué au restaurant niv. {TIER_UNLOCK_LV[tierCap+1]}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div style={{display:"flex",justifyContent:"space-between",
+                      fontSize:10,color:C.muted,marginBottom:4,fontFamily:F.body}}>
+                      <span>XP · Niv.{sl.l}</span>
+                      <span style={{color:slD.color,fontWeight:600}}>{sl.r}/{sl.n}</span>
+                    </div>
+                    <XpBar xp={sl.r} needed={sl.n} color={slD.color}/>
+                  </>
+                )}
               </div>
 
               {/* Jauge Moral */}
@@ -729,13 +817,23 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                   display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
             </div>
 
-            {/* Solde */}
+            {/* Solde + plafond de tier */}
             <div style={{padding:"10px 22px",background:C.bg,borderBottom:`1px solid ${C.border}`,
-              display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Solde disponible :</span>
-              <span style={{fontSize:14,fontWeight:700,color:C.green,fontFamily:F.title}}>
-                {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
-              </span>
+              display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Solde :</span>
+                <span style={{fontSize:14,fontWeight:700,color:C.green,fontFamily:F.title}}>
+                  {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+                </span>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:6,
+                background:C.navyP,border:`1px solid ${C.navy}22`,borderRadius:7,
+                padding:"3px 10px"}}>
+                <span style={{fontSize:11}}>🎓</span>
+                <span style={{fontSize:10,color:C.navy,fontWeight:600,fontFamily:F.body}}>
+                  Candidats niv. {restoLvN||0} · Tier max : {SRV_LVL[Math.min(tierCap,SRV_LVL.length-1)].name}
+                </span>
+              </div>
             </div>
 
             {/* Liste des candidats */}
@@ -977,13 +1075,23 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                   display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
             </div>
 
-            {/* Solde */}
+            {/* Solde + plafond de tier */}
             <div style={{padding:"10px 22px",background:C.bg,borderBottom:`1px solid ${C.border}`,
-              display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Solde disponible :</span>
-              <span style={{fontSize:14,fontWeight:700,color:C.green,fontFamily:F.title}}>
-                {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
-              </span>
+              display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Solde :</span>
+                <span style={{fontSize:14,fontWeight:700,color:C.green,fontFamily:F.title}}>
+                  {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+                </span>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:6,
+                background:C.navyP,border:`1px solid ${C.navy}22`,borderRadius:7,
+                padding:"3px 10px"}}>
+                <span style={{fontSize:11}}>🎓</span>
+                <span style={{fontSize:10,color:C.navy,fontWeight:600,fontFamily:F.body}}>
+                  Candidats niv. {restoLvN||0} · Tier max : {SRV_LVL[Math.min(tierCap,SRV_LVL.length-1)].name}
+                </span>
+              </div>
             </div>
 
             {/* Liste des candidats */}
