@@ -87,7 +87,7 @@ export function HelpModal({onClose}){
 /* ═══════════════════════════════════════════════════════
    DAILY SUMMARY MODAL — Résumé de fin de journée (A)
 ═══════════════════════════════════════════════════════ */
-function DailySummaryModal({onClose,dailyStats,objStats,servers,menu,transactions,prevRecord,isRecord}){
+export function DailySummaryModal({onClose,dailyStats,objStats,servers,menu,transactions,prevRecord,isRecord}){
   const today=dailyStats[dailyStats.length-1]||{served:0,lost:0,revenue:0,date:""};
   const totalClients=today.served+today.lost;
   const rate=totalClients>0?Math.round((today.served/totalClients)*100):0;
