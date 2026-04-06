@@ -4,7 +4,7 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F } from "../constants/gameData.js";
+import { C, F, MENU0 } from "../constants/gameData.js";
 import { FORMULA_PRESETS } from "../constants/gameConstants.js";
 import { Badge, Btn, Modal, Lbl, Inp, Sel } from "../components/ui/index.js";
 
@@ -128,7 +128,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
   const criticalDishes=menu.filter(m=>m.enabled!==false&&unlocked(m)&&portionsLeft(m)<2&&portionsLeft(m)>=0&&(m.ingredients||[]).length>0);
   const disabledCount=menu.filter(m=>m.enabled===false&&unlocked(m)).length;
   const lockedAllCount=menu.filter(m=>!unlocked(m)).length;
-  const nextUnlocks=[...menu].filter(m=>!unlocked(m)).sort((a,b)=>(a.unlockLevel??0)-(b.unlockLevel??0)).slice(0,3);
+  const nextUnlocks=MENU0.filter(m=>(m.unlockLevel??0)>restoLvN).sort((a,b)=>(a.unlockLevel??0)-(b.unlockLevel??0)).slice(0,3);
 
   return(
     <div style={{background:C.bg,borderRadius:16,padding:16}}>
