@@ -54,10 +54,10 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
   const orderByForecast=()=>{
     criticalIngredients.forEach(it=>{
       const target=it.alert*6;
-      const qty=+(target-it.qty).toFixed(3);
+      const qty=+(target-it.qty-pendingQty(it.id)).toFixed(3);
       if(qty>0){
-        const instant=deductCost(it,qty);
-        if(instant) setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(target,+(s.qty+qty).toFixed(3)),freshness:100}:s));
+        const inst=deductCost(it,qty);
+        if(inst)setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(target,+(s.qty+qty).toFixed(3)),freshness:100}:s));
       }
     });
   };
@@ -102,6 +102,11 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
       if(added>0){const inst=deductCost(s,added);if(inst)setStock(p=>p.map(x=>x.id===s.id?{...x,qty:+(s.alert*4).toFixed(2),freshness:100}:x));}
     });
   };
+
+  const pendingQty=(stockId)=>pendingDeliveries.reduce((sum,d)=>{
+    const found=d.items.find(i=>i.stockId===stockId);
+    return sum+(found?found.qty:0);
+  },0);
 
   const cats=[...new Set(stock.map(s=>s.cat))];
   const catIcon={Viandes:"🥩",Poissons:"🐟",Fins:"⭐",Légumes:"🥦","Légumes & Herbes":"🌿",Herbes:"🌿",Laitiers:"🧈",Épicerie:"🫙",Boissons:"🍷"};
@@ -353,7 +358,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                   <div style={{display:"flex",gap:3,flexShrink:0}} onClick={e=>e.stopPropagation()}>
                     {quickAmounts(it.unit).map(n=>{
                       const cap2=(it.alert>0?it.alert*6:Math.max(it.qty*2,10))*storageMult;
-                      const wouldExceed=it.qty+n>cap2;
+                      const wouldExceed=it.qty+pendingQty(it.id)+n>cap2;
                       return(
                         <button key={n} onClick={()=>{
                           if(wouldExceed)return;
@@ -434,7 +439,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                     <td style={{padding:"7px 12px",borderBottom:`1px solid ${C.border}11`}}>
                       <div style={{display:"flex",gap:3}}>
                         {amounts.map(n=>{
-                          const wouldExceed=it.qty+n>cap;
+                          const wouldExceed=it.qty+pendingQty(it.id)+n>cap;
                           return(
                             <button key={n} onClick={()=>{
                               if(wouldExceed)return;
@@ -623,7 +628,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                       ):(
                         <div style={{display:"flex",gap:3}} onClick={e=>e.stopPropagation()}>
                           {amounts.map(n=>{
-                            const wouldExceed=it.qty+n>cap;
+                            const wouldExceed=it.qty+pendingQty(it.id)+n>cap;
                             return(
                               <button key={n} onClick={()=>{
                                 if(wouldExceed)return;
