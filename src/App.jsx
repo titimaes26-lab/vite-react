@@ -20,8 +20,7 @@ import {
   MOODS, NAMES1, NAMES2,
   TABLES0, SERVERS0, STOCK0, MENU0, PREMIUM_STOCK, COMPLAINTS0, KITCHEN0,
   KITCHEN_UPGRADES, SUPPLIERS, LOAN_OPTIONS,
-  CHALLENGES_POOL, OBJECTIVES_DEF, SERIES_LABELS, SERIES_COLORS,
-  GAME_EVENTS, TABS,
+  CHALLENGES_POOL, GAME_EVENTS, TABS,
 } from "./constants/gameData";
 
 import {
@@ -58,9 +57,23 @@ import { useServerMoral } from "./hooks/useServerMoral";
 import { useChallenges }  from "./hooks/useChallenges";
 import { useObjectives }  from "./hooks/useObjectives";
 
+// ── Utilitaires ────────────────────────────────────────
+import { useBreakpoint }  from "./hooks/useBreakpoint";
+import {
+  SAVE_KEY, saveGame, loadGame, sanitizeSave,
+  sendToGDevelop, buildGDevelopPayload,
+} from "./utils/saveUtils";
+import {
+  SRV_SPECIALTIES, TRAINING_CATALOG, pickSpecialty,
+  getMaxMoral, MORAL_DRAIN_INTERVAL,
+  ALL_CHALLENGES, pickDailyChallenges,
+} from "./constants/serverConstants";
+
 // ── Composants UI ──────────────────────────────────────
 import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./components/ui";
 import { Toasts } from "./components/system/Toasts";
+import { BankModal } from "./components/system/BankModal";
+import { HelpModal, DailySummaryModal } from "./components/system/HelpModal";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./views/TablesView";
@@ -71,345 +84,28 @@ import { StockView }      from "./views/StockView";
 import { ComplaintsView } from "./views/ComplaintsView";
 import { StatsView }      from "./views/StatsView";
 import { ObjectivesView } from "./views/ObjectivesView";
-import { BankModal }      from "./views/BankModal";
-import { HelpModal }      from "./views/HelpModal";
 
-
-/* ─── Sauvegarde localStorage ─────────────────────────── */
-const SAVE_KEY = "resto_save_v1";
-
-const saveToLocalStorage = (state) => {
-    if (!window.localStorage) {
-        console.error("LocalStorage non supporté sur ce navigateur");
-        return;
-    }
-    try {
-        const payload = JSON.stringify({
-            ...state,
-            savedAt: Date.now()
-        });
-        window.localStorage.setItem(SAVE_KEY, payload);
-    } catch (error) {
-        if (error.name === 'QuotaExceededError') {
-            alert("Espace de stockage saturé sur la tablette !");
-        } else {
-            console.warn("Erreur de sauvegarde :", error);
-        }
-    }
-};
-
-const saveGame = (state) => saveToLocalStorage(state);
-
-const loadGame = async () => {
-    try {
-        if (!window.localStorage) return null;
-        const raw = window.localStorage.getItem(SAVE_KEY);
-        if (!raw) return null;
-        return JSON.parse(raw);
-    } catch(e) { return null; }
-};
 
 // resetGame est appelé depuis l'intérieur du composant App
 // pour pouvoir réinitialiser les états React sans reload
 
-/* ─── Pont de communication React ↔ GDevelop ──────────── */
-// Envoie un message structuré au parent (GDevelop via iframe)
-const sendToGDevelop = (payload) => {
-  try {
-    window.parent.postMessage({ source: "react-ui", payload }, "*");
-  } catch(e) {
-    console.warn("[GDevelop Bridge] postMessage échoué :", e);
-  }
-};
-
-// Construit le payload standardisé depuis les états React
-const buildGDevelopPayload = ({ cash, restoXp, stock, queue, tables, kitchen, objStats, servers, dailyStats }) => {
-  const rl = restoLv(restoXp);
-  const cl = chefLv(kitchen?.chef?.totalXp || 0);
-  return {
-    argent: cash,
-    niveaux: {
-      restaurant: {
-        niveau    : rl.l,
-        nom       : RESTO_LVL[rl.l]?.name || "",
-        xp        : restoXp,
-        xpProchain: rl.next?.xpNeeded || 0,
-        pct       : rl.pct,
-      },
-      chef: {
-        niveau : cl.l,
-        nom    : CHEF_LVL[Math.min(cl.l, CHEF_LVL.length-1)]?.name || "",
-        xp     : kitchen?.chef?.totalXp || 0,
-        vitesse: CHEF_LVL[Math.min(cl.l, CHEF_LVL.length-1)]?.speed || 1,
-      },
-      serveurs: (servers || []).map(s => {
-        const sl = srvLv(s.totalXp);
-        return { id: s.id, nom: s.name, niveau: sl.l, xp: s.totalXp, statut: s.status, salaire: s.salary };
-      }),
-    },
-    inventaire: (stock || []).map(s => ({
-      id: s.id, nom: s.name, quantite: s.qty, unite: s.unit,
-      alerte: s.qty <= s.alert, prix: s.price, categorie: s.cat,
-    })),
-    clients: {
-      enAttente      : (queue || []).length,
-      tablesOccupees : (tables || []).filter(t => t.status === "occupée" || t.status === "mange").length,
-      tablesLibres   : (tables || []).filter(t => t.status === "libre").length,
-      totalServis    : objStats?.totalServed    || 0,
-      totalPerdus    : (dailyStats || []).reduce((s, d) => s + (d.lost || 0), 0),
-      chiffreAffaires: objStats?.totalRevenue   || 0,
-    },
-    // Timers : finishAt (timestamp absolu) pour précision cross-plateforme
-    timers: (kitchen?.cooking || []).map(d => ({
-      id      : String(d.id),
-      finishAt: d.startedAt + d.timerMax * 1000,
-      label   : d.name + (d.tableName ? " · " + d.tableName : ""),
-      tableId : d.tableId || null,
-      cat     : d.cat || "",
-    })),
-    savedAt: Date.now(),
-  };
-};
-
-// Nettoie les états liés aux timers qui ne sont plus valides après un rechargement
-const sanitizeSave = (save) => {
-  const now = Date.now();
-  const tables = (save.tables || []).map(t => {
-    if (t.status === "nettoyage") {
-      if (!t.cleanUntil || now >= t.cleanUntil)
-        return { ...t, status: "libre", server: null, cleanUntil: null, cleanDur: null, freedAt: now };
-      return t;
-    }
-    if (t.status === "mange") return { ...t, eatUntil: null, eatDur: null };
-    if (t.status === "occupée") return { ...t, svcUntil: null };
-    return t;
-  });
-  const servers = (save.servers || []).map(s =>
-    s.status === "service" ? { ...s, status: "actif", serviceUntil: null } : s
-  );
-  const kitchen = save.kitchen ? {
-    ...save.kitchen,
-    queue: [...(save.kitchen.queue || []), ...(save.kitchen.cooking || []).map(d => ({
-      ...d, startedAt: undefined, timerMax: undefined
-    }))],
-    cooking: [],
-    done: save.kitchen.done || [],
-  } : null;
-  return { ...save, tables, servers, kitchen, queue: [] };
-};
-
-/* ─── Palette ─────────────────────────────────────────── */
-const C = {
-  bg:"#f2ede3", surface:"#ffffff", surface2:"#faf7f2", card:"#fdfaf5", border:"#ddd0b8",
-  green:"#236b47", greenL:"#2e8a5a", greenP:"#e6f4ed",
-  terra:"#b85a25", terraP:"#fdeee5", terraL:"#d4713a",
-  navy:"#18304f",  navyP:"#e4eaf4",
-  ink:"#18130e",   ink2:"#2e2419",  muted:"#8a7a65",
-  red:"#b83025",   redP:"#fce9e8",
-  amber:"#a86e08", amberP:"#fdf3dc",
-  purple:"#5e3492",purpleP:"#ece5f8",
-  white:"#ffffff",
-  shadow1:"rgba(24,19,14,0.06)",
-  shadow2:"rgba(24,19,14,0.12)",
-  shadow3:"rgba(24,19,14,0.20)",
-};
-
-const F = {
-  title:"'Playfair Display',Georgia,'Times New Roman',serif",
-  display:"'Playfair Display',Georgia,serif",
-  body:"'Inter','Segoe UI',system-ui,-apple-system,sans-serif",
-  mono:"'SF Mono','Fira Code',monospace",
-};
-
-/* ─── XP / Level system ───────────────────────────────── */
-
-const SERVER_SLOTS_BY_LEVEL={0:2,1:3,2:4,3:5,4:6,5:8};
-
-const SERIES_COLORS={
-  Revenus: C.amber,
-  Clients: C.green,
-  Niveau:  C.purple,
-  Salle:   C.navy,
-};
-const SERIES_LABELS={
-  Revenus:"💶 Revenus",
-  Clients:"🍽 Clients",
-  Niveau: "⭐ Niveau",
-  Salle:  "🪑 Salle",
-};
-
-const SRV_LVL = [
-  { name:"Stagiaire", color:C.muted,  icon:"🎓" },
-  { name:"Serveur",   color:C.green,  icon:"👔" },
-  { name:"Senior",    color:C.navy,   icon:"⭐" },
-  { name:"Expert",    color:C.amber,  icon:"🎖" },
-  { name:"Maître",    color:C.purple, icon:"👑" },
-];
-
-/* ─── Spécialités serveurs ───────────────────────────── */
-const SRV_SPECIALTIES = [
-  { id:"speed",    icon:"⚡", name:"Rapidité",     color:"#1c3352", desc:"−30% temps de prise de commande",  tipMult:1.0,  speedMult:0.70 },
-  { id:"charm",    icon:"✨", name:"Charme",        color:"#6b3fa0", desc:"Pourboires +20%",                  tipMult:1.20, speedMult:1.0  },
-  { id:"sommelier",icon:"🍷", name:"Sommelier",     color:"#c4622d", desc:"Boissons commandées +30%",         tipMult:1.10, speedMult:1.0  },
-  { id:"vip",      icon:"🎩", name:"Gestion VIP",   color:"#b87d10", desc:"Patience clients VIP +30s",        tipMult:1.15, speedMult:1.0  },
-];
-const pickSpecialty = () => SRV_SPECIALTIES[Math.floor(Math.random()*SRV_SPECIALTIES.length)];
-
-/* ─── Catalogue de formations serveurs ───────────────── */
-const TRAINING_CATALOG = [
-  {
-    id:"accueil", icon:"🤝", name:"Accueil & Relation client",
-    color:C.purple,
-    desc:"Améliore la satisfaction client et les pourboires.",
-    levels:[
-      { l:1, name:"Initiation",  cost:80,  xp:40,  moralBonus:5,  effect:"Pourboires +5%",       specialtyId:"charm",   desc:"Introduction aux techniques d'accueil." },
-      { l:2, name:"Avancé",     cost:180, xp:100, moralBonus:8,  effect:"Pourboires +12%",      specialtyId:"charm",   desc:"Gestion des situations délicates et fidélisation." },
-      { l:3, name:"Expert",     cost:350, xp:200, moralBonus:15, effect:"Pourboires +20% + Moral max", specialtyId:"charm", desc:"Maîtrise complète de l'expérience client." },
-    ]
-  },
-  {
-    id:"service", icon:"⚡", name:"Rapidité & Efficacité",
-    color:C.navy,
-    desc:"Réduit les temps de prise de commande.",
-    levels:[
-      { l:1, name:"Initiation",  cost:70,  xp:35,  moralBonus:0,  effect:"Commandes −10%",        specialtyId:"speed",   desc:"Optimisation des déplacements en salle." },
-      { l:2, name:"Avancé",     cost:160, xp:90,  moralBonus:5,  effect:"Commandes −20%",        specialtyId:"speed",   desc:"Gestion simultanée de plusieurs tables." },
-      { l:3, name:"Expert",     cost:320, xp:180, moralBonus:10, effect:"Commandes −30% + XP×2", specialtyId:"speed",   desc:"Technique de service professionnel haute performance." },
-    ]
-  },
-  {
-    id:"sommellerie", icon:"🍷", name:"Sommellerie & Boissons",
-    color:C.terra,
-    desc:"Augmente les ventes et la qualité du service boissons.",
-    levels:[
-      { l:1, name:"Initiation",  cost:90,  xp:45,  moralBonus:5,  effect:"Ventes boissons +15%",  specialtyId:"sommelier", desc:"Bases de la dégustation et des accords mets-vins." },
-      { l:2, name:"Avancé",     cost:200, xp:110, moralBonus:8,  effect:"Ventes boissons +25%",  specialtyId:"sommelier", desc:"Connaissance approfondie des crus et spiritueux." },
-      { l:3, name:"Expert",     cost:400, xp:220, moralBonus:12, effect:"Ventes boissons +40%",  specialtyId:"sommelier", desc:"Certification sommelier — conseils personnalisés." },
-    ]
-  },
-  {
-    id:"prestige", icon:"🎩", name:"Gestion VIP & Prestige",
-    color:C.amber,
-    desc:"Optimise le service des clients importants.",
-    levels:[
-      { l:1, name:"Initiation",  cost:100, xp:50,  moralBonus:5,  effect:"Patience VIP +15s",     specialtyId:"vip",     desc:"Protocole de service haut de gamme." },
-      { l:2, name:"Avancé",     cost:220, xp:120, moralBonus:10, effect:"Patience VIP +30s",     specialtyId:"vip",     desc:"Gestion des personnalités et critiques gastronomiques." },
-      { l:3, name:"Expert",     cost:450, xp:240, moralBonus:15, effect:"Patience VIP +45s + XP×2", specialtyId:"vip",  desc:"Excellence absolue — label Palace." },
-    ]
-  },
-  {
-    id:"bienetre", icon:"🧘", name:"Bien-être & Gestion du stress",
-    color:C.green,
-    desc:"Améliore la résistance à la fatigue et le moral.",
-    levels:[
-      { l:1, name:"Initiation",  cost:60,  xp:30,  moralBonus:20, effect:"Moral max +10",         specialtyId:null,      desc:"Techniques de récupération rapide." },
-      { l:2, name:"Avancé",     cost:130, xp:70,  moralBonus:35, effect:"Moral max +20 + drain −50%", specialtyId:null,  desc:"Gestion de la fatigue en service intensif." },
-      { l:3, name:"Expert",     cost:280, xp:140, moralBonus:60, effect:"Moral plein + immunité burnout", specialtyId:null, desc:"Résilience professionnelle complète." },
-    ]
-  },
-];
-// Max moral bonus (cumul toutes formations bien-être)
-const getMaxMoral = (sv) => {
-  const bienetre = (sv.trainings||{})["bienetre"] || 0;
-  return 100 + (bienetre>=1?10:0) + (bienetre>=2?10:0);
-};
-// moral : 0-100. descend quand actif, monte en pause + pourboires
-const MORAL_DRAIN_INTERVAL = 300000; // −1 toutes les 5 min réelles si actif
-
-
-function useBreakpoint(){
-  const [bp,setBp]=useState(()=>({
-    w:typeof window!=="undefined"?window.innerWidth:1280,
-    isMobile:typeof window!=="undefined"?window.innerWidth<640:false,
-    isTablet:typeof window!=="undefined"?window.innerWidth>=640&&window.innerWidth<1024:false,
-    isDesktop:typeof window!=="undefined"?window.innerWidth>=1024:true,
-    isSmall:typeof window!=="undefined"?window.innerWidth<480:false,
-  }));
-  useEffect(()=>{
-    const update=()=>{
-      const w=window.innerWidth;
-      setBp({
-        w,
-        isMobile:w<640,
-        isTablet:w>=640&&w<1024,
-        isDesktop:w>=1024,
-        isSmall:w<480,
-      });
-    };
-    // Use ResizeObserver if available, fallback to resize event
-    if(typeof ResizeObserver!=="undefined"){
-      const ro=new ResizeObserver(update);
-      ro.observe(document.documentElement);
-      return()=>ro.disconnect();
-    } else {
-      window.addEventListener("resize",update,{passive:true});
-      return()=>window.removeEventListener("resize",update);
-    }
-  },[]);
-  return bp;
-}
-
-/* ── Helpers responsive ── */
-// Retourne la valeur selon breakpoint: rVal(bp, mobile, tablet, desktop)
-const rVal=(bp,mobile,tablet,desktop)=>bp.isMobile?mobile:bp.isTablet?tablet:desktop;
-// Grid columns helper
-const rGrid=(bp,m=1,t=2,d=3)=>`repeat(${bp.isMobile?m:bp.isTablet?t:d},1fr)`;
-
-const TABS=[
-  {id:"tables",     label:"Tables",      icon:"⊞"},
-  {id:"servers",    label:"Serveurs",    icon:"👤"},
-  {id:"cuisine",    label:"Cuisine",     icon:"👨‍🍳"},
-  {id:"menu",       label:"Menu",        icon:"📋"},
-  {id:"stock",      label:"Stocks",      icon:"📦"},
-  {id:"objectives", label:"Objectifs",   icon:"🎯"},
-  {id:"complaints", label:"Plaintes",    icon:"⚠"},
-  {id:"stats",      label:"Statistiques",icon:"📊"},
-];
-
-/* ── Objectifs de progression ── */
+/* ── Objectifs de progression (version App) ── */
 const OBJECTIVES_DEF=[
-  // Série : Revenus
-  {id:"rev1",  series:"Revenus",    icon:"💶", title:"Premiers euros",      desc:"Encaisser 500€",          reward:{cash:50,  xp:100}, condition:s=>(s.totalRevenue||0)>=500  },
-  {id:"rev2",  series:"Revenus",    icon:"💶", title:"Bistrot rentable",     desc:"Encaisser 2 000€",        reward:{cash:150, xp:250}, condition:s=>(s.totalRevenue||0)>=2000 },
-  {id:"rev3",  series:"Revenus",    icon:"💶", title:"Restaurant prospère",  desc:"Encaisser 10 000€",       reward:{cash:500, xp:600}, condition:s=>(s.totalRevenue||0)>=10000},
-  {id:"rev4",  series:"Revenus",    icon:"💶", title:"Empire culinaire",     desc:"Encaisser 50 000€",       reward:{cash:2000,xp:1500},condition:s=>(s.totalRevenue||0)>=50000},
-  // Série : Clients
-  {id:"srv1",  series:"Clients",    icon:"🍽", title:"Premier service",      desc:"Servir 10 clients",       reward:{cash:30,  xp:80 }, condition:s=>(s.totalServed||0)>=10   },
-  {id:"srv2",  series:"Clients",    icon:"🍽", title:"Service régulier",     desc:"Servir 50 clients",       reward:{cash:80,  xp:200}, condition:s=>(s.totalServed||0)>=50   },
-  {id:"srv3",  series:"Clients",    icon:"🍽", title:"Grande salle comble",  desc:"Servir 200 clients",      reward:{cash:300, xp:500}, condition:s=>(s.totalServed||0)>=200  },
-  {id:"srv4",  series:"Clients",    icon:"🍽", title:"Institution locale",   desc:"Servir 1 000 clients",    reward:{cash:1000,xp:1200},condition:s=>(s.totalServed||0)>=1000 },
-  // Série : Niveau resto
-  {id:"lvl1",  series:"Niveau",     icon:"⭐", title:"Bistrot étoilé",       desc:"Atteindre le niveau 2",   reward:{cash:200, xp:300}, condition:s=>(s.restoLevel||0)>=2     },
-  {id:"lvl2",  series:"Niveau",     icon:"⭐", title:"Brasserie reconnue",   desc:"Atteindre le niveau 3",   reward:{cash:500, xp:600}, condition:s=>(s.restoLevel||0)>=3     },
-  {id:"lvl3",  series:"Niveau",     icon:"⭐", title:"Grand restaurant",     desc:"Atteindre le niveau 4",   reward:{cash:1200,xp:1000},condition:s=>(s.restoLevel||0)>=4     },
-  {id:"lvl4",  series:"Niveau",     icon:"👑", title:"Palace gastronomique", desc:"Atteindre le niveau 5",   reward:{cash:3000,xp:2000},condition:s=>(s.restoLevel||0)>=5     },
-  // Série : Tables
-  {id:"tbl1",  series:"Salle",      icon:"🪑", title:"Première extension",   desc:"Agrandir 1 table",        reward:{cash:50,  xp:80 }, condition:s=>(s.tablesUpgraded||0)>=1 },
-  {id:"tbl2",  series:"Salle",      icon:"🪑", title:"Salle réaménagée",     desc:"Agrandir 3 tables",       reward:{cash:120, xp:200}, condition:s=>(s.tablesUpgraded||0)>=3 },
+  {id:"rev1",  series:"Revenus", icon:"💶", title:"Premiers euros",      desc:"Encaisser 500€",        reward:{cash:50,   xp:100},  condition:s=>(s.totalRevenue||0)>=500   },
+  {id:"rev2",  series:"Revenus", icon:"💶", title:"Bistrot rentable",    desc:"Encaisser 2 000€",      reward:{cash:150,  xp:250},  condition:s=>(s.totalRevenue||0)>=2000  },
+  {id:"rev3",  series:"Revenus", icon:"💶", title:"Restaurant prospère", desc:"Encaisser 10 000€",     reward:{cash:500,  xp:600},  condition:s=>(s.totalRevenue||0)>=10000 },
+  {id:"rev4",  series:"Revenus", icon:"💶", title:"Empire culinaire",    desc:"Encaisser 50 000€",     reward:{cash:2000, xp:1500}, condition:s=>(s.totalRevenue||0)>=50000 },
+  {id:"srv1",  series:"Clients", icon:"🍽", title:"Premier service",     desc:"Servir 10 clients",     reward:{cash:30,   xp:80 },  condition:s=>(s.totalServed||0)>=10    },
+  {id:"srv2",  series:"Clients", icon:"🍽", title:"Service régulier",    desc:"Servir 50 clients",     reward:{cash:80,   xp:200},  condition:s=>(s.totalServed||0)>=50    },
+  {id:"srv3",  series:"Clients", icon:"🍽", title:"Grande salle comble", desc:"Servir 200 clients",    reward:{cash:300,  xp:500},  condition:s=>(s.totalServed||0)>=200   },
+  {id:"srv4",  series:"Clients", icon:"🍽", title:"Institution locale",  desc:"Servir 1 000 clients",  reward:{cash:1000, xp:1200}, condition:s=>(s.totalServed||0)>=1000  },
+  {id:"lvl1",  series:"Niveau",  icon:"⭐", title:"Bistrot étoilé",      desc:"Atteindre le niveau 2", reward:{cash:200,  xp:300},  condition:s=>(s.restoLevel||0)>=2      },
+  {id:"lvl2",  series:"Niveau",  icon:"⭐", title:"Brasserie reconnue",  desc:"Atteindre le niveau 3", reward:{cash:500,  xp:600},  condition:s=>(s.restoLevel||0)>=3      },
+  {id:"lvl3",  series:"Niveau",  icon:"⭐", title:"Grand restaurant",    desc:"Atteindre le niveau 4", reward:{cash:1200, xp:1000}, condition:s=>(s.restoLevel||0)>=4      },
+  {id:"lvl4",  series:"Niveau",  icon:"👑", title:"Palace gastronomique",desc:"Atteindre le niveau 5", reward:{cash:3000, xp:2000}, condition:s=>(s.restoLevel||0)>=5      },
+  {id:"tbl1",  series:"Salle",   icon:"🪑", title:"Première extension",  desc:"Agrandir 1 table",      reward:{cash:50,   xp:80 },  condition:s=>(s.tablesUpgraded||0)>=1  },
+  {id:"tbl2",  series:"Salle",   icon:"🪑", title:"Salle réaménagée",    desc:"Agrandir 3 tables",     reward:{cash:120,  xp:200},  condition:s=>(s.tablesUpgraded||0)>=3  },
 ];
-
-/* ── Défis quotidiens ── */
-const ALL_CHALLENGES=[
-  {id:"ch_served",   key:"served",   icon:"🍽", title:"Service express",      desc:"Servir 10 clients aujourd'hui",            target:10,  reward:{cash:80, xp:120}},
-  {id:"ch_revenue",  key:"revenue",  icon:"💶", title:"Journée dorée",        desc:"Encaisser 500€ dans la journée",           target:500, reward:{cash:100,xp:150}},
-  {id:"ch_rating",   key:"highRating",icon:"⭐",title:"Service 5 étoiles",    desc:"Obtenir 5 notes ≥ 4★",                    target:5,   reward:{cash:60, xp:100}},
-  {id:"ch_noloss",   key:"noLoss",   icon:"😊", title:"Zéro abandon",         desc:"Aucun client ne repart sans être servi",   target:1,   reward:{cash:70, xp:90 }},
-  {id:"ch_fast",     key:"fastPlace",icon:"⚡", title:"Placement rapide",     desc:"Placer 8 groupes en un clic",              target:8,   reward:{cash:50, xp:80 }},
-  {id:"ch_vip",      key:"vip",      icon:"🎩", title:"Service VIP",          desc:"Servir un client VIP",                     target:1,   reward:{cash:150,xp:200}},
-  {id:"ch_tips",     key:"tips",     icon:"💰", title:"Maître du pourboire",  desc:"Encaisser 50€ de pourboires",              target:50,  reward:{cash:60, xp:100}},
-  {id:"ch_fullhouse",key:"fullHouse",icon:"🏠", title:"Salle comble",         desc:"Avoir 5 tables occupées simultanément",    target:1,   reward:{cash:90, xp:130}},
-];
-
-const pickDailyChallenges=(dateStr)=>{
-  // Seed déterministe à partir de la date → même défis pour toute la journée
-  const seed=dateStr.split("/").reduce((acc,n,i)=>acc+parseInt(n)*(i+1),0);
-  const shuffled=[...ALL_CHALLENGES].sort((a,b)=>{
-    const ha=(seed*17+a.id.charCodeAt(3))%100;
-    const hb=(seed*17+b.id.charCodeAt(3))%100;
-    return ha-hb;
-  });
-  return shuffled.slice(0,3);
-};
 
 
 
@@ -587,6 +283,7 @@ export default function App(){
   },[]);
 
   const [showHelp,setShowHelp]=useState(false);
+  const [seenIds,setSeenIds]=useState(()=>new Set());
   const dismissToast=useCallback(id=>setToasts(p=>p.filter(x=>x.id!==id)),[]);
   const addToast=useCallback(t=>{
     const id=Date.now()+Math.random();
@@ -769,6 +466,10 @@ export default function App(){
     });
   },[addToast]);
 
+
+  /* ── Alertes dérivées ────────────────────────────────── */
+  const sAlerts = stock.filter(s => s.qty <= s.alert).length;
+  const nCompl  = complaints.filter(c => c.status === "nouveau" && !seenIds.has(c.id)).length;
 
   const claimObjective=useCallback((id)=>{
     const obj=OBJECTIVES_DEF.find(o=>o.id===id);
