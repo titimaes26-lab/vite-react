@@ -349,20 +349,51 @@ export default function App(){
       const { type, payload } = event.data;
 
       if (type === "INIT" && payload) {
-        // Charger les données envoyées par GDevelop en priorité sur localStorage
-        if (payload.argent        != null) setCash(payload.argent);
-        if (payload.restoXp       != null) setRestoXp(payload.restoXp);
-        if (payload.stock)                 setStock(payload.stock);
-        if (payload.servers)               setServers(payload.servers);
-        if (payload.tables)                setTables(payload.tables);
-        if (payload.kitchen)               setKitchen(payload.kitchen);
-        if (payload.objStats)              setObjStats(payload.objStats);
-        if (payload.dailyStats)            setDailyStats(payload.dailyStats);
-        if (payload.completedIds)          setCompletedIds(payload.completedIds);
-        if (payload.challengeProgress)     setChallengeProgress(payload.challengeProgress);
-        if (payload.loan         != null)  setLoan(payload.loan);
+        // Priorité : sauvegarde complète envoyée par GDevelop (payload.save)
+        if (payload.save) {
+          const sv = sanitizeSave(payload.save);
+          if(sv.tables)    setTables(sv.tables);
+          if(sv.servers)   setServers(sv.servers);
+          if(sv.menu)      setMenu(sv.menu);
+          if(sv.stock)     setStock(sv.stock);
+          if(sv.complaints)setComplaints(sv.complaints);
+          if(sv.kitchen)   setKitchen(sv.kitchen);
+          if(sv.restoXp!=null) setRestoXp(sv.restoXp);
+          if(sv.cash!=null)    setCash(sv.cash);
+          if(sv.transactions)  setTransactions(sv.transactions);
+          if(sv.loan!=null)    setLoan(sv.loan);
+          if(sv.supplierMode)  setSupplierMode(sv.supplierMode);
+          if(sv.pendingDeliveries) setPendingDeliveries(sv.pendingDeliveries);
+          if(sv.dailySpecials) setDailySpecials(sv.dailySpecials);
+          if(sv.completedIds)  setCompletedIds(sv.completedIds);
+          if(sv.challengeDate) setChallengeDate(sv.challengeDate);
+          if(sv.todayChallenges) setTodayChallenges(sv.todayChallenges);
+          if(sv.challengeProgress) setChallengeProgress(sv.challengeProgress);
+          if(sv.challengeClaimed)  setChallengeClaimed(sv.challengeClaimed);
+          if(sv.challengeLostToday!=null) setChallengeLostToday(sv.challengeLostToday);
+          if(sv.pendingClaim)  setPendingClaim(sv.pendingClaim);
+          if(sv.objStats)      setObjStats(sv.objStats);
+          if(sv.dailyStats)    setDailyStats(sv.dailyStats);
+          if(sv.reputation!=null) setReputation(sv.reputation);
+          if(sv.formulas)      setFormulas(sv.formulas);
+          if(sv.activeTheme)   setActiveTheme(sv.activeTheme);
+          setQueue(sv.queue||[]);
+          console.info("[GDevelop Bridge] Sauvegarde complète restaurée ✓");
+        } else {
+          // Fallback : champs individuels (ancienne méthode)
+          if (payload.argent        != null) setCash(payload.argent);
+          if (payload.restoXp       != null) setRestoXp(payload.restoXp);
+          if (payload.stock)                 setStock(payload.stock);
+          if (payload.servers)               setServers(payload.servers);
+          if (payload.tables)                setTables(payload.tables);
+          if (payload.kitchen)               setKitchen(payload.kitchen);
+          if (payload.objStats)              setObjStats(payload.objStats);
+          if (payload.dailyStats)            setDailyStats(payload.dailyStats);
+          if (payload.completedIds)          setCompletedIds(payload.completedIds);
+          if (payload.challengeProgress)     setChallengeProgress(payload.challengeProgress);
+          if (payload.loan         != null)  setLoan(payload.loan);
+        }
         console.info("[GDevelop Bridge] Init reçu ✓", payload);
-        // Confirmer la réception à GDevelop
         sendToGDevelop({ type: "INIT_ACK", ok: true });
       }
 
