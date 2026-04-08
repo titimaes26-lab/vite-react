@@ -24,7 +24,11 @@ export const saveToLocalStorage = (state) => {
   }
 };
 
-export const saveGame = (state) => saveToLocalStorage(state);
+export const saveGame = (state) => {
+  saveToLocalStorage(state);
+  // Backup vers GDevelop pour les environnements où localStorage ne persiste pas
+  sendToGDevelop({ type: "SAVE", save: { ...state, savedAt: Date.now() } });
+};
 
 export const loadGame = async () => {
   try {
