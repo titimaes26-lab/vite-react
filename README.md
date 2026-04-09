@@ -4,7 +4,7 @@ Application React embarquée dans GDevelop via iframe. Simule la gestion d'un re
 
 ---
 
-## Stack technique
+## Stack technique.  
 
 | Élément | Version |
 |---------|---------|
