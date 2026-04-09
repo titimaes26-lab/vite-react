@@ -1,0 +1,22 @@
+name: Audit Code React
+on: [push, pull_request] # Se lance à chaque envoi de code
+
+jobs:
+  analyse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Installation Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: Installation des dépendances
+        run: npm install
+        
+      - name: Vérification du code mort et biscornu (Linter)
+        run: npm run lint
+        
+      - name: Détection des fichiers orphelins (Knip)
+        run: npx knip
