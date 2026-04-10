@@ -686,7 +686,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     const kitchenTickets = buildKitchenTickets(orderLines, table);
     const drinkTickets = kitchenTickets.filter(d=>d.cat==="Boissons");
     const foodTickets  = kitchenTickets.filter(d=>d.cat!=="Boissons");
-    setMenu(p=>p.map(m=>{const l=orderLines.find(o=>o.menuId===m.id);return l?{...m,orderCount:(m.orderCount||0)+l.qty}:m;}));
+    setMenu(p=>p.map(m=>{const l=orderLines.find(o=>o.menuId===m.id);if(!l)return m;return{...m,orderCount:(m.orderCount||0)+l.qty,formulaRevenue:l.isFormula?(m.formulaRevenue||0)+l.price*l.qty:(m.formulaRevenue||0)};}));
     setServers(p=>p.map(s=>s.id!==srv.id?s:{...s,status:"service",serviceUntil:svcUntil}));
     setTables(p=>p.map(t=>t.id!==table.id?t:
       {...t,status:"occupée",server:srv.name,group:g,order:orderLines,svcTimer:0,svcMax:0,svcUntil,

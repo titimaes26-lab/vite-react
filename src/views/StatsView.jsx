@@ -107,9 +107,18 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
   const todayLabel=new Date().toLocaleDateString("fr-FR");
   const todayTx=transactions.filter(t=>t.type==="revenu"&&new Date(t.date).toLocaleDateString("fr-FR")===todayLabel);
   const totalRevToday=todayTx.reduce((s,t)=>s+t.amount,0);
-  const totalExpToday=transactions.filter(t=>t.type!=="revenu"&&new Date(t.date).toLocaleDateString("fr-FR")===todayLabel)
-    .reduce((s,t)=>s+t.amount,0);
+  const expTodayTx=transactions.filter(t=>t.type!=="revenu"&&new Date(t.date).toLocaleDateString("fr-FR")===todayLabel);
+  const totalExpToday=expTodayTx.reduce((s,t)=>s+t.amount,0);
   const netToday=+(totalRevToday-totalExpToday).toFixed(2);
+  // Group expenses by type for detailed breakdown
+  const expByType={};
+  expTodayTx.forEach(t=>{if(!expByType[t.type])expByType[t.type]=0;expByType[t.type]+=t.amount;});
+  const expTypeInfo={
+    achat:{l:"Achats & recrutement",icon:"🛒",c:"#e07b39"},
+    salaire:{l:"Salaires",icon:"💼",c:C.navy},
+    remboursement:{l:"Remboursement prêt",icon:"🏦",c:C.purple},
+    dépense:{l:"Équipements & frais",icon:"🔧",c:C.muted},
+  };
 
   // Salary costs per hour (active staff)
   const chefSalary=kitchen?.chef?.salary||0;
@@ -118,15 +127,16 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
   const totalSalaryPerHour=chefSalary+commissSalary+serverSalary;
 
   // Revenue breakdown by menu category (estimated from orders)
-  const catRevenue={Entrées:0,Plats:0,Desserts:0,Boissons:0};
+  const catRevenue={Entrées:0,Plats:0,Desserts:0,Boissons:0,Formules:0};
   const totalOrders=menu.reduce((s,m)=>s+(m.orderCount||0),0)||1;
   menu.forEach(m=>{
     const cat=m.cat;
     if(catRevenue[cat]!==undefined)
       catRevenue[cat]+=m.price*(m.orderCount||0);
+    catRevenue.Formules+=m.formulaRevenue||0;
   });
   const totalCatRev=Object.values(catRevenue).reduce((s,v)=>s+v,0)||1;
-  const catColors2={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy};
+  const catColors2={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy,Formules:C.amber};
 
   // Average basket
   const totalServed=objStats?.totalServed||1;
@@ -253,21 +263,39 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
             <span>📊</span> Résultat du jour
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {[
-              {l:"Revenus encaissés",v:"+"+totalRevToday.toFixed(2)+"€",c:C.green,icon:"📈"},
-              {l:"Dépenses (achats + salaires)",v:"−"+totalExpToday.toFixed(2)+"€",c:C.red,icon:"📉"},
-            ].map(r=>(
-              <div key={r.l} style={{display:"flex",justifyContent:"space-between",
-                alignItems:"center",padding:"8px 12px",
-                background:r.c+"08",borderRadius:9,
-                border:`1px solid ${r.c}18`}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:14}}>{r.icon}</span>
-                  <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>{r.l}</span>
-                </div>
-                <span style={{fontSize:14,fontWeight:800,color:r.c,fontFamily:F.title}}>{r.v}</span>
+            {/* Revenus */}
+            <div style={{display:"flex",justifyContent:"space-between",
+              alignItems:"center",padding:"8px 12px",
+              background:C.green+"08",borderRadius:9,
+              border:`1px solid ${C.green}18`}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:14}}>📈</span>
+                <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>Revenus encaissés</span>
               </div>
-            ))}
+              <span style={{fontSize:14,fontWeight:800,color:C.green,fontFamily:F.title}}>+{totalRevToday.toFixed(2)}€</span>
+            </div>
+            {/* Dépenses détaillées */}
+            <div style={{background:C.red+"06",borderRadius:9,border:`1px solid ${C.red}18`,overflow:"hidden"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",borderBottom:Object.keys(expByType).length>0?`1px solid ${C.red}10`:"none"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:14}}>📉</span>
+                  <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>Dépenses totales</span>
+                </div>
+                <span style={{fontSize:14,fontWeight:800,color:C.red,fontFamily:F.title}}>−{totalExpToday.toFixed(2)}€</span>
+              </div>
+              {Object.entries(expByType).map(([type,amt])=>{
+                const info=expTypeInfo[type]||{l:type,icon:"💳",c:C.muted};
+                return(
+                  <div key={type} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 12px 5px 28px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:11}}>{info.icon}</span>
+                      <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>{info.l}</span>
+                    </div>
+                    <span style={{fontSize:11,fontWeight:700,color:info.c,fontFamily:F.title}}>−{amt.toFixed(2)}€</span>
+                  </div>
+                );
+              })}
+            </div>
             <div style={{borderTop:`2px solid ${C.border}`,paddingTop:10,marginTop:4,
               display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>⚖️ Résultat net</span>
