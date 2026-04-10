@@ -5,12 +5,12 @@
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect, useRef } from "react";
 import { C, F, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
-         KITCHEN_UPGRADES } from "../constants/gameData.js";
+         KITCHEN_UPGRADES, COMMIS_SPECIALTIES, CHEF_TRAININGS } from "../constants/gameData.js";
 import { Btn, XpBar, Badge } from "../components/ui/index.js";
 import { chefLv, commisLv, dishCookTimeWithUpgrades } from "../utils/levelUtils.js";
 import { consumeStock } from "../utils/orderUtils.js";
 
-export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,restoLvN=0,bp={}}){
+export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,restoLvN=0,commisPool=[],setCommisPool,commisPoolDate="",setCommisPoolDate,bp={}}){
   const chf=kitchen.chef;
   const cl=chefLv(chf.totalXp);
   const clD=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
@@ -28,10 +28,29 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
     const item=KITCHEN_UPGRADES.find(u=>u.id===id);
     return tot+(item?item.levels.slice(0,upg[id]).reduce((s,l)=>s+(l.bonus.speed||0),0):0);
   },0);
-  const maxConcurrent=4+unlockedCommis+extraSlots;
 
-  const upgDishCookTime=(prepTime,chefSpeed,commisCount)=>
-    Math.max(5,Math.round(prepTime/((chefSpeed+speedBonus)*(1+commisCount*0.15))));
+  // Morale & specialty helpers — must be declared before maxConcurrent/upgDishCookTime
+  const morale=kitchen.morale??100;
+  const moraleMult=morale>=70?1.10:morale<30?0.85:1.0;
+  const moraleColor=morale>=70?C.green:morale>=40?C.amber:C.red;
+  const moraleIcon=morale>=70?"😊":morale>=40?"😐":morale<20?"💀":"😓";
+  const activeCommisArr=kitchen.commis.filter((_,i)=>i<unlockedCommis);
+  const specBonus=(cat)=>activeCommisArr.filter(c=>c.specialty?.cat===cat).reduce((s,c)=>s+(c.specialty?.bonus||0),0);
+  const trainingBonus=(cat)=>{
+    const t=kitchen.chefTrainings||{};
+    const tr=CHEF_TRAININGS.find(x=>x.id==="pastry");
+    const ts=CHEF_TRAININGS.find(x=>x.id==="sauces");
+    let b=0;
+    if(t.pastry && tr?.catBonus?.cat===cat) b+=tr.catBonus.mult;
+    if(t.sauces && ts?.catBonus?.cat===cat) b+=ts.catBonus.mult;
+    return b;
+  };
+  const brigadeSlot=(kitchen.chefTrainings?.brigade&&kitchen.chefTrainings.brigadeUntil>Date.now())?1:0;
+
+  const maxConcurrent=4+unlockedCommis+extraSlots+brigadeSlot;
+
+  const upgDishCookTime=(prepTime,chefSpeed,commisCount,cat="")=>
+    Math.max(5,Math.round(prepTime/((chefSpeed+speedBonus)*(1+commisCount*0.15)*moraleMult*(1+specBonus(cat)+trainingBonus(cat)))));
 
   const catColors={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy};
 
@@ -39,6 +58,9 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
   const [now,setNow]=useState(Date.now());
   const [chefSalaryEdit,setChefSalaryEdit]=useState(false);
   const [chefSalaryVal,setChefSalaryVal]=useState(String(kitchen.chef.salary||28));
+  const [chefModal,setChefModal]=useState(false);   // false | "train" | "replace"
+  const [commisHireSlot,setCommisHireSlot]=useState(null); // null | slotIndex
+
   useEffect(()=>{
     const iv=setInterval(()=>setNow(Date.now()),250);
     return()=>clearInterval(iv);
@@ -81,11 +103,25 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
           cooking:stillCooking,
           done:[...k.done,...justDone.map(d=>({...d,completedAt:t}))],
           totalDishes:k.totalDishes+justDone.length,
+          morale:Math.min(100,(k.morale??100)+justDone.length*2),
         };
       });
     },500);
     return()=>clearInterval(iv);
   },[unlockedCommis]);
+
+  // Morale decay/rise — runs every 5s
+  useEffect(()=>{
+    const iv=setInterval(()=>{
+      setKitchen(k=>{
+        const q=k.queue.length;
+        const delta=q>4?-2:q===0?+1:0;
+        if(delta===0)return k;
+        return{...k,morale:Math.min(100,Math.max(0,(k.morale??100)+delta))};
+      });
+    },5000);
+    return()=>clearInterval(iv);
+  },[]);
 
   // Chef level-up toast
   useEffect(()=>{
@@ -100,7 +136,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
   // Start one dish
   const startDish=(dish)=>{
     if(kitchen.cooking.length>=maxConcurrent)return;
-    const ct=upgDishCookTime(dish.prepTime||60,clD.speed,unlockedCommis);
+    const ct=upgDishCookTime(dish.prepTime||60,clD.speed,unlockedCommis,dish.cat||"");
     let blocked=false;
     setStock(s=>{
       const{newStock,missing}=consumeStock([dish],s);
@@ -140,7 +176,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
       cooking:[...k.cooking,...toStart.map(d=>({
         ...d,
         startedAt:ts,
-        timerMax:upgDishCookTime(d.prepTime||60,clD.speed,unlockedCommis),
+        timerMax:upgDishCookTime(d.prepTime||60,clD.speed,unlockedCommis,d.cat||""),
       }))],
     }));
   };
@@ -251,54 +287,162 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
     });
   };
 
+  // ── Générateurs de candidats ─────────────────────────
+  const generateCommisPool = ()=>{
+    const today=new Date().toLocaleDateString("fr-FR");
+    if(commisPoolDate===today&&commisPool.length>0)return;
+    let seed=today.split("").reduce((a,c)=>a+c.charCodeAt(0),0)+31;
+    const rng=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+    const names1=["Ambre","Baptiste","Chloé","Dylan","Emma","Florian","Gaëlle","Hugo","Inès","Jules","Léa","Maxime","Nina","Oscar","Pauline","Robin","Sara","Théo"];
+    const names2=["Martin","Dupont","Renard","Moreau","Simon","Laurent","Petit","Bernard","Thomas"];
+    const pool=Array.from({length:6},(_,i)=>{
+      const spec=rng()<0.6?COMMIS_SPECIALTIES[Math.floor(rng()*COMMIS_SPECIALTIES.length)]:null;
+      const xp=Math.round(rng()*150);
+      const salary=Math.round(rng()*5+8);
+      return{
+        id:`cp-${today}-${i}`,
+        name:names1[Math.floor(rng()*names1.length)]+" "+names2[Math.floor(rng()*names2.length)],
+        totalXp:xp, salary, hireCost:salary*3,
+        specialty:spec,
+      };
+    });
+    setCommisPool(pool);
+    setCommisPoolDate(today);
+  };
+
+  const generateChefCandidates = ()=>{
+    const today=new Date().toLocaleDateString("fr-FR");
+    let seed=today.split("").reduce((a,c)=>a+c.charCodeAt(0),0)+77;
+    const rng=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+    const firstNames=["Antoine","Bernard","Claire","Didier","Elena","François","Gisèle","Henri","Isabelle","Jacques"];
+    const lastNames=["Bourdin","Cauchet","Delarue","Ferrière","Gauthier","Homme","Joly","Kerner","Lafosse"];
+    return Array.from({length:3},(_,i)=>{
+      const lvl=Math.min(5,Math.floor(rng()*4));
+      const xpBase=[0,120,380,830,1530,2230][lvl];
+      const speed=CHEF_LVL[lvl]?.speed||1.0;
+      const salary=Math.round(20+lvl*6+rng()*8);
+      return{
+        id:`cc-${today}-${i}`,
+        name:firstNames[Math.floor(rng()*firstNames.length)]+" "+lastNames[Math.floor(rng()*lastNames.length)],
+        totalXp:xpBase+Math.round(rng()*60),
+        salary, hireCost:salary*8,
+        lvl, speed,
+        lvlName:CHEF_LVL[lvl]?.name||"Apprenti",
+        lvlColor:CHEF_LVL[lvl]?.color||C.muted,
+        lvlIcon:CHEF_LVL[lvl]?.icon||"👨‍🍳",
+      };
+    });
+  };
+
   return(
     <div>
       {/* ── Chef + Commis — barre compacte ── */}
       <div style={{background:`linear-gradient(135deg,${clD.bg},${C.surface})`,
         border:`1.5px solid ${clD.color}33`,borderRadius:14,
         padding:bp.isMobile?"9px 12px":"10px 14px",
-        marginBottom:10,display:"flex",alignItems:"center",gap:bp.isMobile?8:12,flexWrap:"wrap"}}>
-        {/* Avatar */}
-        <div style={{width:44,height:44,background:clD.color+"22",border:`2px solid ${clD.color}44`,
-          borderRadius:11,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>
-          {clD.icon}
-        </div>
-        {/* Chef info */}
-        <div style={{minWidth:0}}>
-          <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-            <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,whiteSpace:"nowrap"}}>{chf.name}</span>
-            <Badge color={clD.color} bg={clD.bg} sm>{clD.name} N{cl.l}</Badge>
-            <span style={{fontSize:10,color:clD.color,fontWeight:600,fontFamily:F.body,whiteSpace:"nowrap"}}>
-              ⚡×{clD.speed} · {slotsLeft}/{maxConcurrent} feux · 🍽{kitchen.totalDishes}
-            </span>
+        marginBottom:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:bp.isMobile?8:12,flexWrap:"wrap"}}>
+          {/* Avatar */}
+          <div style={{width:44,height:44,background:clD.color+"22",border:`2px solid ${clD.color}44`,
+            borderRadius:11,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>
+            {clD.icon}
           </div>
-          <div style={{marginTop:4,display:"flex",alignItems:"center",gap:6}}>
-            <div style={{flex:1,minWidth:80}}>
-              <XpBar xp={cl.r} needed={cl.n} color={clD.color} h={5}/>
+          {/* Chef info */}
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+              <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,whiteSpace:"nowrap"}}>{chf.name}</span>
+              <Badge color={clD.color} bg={clD.bg} sm>{clD.name} N{cl.l}</Badge>
+              <span style={{fontSize:10,color:clD.color,fontWeight:600,fontFamily:F.body,whiteSpace:"nowrap"}}>
+                ⚡×{clD.speed} · {slotsLeft}/{maxConcurrent} feux · 🍽{kitchen.totalDishes}
+              </span>
             </div>
-            <span style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>{cl.r}/{cl.n} XP</span>
+            <div style={{marginTop:4,display:"flex",alignItems:"center",gap:6}}>
+              <div style={{flex:1,minWidth:80}}>
+                <XpBar xp={cl.r} needed={cl.n} color={clD.color} h={5}/>
+              </div>
+              <span style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>{cl.r}/{cl.n} XP</span>
+            </div>
+          </div>
+          {/* Chef action buttons */}
+          <div style={{display:"flex",gap:5,flexShrink:0}}>
+            <button onClick={()=>setChefModal("train")} style={{
+              fontSize:10,fontWeight:700,fontFamily:F.body,cursor:"pointer",
+              padding:"5px 10px",borderRadius:7,border:`1.5px solid ${C.navy}44`,
+              background:C.navyP,color:C.navy}}>📚 Former</button>
+            <button onClick={()=>setChefModal("replace")} style={{
+              fontSize:10,fontWeight:700,fontFamily:F.body,cursor:"pointer",
+              padding:"5px 10px",borderRadius:7,border:`1.5px solid ${C.red}33`,
+              background:C.redP,color:C.red}}>🔄 Remplacer</button>
           </div>
         </div>
+
+        {/* Morale brigade */}
+        <div style={{marginTop:9,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <span style={{fontSize:12}}>{moraleIcon}</span>
+          <span style={{fontSize:10,fontWeight:700,color:moraleColor,fontFamily:F.body,minWidth:58}}>
+            Moral {morale}%
+          </span>
+          <div style={{flex:1,minWidth:80,height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${morale}%`,background:moraleColor,borderRadius:99,transition:"width 0.5s"}}/>
+          </div>
+          {morale<60&&(
+            <button onClick={()=>{
+              const cost=150;
+              if(cash<cost)return;
+              setCash(c=>+(c-cost).toFixed(2));
+              addTx("dépense","Prime brigade",cost);
+              setKitchen(k=>({...k,morale:Math.min(100,(k.morale??100)+30)}));
+              addToast({icon:"🎉",title:"Brigade motivée !",msg:"Moral +30% · −150€",color:C.green,tab:"cuisine"});
+            }} style={{
+              fontSize:10,fontWeight:700,fontFamily:F.body,cursor:cash>=150?"pointer":"not-allowed",
+              padding:"3px 9px",borderRadius:6,border:`1.5px solid ${C.amber}44`,
+              background:C.amberP,color:cash>=150?C.amber:C.muted,opacity:cash>=150?1:0.5}}>
+              💸 Prime 150€
+            </button>
+          )}
+          {morale>=70&&<span style={{fontSize:9,color:C.green,fontFamily:F.body,fontWeight:600}}>⚡+10% vitesse</span>}
+          {morale<30&&<span style={{fontSize:9,color:C.red,fontFamily:F.body,fontWeight:600}}>⚠️−15% vitesse</span>}
+        </div>
+
         {/* Commis inline */}
-        <div style={{display:"flex",gap:5,flexShrink:0,flexWrap:"wrap",marginLeft:"auto",maxWidth:bp.isSmall?"100%":undefined}}>
+        <div style={{marginTop:9,display:"flex",gap:5,flexWrap:"wrap"}}>
           {kitchen.commis.map((cm,idx)=>{
             const locked=idx>=unlockedCommis;
             const cml=commisLv(cm.totalXp);
             const cmlD=COMMIS_LVL[Math.min(cml.l,COMMIS_LVL.length-1)];
+            const isEmpty=!cm.name;
             return(
               <div key={cm.id} style={{
                 background:locked?C.bg:cmlD.color+"12",
                 border:`1px solid ${locked?C.border:cmlD.color+"33"}`,
                 borderRadius:8,padding:"5px 9px",opacity:locked?0.4:1,
-                display:"flex",gap:5,alignItems:"center"}}>
+                display:"flex",gap:5,alignItems:"center",cursor:!locked&&!isEmpty?"default":"pointer"}}
+                onClick={!locked&&isEmpty?()=>setCommisHireSlot(idx):undefined}>
                 <span style={{fontSize:14}}>{locked?"🔒":cmlD.icon}</span>
                 <div>
                   <div style={{fontSize:10,fontWeight:600,color:C.ink,fontFamily:F.body,whiteSpace:"nowrap"}}>{cm.name}</div>
-                  {!locked&&<div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{cmlD.name}</div>}
+                  {!locked&&<div style={{fontSize:9,color:C.muted,fontFamily:F.body,display:"flex",gap:4,alignItems:"center"}}>
+                    <span>{cmlD.name}</span>
+                    {cm.specialty&&<span style={{background:cm.specialty.cat==="Desserts"?C.purpleP:cm.specialty.cat==="Plats"?C.terraP:cm.specialty.cat==="Entrées"?C.greenP:C.navyP,
+                      color:cm.specialty.cat==="Desserts"?C.purple:cm.specialty.cat==="Plats"?C.terra:cm.specialty.cat==="Entrées"?C.green:C.navy,
+                      borderRadius:4,padding:"0 4px",fontSize:8,fontWeight:700}}>
+                      {cm.specialty.icon} {cm.specialty.name}
+                    </span>}
+                  </div>}
                 </div>
+                {!locked&&<button onClick={(e)=>{e.stopPropagation();setCommisHireSlot(idx);}} style={{
+                  fontSize:9,padding:"2px 6px",borderRadius:5,cursor:"pointer",border:`1px solid ${C.border}`,
+                  background:C.bg,color:C.muted,fontFamily:F.body}}>↺</button>}
               </div>
             );
           })}
+          {/* Bouton embauche si slot chef disponible mais commis manquant */}
+          {kitchen.commis.length<unlockedCommis&&(
+            <button onClick={()=>setCommisHireSlot(kitchen.commis.length)} style={{
+              fontSize:10,fontWeight:700,fontFamily:F.body,cursor:"pointer",
+              padding:"5px 10px",borderRadius:8,border:`1.5px dashed ${C.green}`,
+              background:C.greenP,color:C.green}}>+ Embaucher commis</button>
+          )}
         </div>
       </div>
 
@@ -311,7 +455,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
           {/* Header avec backlog */}
           {(()=>{
             const totalBacklogSec=Object.values(queueByTable).reduce((s,t)=>
-              s+upgDishCookTime((t.dishes[0]?.prepTime||60),clD.speed,unlockedCommis)*t.dishes.length,0);
+              s+upgDishCookTime((t.dishes[0]?.prepTime||60),clD.speed,unlockedCommis,t.dishes[0]?.cat||"")*t.dishes.length,0);
             const late=Object.values(queueByTable).filter(t=>
               t.dishes.some(d=>d.addedAt&&(Date.now()-d.addedAt)>300000)).length;
             return(
@@ -385,7 +529,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                   </div>
                   {/* Dishes */}
                   {tblQ.dishes.map((d,i)=>{
-                    const estSec=upgDishCookTime(d.prepTime||60,clD.speed,unlockedCommis);
+                    const estSec=upgDishCookTime(d.prepTime||60,clD.speed,unlockedCommis,d.cat||"");
                     const estFmt=estSec>=60?`${Math.floor(estSec/60)}m${String(estSec%60).padStart(2,"0")}s`:estSec+"s";
                     return(
                       <div key={d.id} style={{padding:"5px 9px",borderTop:i>0?`1px dashed ${tc}22`:undefined,
@@ -694,6 +838,194 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
           })}
         </div>
       </div>
+
+      {/* ══ MODAL : Formation chef ══ */}
+      {chefModal==="train"&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}
+          onClick={()=>setChefModal(false)}>
+          <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:380,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:14,fontWeight:800,color:C.ink,fontFamily:F.title,marginBottom:16,display:"flex",justifyContent:"space-between"}}>
+              📚 Formation chef — {chf.name}
+              <button onClick={()=>setChefModal(false)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:C.muted}}>✕</button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {CHEF_TRAININGS.map(tr=>{
+                const done=!!(kitchen.chefTrainings||{})[tr.id];
+                const canAfford=cash>=tr.cost;
+                return(
+                  <div key={tr.id} style={{background:done?C.greenP:C.bg,border:`1.5px solid ${done?C.green:C.border}`,borderRadius:11,padding:"10px 14px",
+                    display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+                    <div>
+                      <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>{tr.icon} {tr.name}</div>
+                      <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>{tr.desc}</div>
+                      {tr.id==="brigade"&&done&&kitchen.chefTrainings.brigadeUntil&&(
+                        <div style={{fontSize:9,color:C.amber,fontFamily:F.body}}>
+                          ⏱ Expire : {new Date(kitchen.chefTrainings.brigadeUntil).toLocaleString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                        </div>
+                      )}
+                    </div>
+                    {done&&tr.id!=="brigade"?(
+                      <span style={{fontSize:10,color:C.green,fontWeight:700,fontFamily:F.body}}>✅</span>
+                    ):(
+                      <button disabled={!canAfford} onClick={()=>{
+                        if(!canAfford)return;
+                        setCash(c=>+(c-tr.cost).toFixed(2));
+                        addTx("dépense",`Formation chef : ${tr.name}`,tr.cost);
+                        setKitchen(k=>{
+                          const t={...(k.chefTrainings||{}),[tr.id]:true};
+                          if(tr.id==="brigade") t.brigadeUntil=Date.now()+72*3600*1000;
+                          return{...k,
+                            chef:{...k.chef,totalXp:k.chef.totalXp+tr.xp},
+                            chefTrainings:t};
+                        });
+                        addToast({icon:tr.icon,title:`${tr.name} acquise !`,msg:`${tr.desc} · −${tr.cost}€`,color:C.navy,tab:"cuisine"});
+                        if(tr.id!=="brigade") setChefModal(false);
+                      }} style={{
+                        fontSize:11,fontWeight:700,fontFamily:F.body,
+                        padding:"5px 12px",borderRadius:8,
+                        background:canAfford?C.navyP:"transparent",
+                        color:canAfford?C.navy:C.muted,
+                        border:`1.5px solid ${canAfford?C.navy:C.border}`,
+                        cursor:canAfford?"pointer":"not-allowed"}}>
+                        💰 {tr.cost}€
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ MODAL : Remplacer le chef ══ */}
+      {chefModal==="replace"&&(()=>{
+        const candidates=generateChefCandidates();
+        return(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}
+            onClick={()=>setChefModal(false)}>
+            <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:420,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
+              onClick={e=>e.stopPropagation()}>
+              <div style={{fontSize:14,fontWeight:800,color:C.ink,fontFamily:F.title,marginBottom:4,display:"flex",justifyContent:"space-between"}}>
+                🔄 Remplacer {chf.name}
+                <button onClick={()=>setChefModal(false)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:C.muted}}>✕</button>
+              </div>
+              <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:14}}>
+                Le nouveau chef hérite de 30 % de l'XP actuel.
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {candidates.map(cand=>{
+                  const canAfford=cash>=cand.hireCost;
+                  return(
+                    <div key={cand.id} style={{background:C.bg,border:`1.5px solid ${cand.lvlColor}33`,borderRadius:11,padding:"10px 14px",
+                      display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <span style={{fontSize:22}}>{cand.lvlIcon}</span>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>{cand.name}</div>
+                          <div style={{fontSize:10,color:cand.lvlColor,fontFamily:F.body,fontWeight:600}}>
+                            {cand.lvlName} · ⚡×{cand.speed} · {cand.salary}€/h
+                          </div>
+                        </div>
+                      </div>
+                      <button disabled={!canAfford} onClick={()=>{
+                        if(!canAfford)return;
+                        const transferXp=Math.round(chf.totalXp*0.3);
+                        setCash(c=>+(c-cand.hireCost).toFixed(2));
+                        addTx("achat",`Recrutement chef : ${cand.name}`,cand.hireCost);
+                        setKitchen(k=>({...k,
+                          chef:{...k.chef,name:cand.name,totalXp:cand.totalXp+transferXp,salary:cand.salary,status:"actif"},
+                          chefTrainings:{},
+                          morale:Math.min(100,(k.morale??100)+10),
+                        }));
+                        addToast({icon:"👨‍🍳",title:`${cand.name} recruté !`,msg:`−${cand.hireCost}€ · +${transferXp} XP transmis`,color:C.purple,tab:"cuisine"});
+                        setChefModal(false);
+                      }} style={{
+                        fontSize:11,fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap",
+                        padding:"6px 12px",borderRadius:8,
+                        background:canAfford?C.amberP:"transparent",
+                        color:canAfford?C.amber:C.muted,
+                        border:`1.5px solid ${canAfford?C.amber:C.border}`,
+                        cursor:canAfford?"pointer":"not-allowed"}}>
+                        💰 {cand.hireCost}€
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ══ MODAL : Embaucher un commis ══ */}
+      {commisHireSlot!==null&&(()=>{
+        generateCommisPool();
+        const pool=commisPool.length>0?commisPool:[];
+        return(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}
+            onClick={()=>setCommisHireSlot(null)}>
+            <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:400,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
+              onClick={e=>e.stopPropagation()}>
+              <div style={{fontSize:14,fontWeight:800,color:C.ink,fontFamily:F.title,marginBottom:4,display:"flex",justifyContent:"space-between"}}>
+                👨‍🍳 Embaucher un commis
+                <button onClick={()=>setCommisHireSlot(null)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:C.muted}}>✕</button>
+              </div>
+              <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:14}}>Pool rafraîchi chaque jour.</div>
+              {pool.length===0&&<div style={{color:C.muted,fontSize:11,fontFamily:F.body,textAlign:"center",padding:20}}>Aucun candidat disponible aujourd'hui.</div>}
+              <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                {pool.map(cand=>{
+                  const canAfford=cash>=cand.hireCost;
+                  const cl2=commisLv(cand.totalXp);
+                  const clD2=COMMIS_LVL[Math.min(cl2.l,COMMIS_LVL.length-1)];
+                  return(
+                    <div key={cand.id} style={{background:C.bg,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"9px 13px",
+                      display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+                      <div style={{display:"flex",alignItems:"center",gap:9}}>
+                        <span style={{fontSize:18}}>{clD2.icon}</span>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>{cand.name}</div>
+                          <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
+                            {clD2.name} · {cand.salary}€/h
+                            {cand.specialty&&<span style={{marginLeft:6,fontWeight:700,color:cand.specialty.cat==="Desserts"?C.purple:cand.specialty.cat==="Plats"?C.terra:cand.specialty.cat==="Entrées"?C.green:C.navy}}>
+                              {cand.specialty.icon} {cand.specialty.name}
+                            </span>}
+                          </div>
+                        </div>
+                      </div>
+                      <button disabled={!canAfford} onClick={()=>{
+                        if(!canAfford)return;
+                        setCash(c=>+(c-cand.hireCost).toFixed(2));
+                        addTx("achat",`Recrutement commis : ${cand.name}`,cand.hireCost);
+                        setKitchen(k=>{
+                          const slot=commisHireSlot;
+                          const newCommis=[...k.commis];
+                          const newEntry={id:Date.now(),name:cand.name,totalXp:cand.totalXp,status:"actif",task:null,salary:cand.salary,specialty:cand.specialty};
+                          if(slot<newCommis.length) newCommis[slot]=newEntry;
+                          else newCommis.push(newEntry);
+                          return{...k,commis:newCommis};
+                        });
+                        setCommisPool(p=>p.filter(x=>x.id!==cand.id));
+                        addToast({icon:"🔪",title:`${cand.name} recruté !`,msg:`−${cand.hireCost}€${cand.specialty?" · "+cand.specialty.icon+" "+cand.specialty.name:""}`,color:C.green,tab:"cuisine"});
+                        setCommisHireSlot(null);
+                      }} style={{
+                        fontSize:11,fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap",
+                        padding:"5px 11px",borderRadius:8,
+                        background:canAfford?C.greenP:"transparent",
+                        color:canAfford?C.green:C.muted,
+                        border:`1.5px solid ${canAfford?C.green:C.border}`,
+                        cursor:canAfford?"pointer":"not-allowed"}}>
+                        💰 {cand.hireCost}€
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

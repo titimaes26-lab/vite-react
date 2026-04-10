@@ -77,6 +77,14 @@ export const CHEF_LVL = [
 
 export const CHEF_XP_CAP = [120, 260, 450, 700, 1050];
 
+/* ─── Formations du chef ─────────────────────────────── */
+export const CHEF_TRAININGS = [
+  { id: "tech",    name: "Techniques avancées", icon: "📚", xp: 80, cost: 200, desc: "+80 XP chef" },
+  { id: "pastry",  name: "Cours de pâtisserie", icon: "🍰", xp: 20, cost: 280, desc: "Desserts −20 % cuisson", catBonus: { cat: "Desserts", mult: 0.20 } },
+  { id: "sauces",  name: "Maîtrise des sauces", icon: "🫕", xp: 20, cost: 280, desc: "Plats −20 % cuisson",    catBonus: { cat: "Plats",    mult: 0.20 } },
+  { id: "brigade", name: "Stage brigade",        icon: "👥", xp: 40, cost: 350, desc: "+1 feu (72 h)" },
+];
+
 /* ─── Niveaux commis ─────────────────────────────────── */
 export const COMMIS_LVL = [
   { name: "Débutant", color: C.muted, icon: "🔪" },
@@ -85,6 +93,14 @@ export const COMMIS_LVL = [
 ];
 
 export const COMMIS_XP_CAP = [80, 200];
+
+/* ─── Spécialités commis ─────────────────────────────── */
+export const COMMIS_SPECIALTIES = [
+  { id: "patissier",   name: "Pâtissier",    icon: "🍰", cat: "Desserts", bonus: 0.20 },
+  { id: "rotisseur",   name: "Rôtisseur",    icon: "🥩", cat: "Plats",    bonus: 0.20 },
+  { id: "gardemanger", name: "Garde-Manger", icon: "🥗", cat: "Entrées",  bonus: 0.20 },
+  { id: "sommelier",   name: "Sommelier",    icon: "🍷", cat: "Boissons", bonus: 0.20 },
+];
 
 /* ─── Niveaux restaurant (50 niveaux, 0–49) ──────────── */
 /*
@@ -488,15 +504,17 @@ export const KITCHEN0 = {
     salary: 28,
   },
   commis: [
-    { id: 1, name: "Léa Fontaine", totalXp: 0,  status: "actif", task: null, salary: 10 },
-    { id: 2, name: "Tom Renard",   totalXp: 10, status: "actif", task: null, salary: 10 },
-    { id: 3, name: "Nina Morel",   totalXp: 0,  status: "actif", task: null, salary: 10 },
+    { id: 1, name: "Léa Fontaine", totalXp: 0,  status: "actif", task: null, salary: 10, specialty: { id: "patissier",   name: "Pâtissier",    icon: "🍰", cat: "Desserts", bonus: 0.20 } },
+    { id: 2, name: "Tom Renard",   totalXp: 10, status: "actif", task: null, salary: 10, specialty: { id: "rotisseur",   name: "Rôtisseur",    icon: "🥩", cat: "Plats",    bonus: 0.20 } },
+    { id: 3, name: "Nina Morel",   totalXp: 0,  status: "actif", task: null, salary: 10, specialty: null },
   ],
-  queue:       [],
-  cooking:     [],
-  done:        [],
-  totalDishes: 0,
-  upgrades:    { fourneau: 0, four: 0, stockage: 0, plonge: 0, salamandre: 0, dressage: 0, sousvide: 0, brigade: 0 },
+  queue:        [],
+  cooking:      [],
+  done:         [],
+  totalDishes:  0,
+  upgrades:     { fourneau: 0, four: 0, stockage: 0, plonge: 0, salamandre: 0, dressage: 0, sousvide: 0, brigade: 0 },
+  morale:       100,
+  chefTrainings: {},
 };
 
 /* ─── Améliorations de cuisine ───────────────────────── */
