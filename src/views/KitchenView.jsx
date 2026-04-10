@@ -288,27 +288,33 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
   };
 
   // ── Générateurs de candidats ─────────────────────────
-  const generateCommisPool = ()=>{
-    const today=new Date().toLocaleDateString("fr-FR");
-    if(commisPoolDate===today&&commisPool.length>0)return;
-    let seed=today.split("").reduce((a,c)=>a+c.charCodeAt(0),0)+31;
+  const buildCommisPool = (dateStr)=>{
+    let seed=dateStr.split("").reduce((a,c)=>a+c.charCodeAt(0),0)+31;
     const rng=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
     const names1=["Ambre","Baptiste","Chloé","Dylan","Emma","Florian","Gaëlle","Hugo","Inès","Jules","Léa","Maxime","Nina","Oscar","Pauline","Robin","Sara","Théo"];
     const names2=["Martin","Dupont","Renard","Moreau","Simon","Laurent","Petit","Bernard","Thomas"];
-    const pool=Array.from({length:6},(_,i)=>{
+    return Array.from({length:6},(_,i)=>{
       const spec=rng()<0.6?COMMIS_SPECIALTIES[Math.floor(rng()*COMMIS_SPECIALTIES.length)]:null;
       const xp=Math.round(rng()*150);
       const salary=Math.round(rng()*5+8);
       return{
-        id:`cp-${today}-${i}`,
+        id:`cp-${dateStr}-${i}`,
         name:names1[Math.floor(rng()*names1.length)]+" "+names2[Math.floor(rng()*names2.length)],
         totalXp:xp, salary, hireCost:salary*3,
         specialty:spec,
       };
     });
+  };
+
+  // Génère et stocke le pool quand le modal s'ouvre
+  useEffect(()=>{
+    if(commisHireSlot===null)return;
+    const today=new Date().toLocaleDateString("fr-FR");
+    if(commisPoolDate===today&&commisPool.length>0)return;
+    const pool=buildCommisPool(today);
     setCommisPool(pool);
     setCommisPoolDate(today);
-  };
+  },[commisHireSlot]);
 
   const generateChefCandidates = ()=>{
     const today=new Date().toLocaleDateString("fr-FR");
@@ -961,7 +967,6 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
 
       {/* ══ MODAL : Embaucher un commis ══ */}
       {commisHireSlot!==null&&(()=>{
-        generateCommisPool();
         const pool=commisPool.length>0?commisPool:[];
         return(
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}
