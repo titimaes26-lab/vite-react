@@ -9,7 +9,7 @@ import { getRepTier } from "../constants/gameConstants.js";
 import { REP_DELTA } from "../constants/gameConstants.js";
 import { Badge, Btn, Sel, Modal, XpBar, Lbl, Inp } from "../components/ui/index.js";
 import { srvLv, calcRating, ratingColor, ratingStars, calcTip, restoXpFromCheckout, srvXpFromCheckout } from "../utils/levelUtils.js";
-import { generateOrderWithSpecials } from "../utils/randomUtils.js";
+import { generateOrderWithFormulas } from "../utils/randomUtils.js";
 import { buildKitchenTickets, svcDuration, eatDuration, calcBill } from "../utils/orderUtils.js";
 
 /* ═══════════════════════════════════════════════════════
@@ -573,7 +573,7 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
               );
 }
 
-export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,stock=[],bp={}}) {
+export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,formulas=[],stock=[],bp={}}) {
 
   const now = clockNow;
 
@@ -682,18 +682,20 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     const speedMult = srv.specialty?.id==="speed"?(srv.specialty.speedMult||1.0):1.0;
     const svcDur = Math.round((g.size<=2?30000:g.size<=4?60000:90000)*speedMult);
     const svcUntil = Date.now()+svcDur;
-    const orderLines = generateOrderWithSpecials(g, menu, restoLvN);
+    const orderLines = generateOrderWithFormulas(g, menu, formulas, restoLvN);
     const kitchenTickets = buildKitchenTickets(orderLines, table);
     const drinkTickets = kitchenTickets.filter(d=>d.cat==="Boissons");
     const foodTickets  = kitchenTickets.filter(d=>d.cat!=="Boissons");
-    setMenu(p=>p.map(m=>{const l=orderLines.find(o=>o.menuId===m.id);return l?{...m,orderCount:(m.orderCount||0)+l.qty}:m;}));
+    setMenu(p=>p.map(m=>{const l=orderLines.find(o=>o.menuId===m.id);if(!l)return m;return{...m,orderCount:(m.orderCount||0)+l.qty,formulaRevenue:l.isFormula?(m.formulaRevenue||0)+l.price*l.qty:(m.formulaRevenue||0)};}));
     setServers(p=>p.map(s=>s.id!==srv.id?s:{...s,status:"service",serviceUntil:svcUntil}));
     setTables(p=>p.map(t=>t.id!==table.id?t:
       {...t,status:"occupée",server:srv.name,group:g,order:orderLines,svcTimer:0,svcMax:0,svcUntil,
         placedAt:Date.now(),patienceLeftRatio:Math.max(0,(g.expiresAt-Date.now())/(g.patMax*1000))}));
     setQueue(q=>q.filter(c=>c.id!==g.id));
     setChallengeProgress&&setChallengeProgress(p=>({...p,fastPlace:p.fastPlace+1}));
-    addToast({icon:"🛎️",title:"Prise de commande…",
+    const formulaUsed = orderLines.find(o => o.isFormula);
+    addToast({icon: formulaUsed?"🍽️":"🛎️",
+      title: formulaUsed?`${formulaUsed.formulaName} commandée !`:"Prise de commande…",
       msg:`${srv.name} prend la commande à ${table.name}`,color:C.navy,tab:"tables"});
     setTimeout(()=>{
       setKitchen(k=>({...k,

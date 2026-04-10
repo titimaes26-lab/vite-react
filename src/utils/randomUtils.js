@@ -140,3 +140,44 @@ export const generateOrderWithSpecials = (group, menu, restoLevel = 0) => {
     return o;
   });
 };
+
+/**
+ * Comme generateOrderWithSpecials() mais prend en compte les formules actives.
+ * Si une formule est active, le groupe a 35% de chance de la commander.
+ * @param {{ size: number }} group
+ * @param {typeof import("../constants/gameData").MENU0} menu
+ * @param {Array} formulas - formules configurées et actives
+ * @param {number} [restoLevel=0]
+ * @returns {ReturnType<typeof generateOrder>}
+ */
+export const generateOrderWithFormulas = (group, menu, formulas = [], restoLevel = 0) => {
+  const activeFormulas = (formulas || []).filter(f => f.active && (f.items || []).length > 0);
+
+  if (activeFormulas.length > 0 && Math.random() < 0.35) {
+    const formula = pick(activeFormulas);
+    const lines = [];
+
+    for (const item of formula.items) {
+      const dish = menu.find(m => m.id === parseInt(item.menuId) && m.enabled !== false);
+      if (!dish) continue;
+      lines.push({
+        oid: Date.now() + Math.random(),
+        menuId: dish.id,
+        item: dish.name,
+        cat: dish.cat,
+        price: +(dish.price * (1 - (formula.discount || 0))).toFixed(2),
+        qty: group.size,
+        prepTime: dish.prepTime ?? 60,
+        ingredients: dish.ingredients ?? [],
+        isFormula: true,
+        formulaName: formula.name,
+      });
+    }
+
+    // Si tous les plats de la formule sont valides, l'utiliser
+    if (lines.length === formula.items.length) return lines;
+  }
+
+  // Sinon commande individuelle avec plats du jour
+  return generateOrderWithSpecials(group, menu, restoLevel);
+};
