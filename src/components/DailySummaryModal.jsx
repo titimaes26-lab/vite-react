@@ -117,7 +117,7 @@ export function DailySummaryModal({ onClose, dailyStats, objStats, servers, tran
             background:C.green,color:"#fff",cursor:"pointer",
             fontSize:14,fontWeight:700,fontFamily:F.body,
             boxShadow:`0 4px 16px ${C.green}44`}}>
-            Continuer →
+            🌅 Nouvelle journée
           </button>
         </div>
       </div>
