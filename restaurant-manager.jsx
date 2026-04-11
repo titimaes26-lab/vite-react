@@ -468,27 +468,33 @@ export default function App(){
       const { type, payload } = event.data;
 
       if (type === "INIT" && payload) {
-        // Charger les données envoyées par GDevelop en priorité sur localStorage
-        if (payload.argent        != null) setCash(payload.argent);
-        if (payload.restoXp       != null) setRestoXp(payload.restoXp);
-        if (payload.stock)                 setStock(payload.stock);
-        if (payload.servers)               setServers(payload.servers);
-        if (payload.tables)                setTables(payload.tables);
-        if (payload.kitchen)               setKitchen(payload.kitchen);
-        if (payload.objStats)              setObjStats(payload.objStats);
-        if (payload.dailyStats)            setDailyStats(payload.dailyStats);
-        if (payload.completedIds)          setCompletedIds(payload.completedIds);
-        if (payload.challengeProgress)     setChallengeProgress(payload.challengeProgress);
-        if (payload.loan         != null)  setLoan(payload.loan);
-        if (payload.reputation   != null)  setReputation(payload.reputation);
-        if (payload.transactions)          setTransactions(payload.transactions);
-        if (payload.pendingDeliveries)     setPendingDeliveries(payload.pendingDeliveries);
-        if (payload.pendingClaim)          setPendingClaim(payload.pendingClaim);
-        if (payload.challengeClaimed)      setChallengeClaimed(payload.challengeClaimed);
-        if (payload.challengeLostToday != null) setChallengeLostToday(payload.challengeLostToday);
-        if (payload.activeEvent  != null)  setActiveEvent(payload.activeEvent);
-        console.info("[GDevelop Bridge] Init reçu ✓", payload);
-        // Confirmer la réception à GDevelop
+        // GDevelop peut sauvegarder soit le payload SYNC complet (données brutes dans payload.saveData)
+        // soit directement le saveData. On cherche saveData en priorité.
+        const raw = payload.saveData ?? payload;
+        const sv  = sanitizeSave(raw);
+        if (sv.argent        != null) setCash(sv.argent);
+        if (sv.restoXp       != null) setRestoXp(sv.restoXp);
+        if (sv.stock)                 setStock(sv.stock);
+        if (sv.servers)               setServers(sv.servers);
+        if (sv.tables)                setTables(sv.tables);
+        if (sv.kitchen)               setKitchen(sv.kitchen);
+        if (sv.objStats)              setObjStats(sv.objStats);
+        if (sv.dailyStats)            setDailyStats(sv.dailyStats);
+        if (sv.completedIds)          setCompletedIds(sv.completedIds);
+        if (sv.challengeProgress)     setChallengeProgress(sv.challengeProgress);
+        if (sv.loan          != null) setLoan(sv.loan);
+        if (sv.reputation    != null) setReputation(sv.reputation);
+        if (sv.transactions)          setTransactions(sv.transactions);
+        if (sv.pendingDeliveries)     setPendingDeliveries(sv.pendingDeliveries);
+        if (sv.pendingClaim)          setPendingClaim(sv.pendingClaim);
+        if (sv.challengeClaimed)      setChallengeClaimed(sv.challengeClaimed);
+        if (sv.challengeLostToday != null) setChallengeLostToday(sv.challengeLostToday);
+        if (sv.activeEvent   != null) setActiveEvent(sv.activeEvent);
+        if (sv.candidatePool)         setCandidatePool(sv.candidatePool);
+        if (sv.candidateDate)         setCandidateDate(sv.candidateDate);
+        if (sv.dayStartRealMs > 0)    setDayStartRealMs(sv.dayStartRealMs);
+        setQueue(sv.queue || []);
+        console.info("[GDevelop Bridge] Init reçu ✓ (source:", payload.saveData?"saveData":"payload direct",")", sv);
         sendToGDevelop({ type: "INIT_ACK", ok: true });
       }
 
@@ -513,13 +519,14 @@ export default function App(){
       completedIds, pendingClaim, todayChallenges, challengeProgress,
       challengeClaimed, challengeLostToday, activeEvent,
       candidatePool, candidateDate,
+      dayStartRealMs,
     };
   },[cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
      reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
      formulas, dailySpecials, challengeDate,
      completedIds, pendingClaim, todayChallenges, challengeProgress,
      challengeClaimed, challengeLostToday, activeEvent,
-     candidatePool, candidateDate]);
+     candidatePool, candidateDate, dayStartRealMs]);
 
   useEffect(()=>{
     if (!isLoaded) return;
