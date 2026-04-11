@@ -991,40 +991,6 @@ export default function App(){
             </button>
           </div>
 
-          {/* Bouton sauvegarde manuelle */}
-          <button
-            onClick={()=>{
-              if(saveStatus==="saving") return;
-              setSaveStatus("saving");
-              if(saveTimerRef.current) clearTimeout(saveTimerRef.current);
-              saveGame({
-                tables,servers,menu,stock,complaints,kitchen,
-                restoXp,cash,transactions,loan,supplierMode,
-                pendingDeliveries,dailySpecials,completedIds,
-                challengeDate,todayChallenges,challengeProgress,
-                challengeClaimed,challengeLostToday,pendingClaim,
-                objStats,dailyStats,reputation,formulas,
-                candidatePool,candidateDate,
-              });
-              setSaveStatus("saved");
-              setTimeout(()=>setSaveStatus("idle"),2000);
-            }}
-            title="Sauvegarder maintenant"
-            style={{
-              flexShrink:0,display:"flex",alignItems:"center",gap:5,
-              padding:"5px 12px",borderRadius:7,
-              background:saveStatus==="saved"?C.green:saveStatus==="saving"?C.amber:C.navy,
-              border:"none",cursor:saveStatus==="saving"?"not-allowed":"pointer",
-              transition:"background 0.3s",fontFamily:F.body}}>
-            <span style={{fontSize:13,
-              animation:saveStatus==="saving"?"pulse 0.8s ease-in-out infinite":undefined}}>
-              {saveStatus==="saved"?"✅":saveStatus==="saving"?"⏳":"💾"}
-            </span>
-            <span style={{fontSize:11,fontWeight:700,color:"#fff",whiteSpace:"nowrap",
-              display:"inline-block",minWidth:"72px",textAlign:"center"}}>
-              {saveStatus==="saved"?"Sauvé !":saveStatus==="saving"?"…":"Sauvegarder"}
-            </span>
-          </button>
         </div>
       </div>
 
