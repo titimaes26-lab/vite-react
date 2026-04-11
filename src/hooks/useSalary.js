@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════
    src/hooks/useSalary.js
-   Débit toutes les heures (temps réel) de :
+   Débit toutes les heures de jeu (60 s réelles) de :
      - Salaires des serveurs actifs
      - Salaire du chef + commis débloqués
      - Mensualité du prêt bancaire en cours
@@ -109,7 +109,7 @@ export const useSalary = ({
 
         return { ...ln, remaining: newRemaining };
       });
-    }, 3_600_000); // toutes les heures réelles
+    }, 60_000); // toutes les heures de jeu (1 h jeu = 60 s réelles)
 
     return () => clearInterval(iv);
   }, [setServers, setKitchen, setCash, setLoan, addTx, addToast]);
