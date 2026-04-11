@@ -22,6 +22,7 @@ export const buildGDevelopPayload = ({
   completedIds, pendingClaim, todayChallenges, challengeProgress,
   challengeClaimed, challengeLostToday, activeEvent,
   candidatePool, candidateDate,
+  dayStartRealMs,
 }) => {
   const rl = restoLv(restoXp);
   const cl = chefLv(kitchen?.chef?.totalXp || 0);
@@ -162,6 +163,7 @@ export const buildGDevelopPayload = ({
       activeEvent,
       candidatePool,
       candidateDate,
+      dayStartRealMs: dayStartRealMs || 0,
     },
     savedAt: Date.now(),
   };

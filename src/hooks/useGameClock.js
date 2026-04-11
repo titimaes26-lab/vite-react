@@ -1,25 +1,172 @@
 /* ═══════════════════════════════════════════════════════
    src/hooks/useGameClock.js
-   Horloge globale du jeu — met à jour clockNow toutes les 250ms.
-   Utilisé par TablesView, ServersView et l'en-tête pour les
-   compteurs de patience et les timers de cuisson.
+   Moteur de temps accéléré — 1 seconde réelle = 1 minute de jeu.
 
-   Usage dans App.jsx :
-     const clockNow = useGameClock();
+   Journée simulée : 08:00 → 00:00 (16 h de jeu = 960 s réelles = 16 min réelles)
+
+   Exports :
+     PHASES            — tableau des 5 phases de service
+     REAL_DAY_MS       — durée réelle d'une journée en ms (960 000)
+     realMsToGameTime  — convertit elapsed réel → { h, m, absMin, str }
+     getPhase          — retourne la phase active pour un absMin donné
+     useGameClock      — hook principal (prend dayStartRealMs)
 ═══════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from "react";
 
+/* ─── Échelle & bornes ───────────────────────────────── */
+
+const DAY_START_ABS = 8 * 60;   // 08:00 = 480 min depuis minuit
+const DAY_END_ABS   = 24 * 60;  // 00:00 = 1440 min (minuit suivant)
+
+// 960 min de jeu × 1 000 ms/min = 960 000 ms réelles (16 minutes réelles)
+export const REAL_DAY_MS = (DAY_END_ABS - DAY_START_ABS) * 1_000;
+
+/* ─── Phases de service ──────────────────────────────── */
 /**
- * @returns {number} timestamp ms actualisé toutes les 250ms
+ * Chaque phase définit :
+ *   startAbs / endAbs     — bornes en minutes absolues depuis minuit
+ *   spawnRate             — multiplicateur d'intervalle de spawn (0 = aucun client)
+ *   patienceMultiplier    — facteur appliqué à la patience des clients
+ *   prepBonus             — bonus de vitesse de cuisson (0.20 = +20 %)
+ *   cleanBonus            — bonus de vitesse de nettoyage (0.50 = +50 %)
+ *   priceMultiplier       — facteur sur le prix des plats (1.10 = +10 %)
  */
-export const useGameClock = () => {
-  const [clockNow, setClockNow] = useState(Date.now);
+export const PHASES = [
+  {
+    id: "mise_en_place",
+    label: "Mise en place",
+    icon: "🧹",
+    color: "#6b7280",
+    startAbs: 480,   // 08:00
+    endAbs:   690,   // 11:30
+    spawnRate: 0,
+    prepBonus: 0.20,
+    patienceMultiplier: 1.0,
+    cleanBonus: 0,
+    priceMultiplier: 1.0,
+    desc: "Pas de clients · +20 % vitesse cuisson",
+  },
+  {
+    id: "rush_midi",
+    label: "Rush Midi",
+    icon: "🌞",
+    color: "#f97316",
+    startAbs: 690,   // 11:30
+    endAbs:   870,   // 14:30
+    spawnRate: 2.0,
+    prepBonus: 0,
+    patienceMultiplier: 0.7,
+    cleanBonus: 0,
+    priceMultiplier: 1.0,
+    desc: "Affluence max · −30 % patience",
+  },
+  {
+    id: "creux",
+    label: "Creux",
+    icon: "😴",
+    color: "#3b82f6",
+    startAbs: 870,   // 14:30
+    endAbs:   1110,  // 18:30
+    spawnRate: 0.3,
+    prepBonus: 0,
+    patienceMultiplier: 1.2,
+    cleanBonus: 0.5,
+    priceMultiplier: 1.0,
+    desc: "Calme · +50 % vitesse nettoyage",
+  },
+  {
+    id: "grand_service",
+    label: "Grand Service",
+    icon: "✨",
+    color: "#8b5cf6",
+    startAbs: 1110,  // 18:30
+    endAbs:   1350,  // 22:30
+    spawnRate: 1.5,
+    prepBonus: 0,
+    patienceMultiplier: 0.9,
+    cleanBonus: 0,
+    priceMultiplier: 1.10,
+    desc: "Plats complexes · +10 % prix",
+  },
+  {
+    id: "fermeture",
+    label: "Fermeture",
+    icon: "🔒",
+    color: "#ef4444",
+    startAbs: 1350,  // 22:30
+    endAbs:   1440,  // 00:00
+    spawnRate: 0,
+    prepBonus: 0,
+    patienceMultiplier: 1.0,
+    cleanBonus: 0,
+    priceMultiplier: 1.0,
+    desc: "Service terminé",
+  },
+];
+
+/* ─── Utilitaires purs ───────────────────────────────── */
+
+/**
+ * Convertit un temps écoulé réel (ms depuis le début de la journée)
+ * en heure de jeu simulée.
+ *
+ * @param {number} elapsedRealMs
+ * @returns {{ h: number, m: number, absMin: number, str: string }}
+ *
+ * Exemples :
+ *   0        → { h:8,  m:0,  str:"08h00" }
+ *   210_000  → { h:11, m:30, str:"11h30" }  (Rush Midi commence)
+ *   960_000  → { h:0,  m:0,  str:"00h00" }  (fin de journée)
+ */
+export function realMsToGameTime(elapsedRealMs) {
+  const absMin = DAY_START_ABS + Math.floor(Math.max(0, elapsedRealMs) / 1_000);
+  const h = Math.floor(absMin / 60) % 24;
+  const m = absMin % 60;
+  return {
+    h, m, absMin,
+    str: `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`,
+  };
+}
+
+/**
+ * Retourne la phase active pour un temps absolu en minutes.
+ *
+ * @param {number} absMin  - minutes depuis minuit (ex: 690 = 11h30)
+ * @returns {typeof PHASES[0]}
+ */
+export function getPhase(absMin) {
+  return PHASES.find(p => absMin >= p.startAbs && absMin < p.endAbs)
+    ?? PHASES[PHASES.length - 1];
+}
+
+/* ─── Hook principal ─────────────────────────────────── */
+
+/**
+ * useGameClock — fournit l'horloge réelle et le temps de jeu simulé.
+ *
+ * @param {number} dayStartRealMs  - timestamp réel du début de la journée courante
+ *                                   (Date.now() au moment du lancement du service)
+ * @returns {{
+ *   clockNow      : number,   // Date.now() réel — pour tous les timers existants
+ *   gameTime      : { h, m, absMin, str },
+ *   phase         : object,   // phase active (un élément de PHASES)
+ *   isDayOver     : boolean,  // true quand 00h00 est atteint (960 000 ms écoulées)
+ *   elapsedRealMs : number,   // ms réels depuis dayStart
+ * }}
+ */
+export function useGameClock(dayStartRealMs) {
+  const [clockNow, setClockNow] = useState(() => Date.now());
 
   useEffect(() => {
     const iv = setInterval(() => setClockNow(Date.now()), 250);
     return () => clearInterval(iv);
   }, []);
 
-  return clockNow;
-};
+  const elapsedRealMs = clockNow - dayStartRealMs;
+  const gameTime      = realMsToGameTime(elapsedRealMs);
+  const phase         = getPhase(gameTime.absMin);
+  const isDayOver     = elapsedRealMs >= REAL_DAY_MS;
+
+  return { clockNow, gameTime, phase, isDayOver, elapsedRealMs };
+}

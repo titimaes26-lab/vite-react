@@ -54,7 +54,7 @@ import {
 } from "./src/utils/orderUtils.js";
 
 // ── Hooks métier ───────────────────────────────────────
-import { useGameClock }   from "./src/hooks/useGameClock.js";
+import { useGameClock, PHASES, REAL_DAY_MS, getPhase, realMsToGameTime } from "./src/hooks/useGameClock.js";
 import { useSpawner }     from "./src/hooks/useSpawner.js";
 import { useExpiry }      from "./src/hooks/useExpiry.js";
 import { useSalary }      from "./src/hooks/useSalary.js";
@@ -264,6 +264,11 @@ export default function App(){
   const [candidateDate,setCandidateDate]=useState("");
   const [commisPool,setCommisPool]=useState([]);
   const [commisPoolDate,setCommisPoolDate]=useState("");
+  // Moteur de temps simulé — timestamp réel du début de la journée courante
+  const [dayStartRealMs,setDayStartRealMs]=useState(()=>{
+    try{const v=parseInt(localStorage.getItem("day_start")||"0");return v>0?v:Date.now();}
+    catch(e){return Date.now();}
+  });
   const [challengeLostToday,setChallengeLostToday]=useState(false);
   const [pendingClaim,setPendingClaim]=useState([]);
   const [objStats,setObjStats]=useState({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
@@ -280,21 +285,6 @@ export default function App(){
   // Résumé de fin de journée : s'affiche après 10 min de jeu réel
   const [seenIds,setSeenIds]=useState(new Set());
   const summaryShownRef=useRef(false);
-  useEffect(()=>{
-    if(!isLoaded) return;
-    const t=setTimeout(()=>{
-      if(summaryShownRef.current) return;
-      summaryShownRef.current=true;
-      const today=dailyStats[dailyStats.length-1];
-      const isRecord=today&&today.revenue>prevRevenueRef.current&&today.revenue>0;
-      setSummaryIsRecord(isRecord);
-      // Journée parfaite si aucun client perdu
-      setObjStats(s=>s._hadLoss?s:{...s,perfectDays:(s.perfectDays||0)+1});
-      setShowSummary(true);
-    },600000); // 10 minutes
-    return()=>clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[isLoaded]);
 
   /* ── Réinitialisation complète (sans reload) ────────── */
   const doReset = useCallback(() => {
@@ -364,6 +354,7 @@ export default function App(){
         if(sv.formulas)      setFormulas(sv.formulas);
         if(sv.candidatePool) setCandidatePool(sv.candidatePool);
         if(sv.candidateDate) setCandidateDate(sv.candidateDate);
+        if(sv.dayStartRealMs>0) setDayStartRealMs(sv.dayStartRealMs);
         setQueue(sv.queue||[]);
       }
       setIsLoaded(true);
@@ -460,6 +451,7 @@ export default function App(){
         challengeClaimed,challengeLostToday,pendingClaim,
         objStats,dailyStats,reputation,formulas,
         candidatePool,candidateDate,
+        dayStartRealMs,
       });
       setSaveStatus("saved");
       setTimeout(()=>setSaveStatus("idle"),2000);
@@ -476,27 +468,33 @@ export default function App(){
       const { type, payload } = event.data;
 
       if (type === "INIT" && payload) {
-        // Charger les données envoyées par GDevelop en priorité sur localStorage
-        if (payload.argent        != null) setCash(payload.argent);
-        if (payload.restoXp       != null) setRestoXp(payload.restoXp);
-        if (payload.stock)                 setStock(payload.stock);
-        if (payload.servers)               setServers(payload.servers);
-        if (payload.tables)                setTables(payload.tables);
-        if (payload.kitchen)               setKitchen(payload.kitchen);
-        if (payload.objStats)              setObjStats(payload.objStats);
-        if (payload.dailyStats)            setDailyStats(payload.dailyStats);
-        if (payload.completedIds)          setCompletedIds(payload.completedIds);
-        if (payload.challengeProgress)     setChallengeProgress(payload.challengeProgress);
-        if (payload.loan         != null)  setLoan(payload.loan);
-        if (payload.reputation   != null)  setReputation(payload.reputation);
-        if (payload.transactions)          setTransactions(payload.transactions);
-        if (payload.pendingDeliveries)     setPendingDeliveries(payload.pendingDeliveries);
-        if (payload.pendingClaim)          setPendingClaim(payload.pendingClaim);
-        if (payload.challengeClaimed)      setChallengeClaimed(payload.challengeClaimed);
-        if (payload.challengeLostToday != null) setChallengeLostToday(payload.challengeLostToday);
-        if (payload.activeEvent  != null)  setActiveEvent(payload.activeEvent);
-        console.info("[GDevelop Bridge] Init reçu ✓", payload);
-        // Confirmer la réception à GDevelop
+        // GDevelop peut sauvegarder soit le payload SYNC complet (données brutes dans payload.saveData)
+        // soit directement le saveData. On cherche saveData en priorité.
+        const raw = payload.saveData ?? payload;
+        const sv  = sanitizeSave(raw);
+        if (sv.argent        != null) setCash(sv.argent);
+        if (sv.restoXp       != null) setRestoXp(sv.restoXp);
+        if (sv.stock)                 setStock(sv.stock);
+        if (sv.servers)               setServers(sv.servers);
+        if (sv.tables)                setTables(sv.tables);
+        if (sv.kitchen)               setKitchen(sv.kitchen);
+        if (sv.objStats)              setObjStats(sv.objStats);
+        if (sv.dailyStats)            setDailyStats(sv.dailyStats);
+        if (sv.completedIds)          setCompletedIds(sv.completedIds);
+        if (sv.challengeProgress)     setChallengeProgress(sv.challengeProgress);
+        if (sv.loan          != null) setLoan(sv.loan);
+        if (sv.reputation    != null) setReputation(sv.reputation);
+        if (sv.transactions)          setTransactions(sv.transactions);
+        if (sv.pendingDeliveries)     setPendingDeliveries(sv.pendingDeliveries);
+        if (sv.pendingClaim)          setPendingClaim(sv.pendingClaim);
+        if (sv.challengeClaimed)      setChallengeClaimed(sv.challengeClaimed);
+        if (sv.challengeLostToday != null) setChallengeLostToday(sv.challengeLostToday);
+        if (sv.activeEvent   != null) setActiveEvent(sv.activeEvent);
+        if (sv.candidatePool)         setCandidatePool(sv.candidatePool);
+        if (sv.candidateDate)         setCandidateDate(sv.candidateDate);
+        if (sv.dayStartRealMs > 0)    setDayStartRealMs(sv.dayStartRealMs);
+        setQueue(sv.queue || []);
+        console.info("[GDevelop Bridge] Init reçu ✓ (source:", payload.saveData?"saveData":"payload direct",")", sv);
         sendToGDevelop({ type: "INIT_ACK", ok: true });
       }
 
@@ -521,13 +519,14 @@ export default function App(){
       completedIds, pendingClaim, todayChallenges, challengeProgress,
       challengeClaimed, challengeLostToday, activeEvent,
       candidatePool, candidateDate,
+      dayStartRealMs,
     };
   },[cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
      reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
      formulas, dailySpecials, challengeDate,
      completedIds, pendingClaim, todayChallenges, challengeProgress,
      challengeClaimed, challengeLostToday, activeEvent,
-     candidatePool, candidateDate]);
+     candidatePool, candidateDate, dayStartRealMs]);
 
   useEffect(()=>{
     if (!isLoaded) return;
@@ -562,10 +561,35 @@ export default function App(){
   useEffect(() => { kitchenRef.current    = kitchen;    }, [kitchen]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
-  /* ── Hooks métier (remplacent 13 useEffect inline) ── */
-  const clockNow = useGameClock();
+  /* ── Horloge de jeu ────────────────────────────────── */
+  const { clockNow, gameTime, phase, isDayOver } = useGameClock(dayStartRealMs);
 
-  useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast });
+  // Ref stable pour les hooks setInterval (évite les closures périmées)
+  const phaseRef = useRef(phase);
+  useEffect(()=>{ phaseRef.current = phase; }, [phase]);
+
+  // Fin de journée (00h00 simulée) → afficher le bilan
+  useEffect(()=>{
+    if(!isLoaded||!isDayOver||summaryShownRef.current) return;
+    summaryShownRef.current=true;
+    const today=dailyStats[dailyStats.length-1];
+    const isRecord=today&&today.revenue>prevRevenueRef.current&&today.revenue>0;
+    setSummaryIsRecord(isRecord);
+    setObjStats(s=>s._hadLoss?s:{...s,perfectDays:(s.perfectDays||0)+1});
+    setShowSummary(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[isDayOver, isLoaded]);
+
+  // Lancer une nouvelle journée (bouton dans DailySummaryModal)
+  const startNewDay = useCallback(()=>{
+    const now=Date.now();
+    try{localStorage.setItem("day_start",String(now));}catch(e){}
+    setDayStartRealMs(now);
+    summaryShownRef.current=false;
+    setShowSummary(false);
+  },[]);
+
+  useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
   useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat });
 
   /* ── Auto-assign serveur pour le nettoyage des tables ── */
@@ -873,17 +897,17 @@ export default function App(){
                 animation:"pulse 1.2s ease-in-out infinite",
               }}>🚨</div>
             )}
-            {/* Horloge */}
+            {/* Horloge — temps de jeu simulé + phase */}
             <div style={{
               textAlign:"right",flexShrink:0,
-              background:C.bg,border:`1px solid ${C.border}`,
+              background:C.bg,border:`1px solid ${phase?.color||C.border}44`,
               borderRadius:8,padding:"3px 9px",
             }}>
-              <div style={{fontSize:16,fontWeight:800,color:C.ink,fontFamily:F.title,lineHeight:1.1,letterSpacing:"-0.02em"}}>
-                {now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+              <div style={{fontSize:16,fontWeight:800,color:phase?.color||C.ink,fontFamily:F.title,lineHeight:1.1,letterSpacing:"-0.02em"}}>
+                {phase?.icon} {gameTime.str}
               </div>
               <div style={{fontSize:8,color:C.muted,whiteSpace:"nowrap",marginTop:1}}>
-                {activeTables.filter(t=>t.status==="occupée"||t.status==="mange").length}/{activeTables.length} tables
+                {phase?.label} · {activeTables.filter(t=>t.status==="occupée"||t.status==="mange").length}/{activeTables.length} tables
               </div>
             </div>
             <button onClick={()=>setShowHelp(true)} title="Guide utilisateur" style={{
@@ -1275,7 +1299,7 @@ export default function App(){
 
       {showSummary&&(
         <DailySummaryModal
-          onClose={()=>setShowSummary(false)}
+          onClose={startNewDay}
           dailyStats={dailyStats}
           objStats={objStats}
           servers={servers}
