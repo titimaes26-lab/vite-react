@@ -45,7 +45,7 @@ export function DailySummaryModal({ onClose, dailyStats, objStats, servers, tran
             Bilan de la journée
           </div>
           <div style={{fontSize:12,color:"rgba(255,255,255,0.75)",fontFamily:F.body,marginTop:4}}>
-            {today.date}
+            {today.day!=null?`Jour ${today.day}`:""}
           </div>
         </div>
 

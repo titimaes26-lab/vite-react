@@ -272,7 +272,7 @@ export default function App(){
   const [challengeLostToday,setChallengeLostToday]=useState(false);
   const [pendingClaim,setPendingClaim]=useState([]);
   const [objStats,setObjStats]=useState({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
-  const [dailyStats,setDailyStats]=useState([{date:_today,served:0,lost:0,revenue:0}]);
+  const [dailyStats,setDailyStats]=useState([{day:1,served:0,lost:0,revenue:0}]);
   const [reputation,setReputation]=useState(50); // 0–100
 
   /* ── Indicateur de sauvegarde ──────────────────────── */
@@ -315,7 +315,7 @@ export default function App(){
     setChallengeLostToday(false);
     setPendingClaim([]);
     setObjStats({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
-    setDailyStats([{date:today,served:0,lost:0,revenue:0}]);
+    setDailyStats([{day:1,served:0,lost:0,revenue:0}]);
     setReputation(50);
     setWaitlist([]);
     setFormulas([]);
@@ -349,7 +349,7 @@ export default function App(){
         if(sv.challengeLostToday!=null) setChallengeLostToday(sv.challengeLostToday);
         if(sv.pendingClaim)  setPendingClaim(sv.pendingClaim);
         if(sv.objStats)      setObjStats(sv.objStats);
-        if(sv.dailyStats)    setDailyStats(sv.dailyStats);
+        if(sv.dailyStats)    setDailyStats(sv.dailyStats.map((d,i)=>d.day!=null?d:{...d,day:i+1}).slice(-15));
         if(sv.reputation!=null) setReputation(sv.reputation);
         if(sv.formulas)      setFormulas(sv.formulas);
         if(sv.candidatePool) setCandidatePool(sv.candidatePool);
@@ -393,17 +393,12 @@ export default function App(){
   },[addToast]);
 
   const addDayStat=useCallback((key,value=1)=>{
-    const today=new Date().toLocaleDateString("fr-FR");
     setDailyStats(p=>{
-      const idx=p.findIndex(d=>d.date===today);
-      if(idx>=0){
-        const updated=[...p];
-        updated[idx]={...updated[idx],[key]:+(updated[idx][key]+value).toFixed(2)};
-        // Check perfect day when losing a client
-        return updated;
-      }
-      const base={date:today,served:0,lost:0,revenue:0};
-      return [...p,{...base,[key]:+value.toFixed(2)}].slice(-5);
+      if(p.length===0) return [{day:1,served:0,lost:0,revenue:0,[key]:+value.toFixed(2)}];
+      const updated=[...p];
+      const idx=updated.length-1;
+      updated[idx]={...updated[idx],[key]:+(updated[idx][key]+value).toFixed(2)};
+      return updated;
     });
     if(key==="served") setObjStats(s=>({...s,totalServed:s.totalServed+1}));
     if(key==="rating") setObjStats(s=>({...s,totalRating:(s.totalRating||0)+value,ratingCount:(s.ratingCount||0)+1}));
@@ -479,7 +474,7 @@ export default function App(){
         if (sv.tables)                setTables(sv.tables);
         if (sv.kitchen)               setKitchen(sv.kitchen);
         if (sv.objStats)              setObjStats(sv.objStats);
-        if (sv.dailyStats)            setDailyStats(sv.dailyStats);
+        if (sv.dailyStats)            setDailyStats(sv.dailyStats.map((d,i)=>d.day!=null?d:{...d,day:i+1}).slice(-15));
         if (sv.completedIds)          setCompletedIds(sv.completedIds);
         if (sv.challengeProgress)     setChallengeProgress(sv.challengeProgress);
         if (sv.loan          != null) setLoan(sv.loan);
@@ -587,6 +582,11 @@ export default function App(){
     setDayStartRealMs(now);
     summaryShownRef.current=false;
     setShowSummary(false);
+    setDailyStats(p=>{
+      const nextDay=(p[p.length-1]?.day||0)+1;
+      return [...p,{day:nextDay,served:0,lost:0,revenue:0}].slice(-15);
+    });
+    setObjStats(s=>({...s,_hadLoss:false}));
   },[]);
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
