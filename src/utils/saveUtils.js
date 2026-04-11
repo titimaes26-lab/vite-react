@@ -59,6 +59,8 @@ export const sanitizeSave = (save) => {
   );
   const kitchen = save.kitchen
     ? {
+        morale: 100,
+        chefTrainings: {},
         ...save.kitchen,
         queue: [
           ...(save.kitchen.queue || []),
@@ -68,6 +70,10 @@ export const sanitizeSave = (save) => {
         ],
         cooking: [],
         done: save.kitchen.done || [],
+        commis: (save.kitchen.commis || []).map(c => ({
+          specialty: null,
+          ...c,
+        })),
       }
     : null;
   return { ...save, tables, servers, kitchen, queue: [] };
