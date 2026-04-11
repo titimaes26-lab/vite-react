@@ -7,7 +7,7 @@ import { useState } from "react";
 import { C, F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL, STAFF_QUALITY_REQ } from "../constants/gameData.js";
 import { SRV_SPECIALTIES, TRAINING_CATALOG, pickSpecialty, getMaxMoral } from "../constants/serverConstants.js";
 import { Badge, Card, Btn, Modal, Lbl, Inp, Sel, XpBar } from "../components/ui/index.js";
-import { srvLv, srvTierCap, TIER_UNLOCK_LV } from "../utils/levelUtils.js";
+import { srvLv, srvTierCap, TIER_UNLOCK_LV, SRV_MAX_XP } from "../utils/levelUtils.js";
 import { rName } from "../utils/randomUtils.js";
 /* ─── Helpers locaux ────────────────────────────────── */
 const moralIcon   = (m) => m>=70?"😊":m>=40?"😐":m>=20?"😓":"💀";
@@ -48,7 +48,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
     setServers(p=>p.map(s=>{
       if(s.id!==sv.id) return s;
       const newTrainings = {...(s.trainings||{}), [domain.id]: level.l};
-      const newXp = s.totalXp + level.xp;
+      const newXp = Math.min(SRV_MAX_XP, s.totalXp + level.xp);
       const newMoral = Math.min(getMaxMoral({...s,trainings:newTrainings}),(s.moral??100)+level.moralBonus);
       // Assign/upgrade specialty if domain has one
       let newSpecialty = s.specialty;

@@ -635,8 +635,11 @@ export default function App(){
 
   const addRestoXp=useCallback((xp)=>{
     setRestoXp(prev=>{
+      const maxXp=RESTO_LVL[RESTO_LVL.length-1].xpNeeded;
+      if(prev>=maxXp) return prev;
+      const next=Math.min(maxXp,prev+xp);
       const before=restoLv(prev);
-      const after=restoLv(prev+xp);
+      const after=restoLv(next);
       if(after.l>before.l){
         const nd=RESTO_LVL[after.l];
         setTimeout(()=>setLevelUpData(nd), 50);
@@ -665,7 +668,7 @@ export default function App(){
         }),50);
         setObjStats(s=>({...s,restoLevel:after.l}));
       }
-      return prev+xp;
+      return next;
     });
   },[addToast]);
 

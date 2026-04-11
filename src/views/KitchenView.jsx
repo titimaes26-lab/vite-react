@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import { C, F, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
          KITCHEN_UPGRADES, COMMIS_SPECIALTIES, CHEF_TRAININGS } from "../constants/gameData.js";
 import { Btn, XpBar, Badge } from "../components/ui/index.js";
-import { chefLv, commisLv, dishCookTimeWithUpgrades } from "../utils/levelUtils.js";
+import { chefLv, commisLv, dishCookTimeWithUpgrades, CHEF_MAX_XP, COMMIS_MAX_XP } from "../utils/levelUtils.js";
 
 export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,restoLvN=0,commisPool=[],setCommisPool=()=>{},commisPoolDate="",setCommisPoolDate=()=>{},bp={}}){
   const chf=kitchen.chef;
@@ -93,10 +93,10 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
         const activeCommis=k.commis.filter(c=>c.status==="actif").slice(0,unlockedCommis);
         return {
           ...k,
-          chef:{...k.chef,totalXp:k.chef.totalXp+justDone.length*xpPerDish},
+          chef:{...k.chef,totalXp:Math.min(CHEF_MAX_XP,k.chef.totalXp+justDone.length*xpPerDish)},
           commis:k.commis.map(c=>
             activeCommis.find(a=>a.id===c.id)
-              ?{...c,totalXp:c.totalXp+Math.round(xpPerDish*0.4)}
+              ?{...c,totalXp:Math.min(COMMIS_MAX_XP,c.totalXp+Math.round(xpPerDish*0.4))}
               :c
           ),
           cooking:stillCooking,
@@ -881,7 +881,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                           const t={...(k.chefTrainings||{}),[tr.id]:true};
                           if(tr.id==="brigade") t.brigadeUntil=Date.now()+72*3600*1000;
                           return{...k,
-                            chef:{...k.chef,totalXp:k.chef.totalXp+tr.xp},
+                            chef:{...k.chef,totalXp:Math.min(CHEF_MAX_XP,k.chef.totalXp+tr.xp)},
                             chefTrainings:t};
                         });
                         addToast({icon:tr.icon,title:`${tr.name} acquise !`,msg:`${tr.desc} · −${tr.cost}€`,color:C.navy,tab:"cuisine"});
