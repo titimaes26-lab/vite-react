@@ -602,7 +602,7 @@ export default function App(){
       const freeSrv = curServers.find(s => s.status === "actif" && (s.moral ?? 100) > 10);
       if (!freeSrv) return;
       const tbl = waiting[0];
-      const cleanDur = tbl.cleanDur || 60;
+      const cleanDur = tbl.cleanDur || 30;
       const cleanEnd = Date.now() + cleanDur * 1000;
       setTables(p => p.map(t => t.id !== tbl.id ? t : { ...t, cleanUntil: cleanEnd, cleanServer: freeSrv.id }));
       setServers(p => p.map(s => s.id !== freeSrv.id ? s : { ...s, status: "nettoyage", cleanUntil: cleanEnd }));
