@@ -9,7 +9,7 @@ import { C, F, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
 import { Btn, XpBar, Badge } from "../components/ui/index.js";
 import { chefLv, commisLv, dishCookTimeWithUpgrades } from "../utils/levelUtils.js";
 
-export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,restoLvN=0,commisPool=[],setCommisPool,commisPoolDate="",setCommisPoolDate,bp={}}){
+export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,restoLvN=0,commisPool=[],setCommisPool=()=>{},commisPoolDate="",setCommisPoolDate=()=>{},bp={}}){
   const chf=kitchen.chef;
   const cl=chefLv(chf.totalXp);
   const clD=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
@@ -905,131 +905,125 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
       )}
 
       {/* ══ MODAL : Remplacer le chef ══ */}
-      {chefModal==="replace"&&(()=>{
-        const candidates=generateChefCandidates();
-        return(
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}
-            onClick={()=>setChefModal(false)}>
-            <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:420,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
-              onClick={e=>e.stopPropagation()}>
-              <div style={{fontSize:14,fontWeight:800,color:C.ink,fontFamily:F.title,marginBottom:4,display:"flex",justifyContent:"space-between"}}>
-                🔄 Remplacer {chf.name}
-                <button onClick={()=>setChefModal(false)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:C.muted}}>✕</button>
-              </div>
-              <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:14}}>
-                Le nouveau chef hérite de 30 % de l'XP actuel.
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                {candidates.map(cand=>{
-                  const canAfford=cash>=cand.hireCost;
-                  return(
-                    <div key={cand.id} style={{background:C.bg,border:`1.5px solid ${cand.lvlColor}33`,borderRadius:11,padding:"10px 14px",
-                      display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10}}>
-                        <span style={{fontSize:22}}>{cand.lvlIcon}</span>
-                        <div>
-                          <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>{cand.name}</div>
-                          <div style={{fontSize:10,color:cand.lvlColor,fontFamily:F.body,fontWeight:600}}>
-                            {cand.lvlName} · ⚡×{cand.speed} · {cand.salary}€/h
-                          </div>
+      {chefModal==="replace"&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}
+          onClick={()=>setChefModal(false)}>
+          <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:420,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:14,fontWeight:800,color:C.ink,fontFamily:F.title,marginBottom:4,display:"flex",justifyContent:"space-between"}}>
+              🔄 Remplacer {chf.name}
+              <button onClick={()=>setChefModal(false)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:C.muted}}>✕</button>
+            </div>
+            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:14}}>
+              Le nouveau chef hérite de 30 % de l'XP actuel.
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {generateChefCandidates().map(cand=>{
+                const canAfford=cash>=cand.hireCost;
+                return(
+                  <div key={cand.id} style={{background:C.bg,border:`1.5px solid ${cand.lvlColor}33`,borderRadius:11,padding:"10px 14px",
+                    display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:22}}>{cand.lvlIcon}</span>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>{cand.name}</div>
+                        <div style={{fontSize:10,color:cand.lvlColor,fontFamily:F.body,fontWeight:600}}>
+                          {cand.lvlName} · ⚡×{cand.speed} · {cand.salary}€/h
                         </div>
                       </div>
-                      <button disabled={!canAfford} onClick={()=>{
-                        if(!canAfford)return;
-                        const transferXp=Math.round(chf.totalXp*0.3);
-                        setCash(c=>+(c-cand.hireCost).toFixed(2));
-                        addTx("achat",`Recrutement chef : ${cand.name}`,cand.hireCost);
-                        setKitchen(k=>({...k,
-                          chef:{...k.chef,name:cand.name,totalXp:cand.totalXp+transferXp,salary:cand.salary,status:"actif"},
-                          chefTrainings:{},
-                          morale:Math.min(100,(k.morale??100)+10),
-                        }));
-                        addToast({icon:"👨‍🍳",title:`${cand.name} recruté !`,msg:`−${cand.hireCost}€ · +${transferXp} XP transmis`,color:C.purple,tab:"cuisine"});
-                        setChefModal(false);
-                      }} style={{
-                        fontSize:11,fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap",
-                        padding:"6px 12px",borderRadius:8,
-                        background:canAfford?C.amberP:"transparent",
-                        color:canAfford?C.amber:C.muted,
-                        border:`1.5px solid ${canAfford?C.amber:C.border}`,
-                        cursor:canAfford?"pointer":"not-allowed"}}>
-                        💰 {cand.hireCost}€
-                      </button>
                     </div>
-                  );
-                })}
-              </div>
+                    <button disabled={!canAfford} onClick={()=>{
+                      if(!canAfford)return;
+                      const transferXp=Math.round(chf.totalXp*0.3);
+                      setCash(c=>+(c-cand.hireCost).toFixed(2));
+                      addTx("achat",`Recrutement chef : ${cand.name}`,cand.hireCost);
+                      setKitchen(k=>({...k,
+                        chef:{...k.chef,name:cand.name,totalXp:cand.totalXp+transferXp,salary:cand.salary,status:"actif"},
+                        chefTrainings:{},
+                        morale:Math.min(100,(k.morale??100)+10),
+                      }));
+                      addToast({icon:"👨‍🍳",title:`${cand.name} recruté !`,msg:`−${cand.hireCost}€ · +${transferXp} XP transmis`,color:C.purple,tab:"cuisine"});
+                      setChefModal(false);
+                    }} style={{
+                      fontSize:11,fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap",
+                      padding:"6px 12px",borderRadius:8,
+                      background:canAfford?C.amberP:"transparent",
+                      color:canAfford?C.amber:C.muted,
+                      border:`1.5px solid ${canAfford?C.amber:C.border}`,
+                      cursor:canAfford?"pointer":"not-allowed"}}>
+                      💰 {cand.hireCost}€
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       {/* ══ MODAL : Embaucher un commis ══ */}
-      {commisHireSlot!==null&&(()=>{
-        const pool=commisPool.length>0?commisPool:[];
-        return(
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}
-            onClick={()=>setCommisHireSlot(null)}>
-            <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:400,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
-              onClick={e=>e.stopPropagation()}>
-              <div style={{fontSize:14,fontWeight:800,color:C.ink,fontFamily:F.title,marginBottom:4,display:"flex",justifyContent:"space-between"}}>
-                👨‍🍳 Embaucher un commis
-                <button onClick={()=>setCommisHireSlot(null)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:C.muted}}>✕</button>
-              </div>
-              <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:14}}>Pool rafraîchi chaque jour.</div>
-              {pool.length===0&&<div style={{color:C.muted,fontSize:11,fontFamily:F.body,textAlign:"center",padding:20}}>Aucun candidat disponible aujourd'hui.</div>}
-              <div style={{display:"flex",flexDirection:"column",gap:9}}>
-                {pool.map(cand=>{
-                  const canAfford=cash>=cand.hireCost;
-                  const cl2=commisLv(cand.totalXp);
-                  const clD2=COMMIS_LVL[Math.min(cl2.l,COMMIS_LVL.length-1)];
-                  return(
-                    <div key={cand.id} style={{background:C.bg,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"9px 13px",
-                      display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
-                      <div style={{display:"flex",alignItems:"center",gap:9}}>
-                        <span style={{fontSize:18}}>{clD2.icon}</span>
-                        <div>
-                          <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>{cand.name}</div>
-                          <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-                            {clD2.name} · {cand.salary}€/h
-                            {cand.specialty&&<span style={{marginLeft:6,fontWeight:700,color:cand.specialty.cat==="Desserts"?C.purple:cand.specialty.cat==="Plats"?C.terra:cand.specialty.cat==="Entrées"?C.green:C.navy}}>
-                              {cand.specialty.icon} {cand.specialty.name}
-                            </span>}
-                          </div>
+      {commisHireSlot!==null&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}
+          onClick={()=>setCommisHireSlot(null)}>
+          <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:400,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:14,fontWeight:800,color:C.ink,fontFamily:F.title,marginBottom:4,display:"flex",justifyContent:"space-between"}}>
+              👨‍🍳 Embaucher un commis
+              <button onClick={()=>setCommisHireSlot(null)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:C.muted}}>✕</button>
+            </div>
+            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:14}}>Pool rafraîchi chaque jour.</div>
+            {commisPool.length===0&&<div style={{color:C.muted,fontSize:11,fontFamily:F.body,textAlign:"center",padding:20}}>Aucun candidat disponible aujourd'hui.</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:9}}>
+              {commisPool.map(cand=>{
+                const canAfford=cash>=cand.hireCost;
+                const cl2=commisLv(cand.totalXp);
+                const clD2=COMMIS_LVL[Math.min(cl2.l,COMMIS_LVL.length-1)];
+                return(
+                  <div key={cand.id} style={{background:C.bg,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"9px 13px",
+                    display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+                    <div style={{display:"flex",alignItems:"center",gap:9}}>
+                      <span style={{fontSize:18}}>{clD2.icon}</span>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>{cand.name}</div>
+                        <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
+                          {clD2.name} · {cand.salary}€/h
+                          {cand.specialty&&<span style={{marginLeft:6,fontWeight:700,color:cand.specialty.cat==="Desserts"?C.purple:cand.specialty.cat==="Plats"?C.terra:cand.specialty.cat==="Entrées"?C.green:C.navy}}>
+                            {cand.specialty.icon} {cand.specialty.name}
+                          </span>}
                         </div>
                       </div>
-                      <button disabled={!canAfford} onClick={()=>{
-                        if(!canAfford)return;
-                        setCash(c=>+(c-cand.hireCost).toFixed(2));
-                        addTx("achat",`Recrutement commis : ${cand.name}`,cand.hireCost);
-                        setKitchen(k=>{
-                          const slot=commisHireSlot;
-                          const newCommis=[...k.commis];
-                          const newEntry={id:Date.now(),name:cand.name,totalXp:cand.totalXp,status:"actif",task:null,salary:cand.salary,specialty:cand.specialty};
-                          if(slot<newCommis.length) newCommis[slot]=newEntry;
-                          else newCommis.push(newEntry);
-                          return{...k,commis:newCommis};
-                        });
-                        setCommisPool(p=>p.filter(x=>x.id!==cand.id));
-                        addToast({icon:"🔪",title:`${cand.name} recruté !`,msg:`−${cand.hireCost}€${cand.specialty?" · "+cand.specialty.icon+" "+cand.specialty.name:""}`,color:C.green,tab:"cuisine"});
-                        setCommisHireSlot(null);
-                      }} style={{
-                        fontSize:11,fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap",
-                        padding:"5px 11px",borderRadius:8,
-                        background:canAfford?C.greenP:"transparent",
-                        color:canAfford?C.green:C.muted,
-                        border:`1.5px solid ${canAfford?C.green:C.border}`,
-                        cursor:canAfford?"pointer":"not-allowed"}}>
-                        💰 {cand.hireCost}€
-                      </button>
                     </div>
-                  );
-                })}
-              </div>
+                    <button disabled={!canAfford} onClick={()=>{
+                      if(!canAfford)return;
+                      setCash(c=>+(c-cand.hireCost).toFixed(2));
+                      addTx("achat",`Recrutement commis : ${cand.name}`,cand.hireCost);
+                      setKitchen(k=>{
+                        const slot=commisHireSlot;
+                        const newCommis=[...k.commis];
+                        const newEntry={id:Date.now(),name:cand.name,totalXp:cand.totalXp,status:"actif",task:null,salary:cand.salary,specialty:cand.specialty};
+                        if(slot<newCommis.length) newCommis[slot]=newEntry;
+                        else newCommis.push(newEntry);
+                        return{...k,commis:newCommis};
+                      });
+                      setCommisPool(p=>p.filter(x=>x.id!==cand.id));
+                      addToast({icon:"🔪",title:`${cand.name} recruté !`,msg:`−${cand.hireCost}€${cand.specialty?" · "+cand.specialty.icon+" "+cand.specialty.name:""}`,color:C.green,tab:"cuisine"});
+                      setCommisHireSlot(null);
+                    }} style={{
+                      fontSize:11,fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap",
+                      padding:"5px 11px",borderRadius:8,
+                      background:canAfford?C.greenP:"transparent",
+                      color:canAfford?C.green:C.muted,
+                      border:`1.5px solid ${canAfford?C.green:C.border}`,
+                      cursor:canAfford?"pointer":"not-allowed"}}>
+                      💰 {cand.hireCost}€
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
     </div>
   );
 }
