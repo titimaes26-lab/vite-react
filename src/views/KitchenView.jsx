@@ -8,7 +8,6 @@ import { C, F, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
          KITCHEN_UPGRADES, COMMIS_SPECIALTIES, CHEF_TRAININGS } from "../constants/gameData.js";
 import { Btn, XpBar, Badge } from "../components/ui/index.js";
 import { chefLv, commisLv, dishCookTimeWithUpgrades } from "../utils/levelUtils.js";
-import { consumeStock } from "../utils/orderUtils.js";
 
 export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,restoLvN=0,commisPool=[],setCommisPool,commisPoolDate="",setCommisPoolDate,bp={}}){
   const chf=kitchen.chef;
