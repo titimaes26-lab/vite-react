@@ -11,11 +11,11 @@ export function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
     if(loan){addToast({icon:"🏦",title:"Prêt en cours",msg:"Remboursez d'abord votre emprunt actuel.",color:C.red});return;}
     const totalDue=+(opt.amount*(1+opt.rate)).toFixed(2);
     setLoan({id:opt.id,label:opt.label,amount:opt.amount,remaining:totalDue,
-      rate:opt.rate,takenAt:Date.now(),repayPerHour:opt.monthly});
+      rate:opt.rate,takenAt:Date.now(),repayPerDay:opt.monthly});
     setCash(c=>+(c+opt.amount).toFixed(2));
     addTx("revenu",`Prêt bancaire — ${opt.label} (${opt.amount}€)`,opt.amount);
     addToast({icon:"🏦",title:`Prêt accordé — +${opt.amount} €`,
-      msg:`Remboursement : ${opt.monthly}€/h · Total : ${totalDue}€`,color:C.navy,tab:"stats"});
+      msg:`Remboursement : ${opt.monthly}€/j · Total : ${totalDue}€`,color:C.navy,tab:"stats"});
     onClose();
   };
   const repayNow=()=>{
@@ -41,7 +41,7 @@ export function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
               {[
                 {l:"Montant initial",v:`${loan.amount.toFixed(2)} €`},
                 {l:"Restant dû",v:`${loan.remaining.toFixed(2)} €`,c:C.red},
-                {l:"Mensualité",v:`${loan.repayPerHour.toFixed(0)} €/h`},
+                {l:"Mensualité",v:`${loan.repayPerDay.toFixed(0)} €/j`},
                 {l:"Taux",v:`${(loan.rate*100).toFixed(1)} %`},
               ].map(r=>(
                 <div key={r.l} style={{background:C.surface,borderRadius:8,padding:"8px 10px"}}>
@@ -83,7 +83,7 @@ export function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
                   {opt.label} — {opt.amount.toLocaleString("fr-FR")} €
                 </div>
                 <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
-                  Taux {(opt.rate*100).toFixed(1)}% · Mensualités {opt.monthly}€/h · Total dû {totalDue}€
+                  Taux {(opt.rate*100).toFixed(1)}% · Mensualités {opt.monthly}€/j · Total dû {totalDue}€
                 </div>
               </div>
               <Btn v={disabled?"disabled":"primary"} onClick={()=>!disabled&&takeLoan(opt)}>
@@ -95,7 +95,7 @@ export function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
 
         {/* Fine print */}
         <div style={{fontSize:10,color:C.muted,fontFamily:F.body,textAlign:"center",lineHeight:1.5}}>
-          Les mensualités sont déduites automatiquement chaque heure. En cas d'insolvabilité,
+          Les mensualités sont déduites automatiquement chaque jour (fin de journée). En cas d'insolvabilité,
           le remboursement est différé jusqu'à disponibilité des fonds.
         </div>
       </div>

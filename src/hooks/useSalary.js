@@ -3,14 +3,16 @@
    Débit toutes les heures de jeu (60 s réelles) de :
      - Salaires des serveurs actifs
      - Salaire du chef + commis débloqués
-     - Mensualité du prêt bancaire en cours
+
+   Le remboursement du prêt bancaire est géré séparément
+   dans restaurant-manager.jsx (déduction quotidienne).
 
    Lit l'état depuis des refs (lecture synchrone) pour éviter
    le piège React : accumuler dans `total` à l'intérieur de
    setters différés revient à lire total=0 au moment du `if`.
 
    Usage dans restaurant-manager.jsx :
-     useSalary({ serversRef, kitchenRef, loanRef, setCash, setLoan, addTx, addToast });
+     useSalary({ serversRef, kitchenRef, setCash, addTx, addToast });
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
@@ -27,9 +29,7 @@ const _chefLv = (xp) => {
  * @param {{
  *   serversRef  : React.RefObject,
  *   kitchenRef  : React.RefObject,
- *   loanRef     : React.RefObject,
  *   setCash     : Function,
- *   setLoan     : Function,
  *   addTx       : Function,
  *   addToast    : Function,
  * }} params
@@ -37,9 +37,7 @@ const _chefLv = (xp) => {
 export const useSalary = ({
   serversRef,
   kitchenRef,
-  loanRef,
   setCash,
-  setLoan,
   addTx,
   addToast,
 }) => {
@@ -85,31 +83,8 @@ export const useSalary = ({
           tab   : "stats",
         });
       }
-
-      /* ── Remboursement de prêt (lecture synchrone via loanRef) ── */
-      const ln = loanRef.current;
-      if (ln) {
-        const repay        = Math.min(ln.remaining, ln.repayPerHour);
-        const newRemaining = +(ln.remaining - repay).toFixed(2);
-
-        setCash(c => +Math.max(0, c - repay).toFixed(2));
-        addTx("remboursement", `Remboursement prêt (${ln.id}) — mensualité`, repay);
-
-        if (newRemaining <= 0) {
-          setLoan(null);
-          addToast({
-            icon  : "🎉",
-            title : "Prêt remboursé !",
-            msg   : "Votre emprunt est entièrement soldé.",
-            color : "#2a5c3f",
-            tab   : "stats",
-          });
-        } else {
-          setLoan({ ...ln, remaining: newRemaining });
-        }
-      }
     }, 60_000); // 1 heure de jeu = 60 s réelles
 
     return () => clearInterval(iv);
-  }, [serversRef, kitchenRef, loanRef, setCash, setLoan, addTx, addToast]);
+  }, [serversRef, kitchenRef, setCash, addTx, addToast]);
 };

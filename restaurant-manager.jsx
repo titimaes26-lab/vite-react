@@ -562,10 +562,26 @@ export default function App(){
   const phaseRef = useRef(phase);
   useEffect(()=>{ phaseRef.current = phase; }, [phase]);
 
-  // Fin de journée (00h00 simulée) → afficher le bilan
+  // Fin de journée (00h00 simulée) → mensualité prêt + bilan
   useEffect(()=>{
     if(!isLoaded||!isDayOver||summaryShownRef.current) return;
     summaryShownRef.current=true;
+
+    /* ── Mensualité quotidienne du prêt ─────────────────── */
+    const ln = loanRef.current;
+    if (ln) {
+      const repay        = Math.min(ln.remaining, ln.repayPerDay);
+      const newRemaining = +(ln.remaining - repay).toFixed(2);
+      setCash(c => +Math.max(0, c - repay).toFixed(2));
+      addTx("remboursement", `Mensualité prêt (${ln.id})`, repay);
+      if (newRemaining <= 0) {
+        setLoan(null);
+        addToast({ icon:"🎉", title:"Prêt remboursé !", msg:"Votre emprunt est entièrement soldé.", color:C.green, tab:"stats" });
+      } else {
+        setLoan({ ...ln, remaining: newRemaining });
+      }
+    }
+
     const today=dailyStats[dailyStats.length-1];
     const isRecord=today&&today.revenue>prevRevenueRef.current&&today.revenue>0;
     setSummaryIsRecord(isRecord);
@@ -608,7 +624,7 @@ export default function App(){
     }, 500);
     return () => clearInterval(iv);
   }, [setTables, setServers]);
-  useSalary     ({ serversRef, kitchenRef, loanRef, setCash, setLoan, addTx, addToast });
+  useSalary     ({ serversRef, kitchenRef, setCash, addTx, addToast });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useFreshness  ({ stockRef, kitchenRef, setStock, setComplaints, addToast });
   useEvents     ({

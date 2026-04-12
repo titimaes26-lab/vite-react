@@ -461,7 +461,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
           <div style={{flex:1}}>
             <div style={{fontSize:11,fontWeight:700,color:C.amber,fontFamily:F.title}}>Prêt — {loan.label}</div>
             <div style={{fontSize:10,color:C.ink,fontFamily:F.body,marginTop:1}}>
-              Restant : <strong>{loan.remaining.toFixed(2)} €</strong> · {loan.repayPerHour} €/h
+              Restant : <strong>{loan.remaining.toFixed(2)} €</strong> · {loan.repayPerDay} €/j
             </div>
           </div>
           <div style={{height:7,width:150,background:C.border,borderRadius:99,overflow:"hidden"}}>
