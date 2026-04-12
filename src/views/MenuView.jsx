@@ -80,7 +80,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
   const openFormula=(preset)=>{
     const sel={};
     preset.cats.forEach(cat=>{
-      const first=menu.find(m=>m.cat===cat&&m.enabled!==false);
+      const first=menu.find(m=>m.cat===cat&&m.enabled!==false&&unlocked(m));
       if(first)sel[cat]=String(first.id);
     });
     setFSelections(sel);
@@ -501,7 +501,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                     <Lbl>{cat}</Lbl>
                     <Sel value={fSelections[cat]||""} onChange={e=>setFSelections(p=>({...p,[cat]:e.target.value}))}>
                       <option value="">Choisir…</option>
-                      {menu.filter(m=>m.cat===cat&&m.enabled!==false).map(m=>(
+                      {menu.filter(m=>m.cat===cat&&m.enabled!==false&&unlocked(m)).map(m=>(
                         <option key={m.id} value={String(m.id)}>{m.name} — {m.price}€</option>
                       ))}
                     </Sel>
