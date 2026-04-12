@@ -410,7 +410,6 @@ export default function App(){
       setObjStats(s=>({...s,_hadLoss:true}));
       setChallengeLostToday(true);
       setChallengeProgress(p=>({...p,noLoss:0}));
-      updateReputation(REP_DELTA.lostClient,"client perdu");
     }
   },[]);
 
@@ -596,7 +595,7 @@ export default function App(){
   },[]);
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
-  useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat });
+  useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient: REP_DELTA.lostClient });
 
   /* ── Auto-assign serveur pour le nettoyage des tables ── */
   useEffect(() => {
