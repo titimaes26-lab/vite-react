@@ -333,7 +333,10 @@ export default function App(){
         if(sv.menu)      setMenu(sv.menu);
         if(sv.stock)     setStock(sv.stock);
         if(sv.complaints)setComplaints(sv.complaints);
-        if(sv.kitchen)   setKitchen(sv.kitchen);
+        if(sv.kitchen){
+          const _unlockedC=CHEF_LVL[Math.min(chefLv(sv.kitchen.chef?.totalXp||0).l,CHEF_LVL.length-1)].commis;
+          setKitchen({...sv.kitchen,commis:(sv.kitchen.commis||[]).slice(0,_unlockedC)});
+        }
         if(sv.restoXp!=null) setRestoXp(sv.restoXp);
         if(sv.cash!=null)    setCash(sv.cash);
         if(sv.transactions)  setTransactions(sv.transactions);
@@ -472,7 +475,10 @@ export default function App(){
         if (sv.stock)                 setStock(sv.stock);
         if (sv.servers)               setServers(sv.servers);
         if (sv.tables)                setTables(sv.tables);
-        if (sv.kitchen)               setKitchen(sv.kitchen);
+        if (sv.kitchen){
+          const _unlockedC=CHEF_LVL[Math.min(chefLv(sv.kitchen.chef?.totalXp||0).l,CHEF_LVL.length-1)].commis;
+          setKitchen({...sv.kitchen,commis:(sv.kitchen.commis||[]).slice(0,_unlockedC)});
+        }
         if (sv.objStats)              setObjStats(sv.objStats);
         if (sv.dailyStats)            setDailyStats(sv.dailyStats.map((d,i)=>d.day!=null?d:{...d,day:i+1}).slice(-15));
         if (sv.completedIds)          setCompletedIds(sv.completedIds);

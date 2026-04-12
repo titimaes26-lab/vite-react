@@ -504,9 +504,7 @@ export const KITCHEN0 = {
     salary: 28,
   },
   commis: [
-    { id: 1, name: "Léa Fontaine", totalXp: 0,  status: "actif", task: null, salary: 10, specialty: { id: "patissier",   name: "Pâtissier",    icon: "🍰", cat: "Desserts", bonus: 0.20 } },
-    { id: 2, name: "Tom Renard",   totalXp: 10, status: "actif", task: null, salary: 10, specialty: { id: "rotisseur",   name: "Rôtisseur",    icon: "🥩", cat: "Plats",    bonus: 0.20 } },
-    { id: 3, name: "Nina Morel",   totalXp: 0,  status: "actif", task: null, salary: 10, specialty: null },
+    { id: 1, name: "Léa Fontaine", totalXp: 0, status: "actif", task: null, salary: 10, specialty: { id: "patissier", name: "Pâtissier", icon: "🍰", cat: "Desserts", bonus: 0.20 } },
   ],
   queue:        [],
   cooking:      [],

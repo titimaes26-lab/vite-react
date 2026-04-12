@@ -14,6 +14,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
   const cl=chefLv(chf.totalXp);
   const clD=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
   const unlockedCommis=clD.commis;
+  const maxCommisSlots=Math.max(...CHEF_LVL.map(l=>l.commis));
 
   // Compute upgrade bonuses (all slot/speed sources combined)
   const upg={fourneau:0,four:0,stockage:0,plonge:0,salamandre:0,dressage:0,sousvide:0,brigade:0,...(kitchen.upgrades||{})};
@@ -122,15 +123,23 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
     return()=>clearInterval(iv);
   },[]);
 
-  // Chef level-up toast
+  // Chef level-up toast + commis unlock notification
+  const prevChefLvRef=useRef(cl.l);
   useEffect(()=>{
-    const cl2=chefLv(kitchen.chef.totalXp);
-    if(cl2.l>0&&cl2.r<12){
-      const d=CHEF_LVL[Math.min(cl2.l,CHEF_LVL.length-1)];
-      addToast({icon:"👨‍🍳",title:`Chef niveau ${cl2.l} !`,
-        msg:`${kitchen.chef.name} → ${d.name}`,color:C.purple,tab:"cuisine"});
+    if(cl.l>prevChefLvRef.current){
+      const d=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
+      addToast({icon:"👨‍🍳",title:`Chef niveau ${cl.l} !`,
+        msg:`${chf.name} → ${d.name}`,color:C.purple,tab:"cuisine"});
+      // Check if a new commis slot was unlocked
+      const prevCommis=CHEF_LVL[Math.min(prevChefLvRef.current,CHEF_LVL.length-1)].commis;
+      if(d.commis>prevCommis){
+        addToast({icon:"👥",title:"Nouveau slot commis débloqué !",
+          msg:`Vous pouvez maintenant embaucher un ${d.commis}e commis.`,
+          color:C.green,tab:"cuisine"});
+      }
     }
-  },[chefLv(kitchen.chef.totalXp).l]);
+    prevChefLvRef.current=cl.l;
+  },[cl.l]);
 
   // Start one dish
   const startDish=(dish)=>{
@@ -409,45 +418,59 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
           {morale<30&&<span style={{fontSize:9,color:C.red,fontFamily:F.body,fontWeight:600}}>⚠️−15% vitesse</span>}
         </div>
 
-        {/* Commis inline */}
+        {/* Commis inline — slots déterminés par le niveau chef */}
         <div style={{marginTop:9,display:"flex",gap:5,flexWrap:"wrap"}}>
-          {kitchen.commis.map((cm,idx)=>{
+          {Array.from({length:maxCommisSlots},(_,idx)=>{
+            const cm=kitchen.commis[idx];
             const locked=idx>=unlockedCommis;
-            const cml=commisLv(cm.totalXp);
-            const cmlD=COMMIS_LVL[Math.min(cml.l,COMMIS_LVL.length-1)];
-            const isEmpty=!cm.name;
-            return(
-              <div key={cm.id} style={{
-                background:locked?C.bg:cmlD.color+"12",
-                border:`1px solid ${locked?C.border:cmlD.color+"33"}`,
-                borderRadius:8,padding:"5px 9px",opacity:locked?0.4:1,
-                display:"flex",gap:5,alignItems:"center",cursor:!locked&&!isEmpty?"default":"pointer"}}
-                onClick={!locked&&isEmpty?()=>setCommisHireSlot(idx):undefined}>
-                <span style={{fontSize:14}}>{locked?"🔒":cmlD.icon}</span>
-                <div>
-                  <div style={{fontSize:10,fontWeight:600,color:C.ink,fontFamily:F.body,whiteSpace:"nowrap"}}>{cm.name}</div>
-                  {!locked&&<div style={{fontSize:9,color:C.muted,fontFamily:F.body,display:"flex",gap:4,alignItems:"center"}}>
-                    <span>{cmlD.name}</span>
-                    {cm.specialty&&<span style={{background:cm.specialty.cat==="Desserts"?C.purpleP:cm.specialty.cat==="Plats"?C.terraP:cm.specialty.cat==="Entrées"?C.greenP:C.navyP,
-                      color:cm.specialty.cat==="Desserts"?C.purple:cm.specialty.cat==="Plats"?C.terra:cm.specialty.cat==="Entrées"?C.green:C.navy,
-                      borderRadius:4,padding:"0 4px",fontSize:8,fontWeight:700}}>
-                      {cm.specialty.icon} {cm.specialty.name}
-                    </span>}
-                  </div>}
+            if(cm){
+              const cml=commisLv(cm.totalXp);
+              const cmlD=COMMIS_LVL[Math.min(cml.l,COMMIS_LVL.length-1)];
+              return(
+                <div key={cm.id} style={{
+                  background:cmlD.color+"12",border:`1px solid ${cmlD.color+"33"}`,
+                  borderRadius:8,padding:"5px 9px",display:"flex",gap:5,alignItems:"center"}}>
+                  <span style={{fontSize:14}}>{cmlD.icon}</span>
+                  <div>
+                    <div style={{fontSize:10,fontWeight:600,color:C.ink,fontFamily:F.body,whiteSpace:"nowrap"}}>{cm.name}</div>
+                    <div style={{fontSize:9,color:C.muted,fontFamily:F.body,display:"flex",gap:4,alignItems:"center"}}>
+                      <span>{cmlD.name}</span>
+                      {cm.specialty&&<span style={{background:cm.specialty.cat==="Desserts"?C.purpleP:cm.specialty.cat==="Plats"?C.terraP:cm.specialty.cat==="Entrées"?C.greenP:C.navyP,
+                        color:cm.specialty.cat==="Desserts"?C.purple:cm.specialty.cat==="Plats"?C.terra:cm.specialty.cat==="Entrées"?C.green:C.navy,
+                        borderRadius:4,padding:"0 4px",fontSize:8,fontWeight:700}}>
+                        {cm.specialty.icon} {cm.specialty.name}
+                      </span>}
+                    </div>
+                  </div>
+                  <button onClick={(e)=>{e.stopPropagation();setCommisHireSlot(idx);}} style={{
+                    fontSize:9,padding:"2px 6px",borderRadius:5,cursor:"pointer",border:`1px solid ${C.border}`,
+                    background:C.bg,color:C.muted,fontFamily:F.body}}>↺</button>
                 </div>
-                {!locked&&<button onClick={(e)=>{e.stopPropagation();setCommisHireSlot(idx);}} style={{
-                  fontSize:9,padding:"2px 6px",borderRadius:5,cursor:"pointer",border:`1px solid ${C.border}`,
-                  background:C.bg,color:C.muted,fontFamily:F.body}}>↺</button>}
+              );
+            }
+            if(!locked){
+              return(
+                <button key={`hire-${idx}`} onClick={()=>setCommisHireSlot(idx)} style={{
+                  fontSize:10,fontWeight:700,fontFamily:F.body,cursor:"pointer",
+                  padding:"5px 10px",borderRadius:8,border:`1.5px dashed ${C.green}`,
+                  background:C.greenP,color:C.green}}>+ Commis {idx+1}</button>
+              );
+            }
+            const unlockLvlIdx=CHEF_LVL.findIndex(l=>l.commis>idx);
+            const unlockName=unlockLvlIdx>=0?CHEF_LVL[unlockLvlIdx].name:"?";
+            return(
+              <div key={`locked-${idx}`} style={{
+                background:C.bg,border:`1px solid ${C.border}`,
+                borderRadius:8,padding:"5px 9px",opacity:0.45,
+                display:"flex",gap:5,alignItems:"center"}}>
+                <span style={{fontSize:14}}>🔒</span>
+                <div>
+                  <div style={{fontSize:10,fontWeight:600,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>Commis {idx+1}</div>
+                  <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{unlockName}</div>
+                </div>
               </div>
             );
           })}
-          {/* Bouton embauche si slot chef disponible mais commis manquant */}
-          {kitchen.commis.length<unlockedCommis&&(
-            <button onClick={()=>setCommisHireSlot(kitchen.commis.length)} style={{
-              fontSize:10,fontWeight:700,fontFamily:F.body,cursor:"pointer",
-              padding:"5px 10px",borderRadius:8,border:`1.5px dashed ${C.green}`,
-              background:C.greenP,color:C.green}}>+ Embaucher commis</button>
-          )}
         </div>
       </div>
 
