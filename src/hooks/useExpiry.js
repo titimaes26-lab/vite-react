@@ -7,23 +7,23 @@
    3. Fin de nettoyage → libère les tables (status → "libre")
    4. Fin de service → libère les serveurs (status → "actif")
 
-   Usage dans App.jsx :
-     useExpiry({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient });
+   Lit l'état depuis des refs (lecture synchrone) pour éviter
+   le piège React 18 : les effets de bord exécutés à l'intérieur
+   des updaters setState (ex: updateReputation, addToast) ne
+   s'exécutent pas de manière synchrone, le setter étant différé.
+
+   Usage dans restaurant-manager.jsx :
+     useExpiry({ queueRef, waitlistRef, tablesRef,
+                 setQueue, setWaitlist, setTables, setServers,
+                 addToast, addDayStat, updateReputation, repDeltaLostClient });
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
 
-/**
- * @param {{
- *   setQueue    : Function,
- *   setWaitlist : Function,
- *   setTables   : Function,
- *   setServers  : Function,
- *   addToast    : Function,
- *   addDayStat  : Function,
- * }} params
- */
 export const useExpiry = ({
+  queueRef,
+  waitlistRef,
+  tablesRef,
   setQueue,
   setWaitlist,
   setTables,
@@ -37,16 +37,12 @@ export const useExpiry = ({
     const iv = setInterval(() => {
       const t = Date.now();
 
-      /* ── 1. File d'attente expirée → waitlist ─────── */
-      let expired = [];
+      /* ── 1. File d'attente expirée → waitlist ─────────── */
+      const queue   = queueRef.current ?? [];
+      const expired = queue.filter(c => t >= c.expiresAt);
 
-      setQueue(q => {
-        expired = q.filter(c => t >= c.expiresAt);
-        return expired.length > 0 ? q.filter(c => t < c.expiresAt) : q;
-      });
-
-      // Effets de bord hors setter (toasts + waitlist + réputation immédiate)
       if (expired.length > 0) {
+        setQueue(queue.filter(c => t < c.expiresAt));
         setWaitlist(w => [
           ...w,
           ...expired.map(c => ({ ...c, leftAt: t, recallUntil: t + 120_000 })),
@@ -63,24 +59,23 @@ export const useExpiry = ({
         });
       }
 
-      /* ── 2. Waitlist : groupes non rappelés → perdus ─ */
-      let reallyLost = [];
+      /* ── 2. Waitlist : groupes non rappelés → perdus ───── */
+      const waitlist   = waitlistRef.current ?? [];
+      const reallyLost = waitlist.filter(c => t >= c.recallUntil);
 
-      setWaitlist(w => {
-        reallyLost = w.filter(c => t >= c.recallUntil);
-        return reallyLost.length > 0 ? w.filter(c => t < c.recallUntil) : w;
-      });
+      if (reallyLost.length > 0) {
+        setWaitlist(waitlist.filter(c => t < c.recallUntil));
+        reallyLost.forEach(() => addDayStat("lost"));
+      }
 
-      reallyLost.forEach(() => addDayStat("lost"));
+      /* ── 3. Fin de nettoyage → tables libres ─────────── */
+      const tables    = tablesRef.current ?? [];
+      const doneTables = tables.filter(
+        tb => tb.status === "nettoyage" && tb.cleanUntil && t >= tb.cleanUntil
+      );
 
-      /* ── 3. Fin de nettoyage → tables libres ─────────  */
-      setTables(prev => {
-        const done = prev.filter(
-          tb => tb.status === "nettoyage" && tb.cleanUntil && t >= tb.cleanUntil
-        );
-        if (!done.length) return prev;
-
-        done.forEach(tb =>
+      if (doneTables.length > 0) {
+        doneTables.forEach(tb =>
           addToast({
             icon  : "✨",
             title : "Table prête",
@@ -89,15 +84,16 @@ export const useExpiry = ({
             tab   : "tables",
           })
         );
-
-        return prev.map(tb =>
-          done.find(d => d.id === tb.id)
-            ? { ...tb, status: "libre", server: null, cleanServer: null, cleanUntil: null, cleanDur: null, freedAt: t }
-            : tb
+        setTables(prev =>
+          prev.map(tb =>
+            doneTables.find(d => d.id === tb.id)
+              ? { ...tb, status: "libre", server: null, cleanServer: null, cleanUntil: null, cleanDur: null, freedAt: t }
+              : tb
+          )
         );
-      });
+      }
 
-      /* ── 4. Fin de service / nettoyage → serveurs actifs ──────── */
+      /* ── 4. Fin de service / nettoyage → serveurs actifs ── */
       setServers(prev =>
         prev.map(s => {
           if (s.status === "service" && s.serviceUntil && t >= s.serviceUntil)
@@ -110,5 +106,5 @@ export const useExpiry = ({
     }, 500);
 
     return () => clearInterval(iv);
-  }, [setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient]);
+  }, [queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient]);
 };

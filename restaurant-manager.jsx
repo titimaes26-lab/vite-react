@@ -539,6 +539,7 @@ export default function App(){
   const tablesRef     = useRef(tables);
   const serversRef    = useRef(servers);
   const queueRef      = useRef(queue);
+  const waitlistRef   = useRef(waitlist);
   const kitchenRef    = useRef(kitchen);
   const loanRef       = useRef(loan);
   const restoLvRef    = useRef(0);
@@ -551,6 +552,7 @@ export default function App(){
   useEffect(() => { tablesRef.current     = tables;     }, [tables]);
   useEffect(() => { serversRef.current    = servers;    }, [servers]);
   useEffect(() => { queueRef.current      = queue;      }, [queue]);
+  useEffect(() => { waitlistRef.current   = waitlist;   }, [waitlist]);
   useEffect(() => { kitchenRef.current    = kitchen;    }, [kitchen]);
   useEffect(() => { loanRef.current       = loan;       }, [loan]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
@@ -605,7 +607,7 @@ export default function App(){
   },[]);
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
-  useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient: REP_DELTA.lostClient });
+  useExpiry     ({ queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient: REP_DELTA.lostClient });
 
   /* ── Auto-assign serveur pour le nettoyage des tables ── */
   useEffect(() => {
