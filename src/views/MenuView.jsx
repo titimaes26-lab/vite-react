@@ -62,7 +62,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
     if(sortBy==="score")   return perfScore(b)-perfScore(a);
     return 0;
   });
-  const locked=base.filter(m=>!unlocked(m)).sort((a,b)=>(a.unlockLevel??0)-(b.unlockLevel??0));
+  const locked=base.filter(m=>!unlocked(m)).sort((a,b)=>(a.unlockLevel??0)-(b.unlockLevel??0)).slice(0,3);
   const maxOrders=Math.max(...menu.map(m=>m.orderCount||0),1);
 
   /* ── Helpers ── */
@@ -392,10 +392,10 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                 borderTop:`2px dashed ${C.purple}44`,paddingTop:14}}>
                 <span style={{fontSize:16}}>🔒</span>
                 <span style={{fontSize:13,fontWeight:700,color:C.purple,fontFamily:F.title}}>
-                  Plats à débloquer
+                  Prochains débloquages
                 </span>
                 <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
-                  — disponibles en progressant en niveau
+                  — {locked.length} prochain{locked.length>1?"s":""} sur {base.filter(m=>!unlocked(m)).length} verrouillé{base.filter(m=>!unlocked(m)).length>1?"s":""}
                 </span>
               </div>
               <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(220px,1fr))",gap:bp.isMobile?8:10}}>
