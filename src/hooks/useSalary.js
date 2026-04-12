@@ -10,7 +10,7 @@
    setters différés revient à lire total=0 au moment du `if`.
 
    Usage dans restaurant-manager.jsx :
-     useSalary({ serversRef, kitchenRef, setCash, setLoan, addTx, addToast });
+     useSalary({ serversRef, kitchenRef, loanRef, setCash, setLoan, addTx, addToast });
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
@@ -27,6 +27,7 @@ const _chefLv = (xp) => {
  * @param {{
  *   serversRef  : React.RefObject,
  *   kitchenRef  : React.RefObject,
+ *   loanRef     : React.RefObject,
  *   setCash     : Function,
  *   setLoan     : Function,
  *   addTx       : Function,
@@ -36,6 +37,7 @@ const _chefLv = (xp) => {
 export const useSalary = ({
   serversRef,
   kitchenRef,
+  loanRef,
   setCash,
   setLoan,
   addTx,
@@ -84,10 +86,9 @@ export const useSalary = ({
         });
       }
 
-      /* ── Remboursement de prêt ─────────────────────── */
-      setLoan(ln => {
-        if (!ln) return ln;
-
+      /* ── Remboursement de prêt (lecture synchrone via loanRef) ── */
+      const ln = loanRef.current;
+      if (ln) {
         const repay        = Math.min(ln.remaining, ln.repayPerHour);
         const newRemaining = +(ln.remaining - repay).toFixed(2);
 
@@ -95,6 +96,7 @@ export const useSalary = ({
         addTx("remboursement", `Remboursement prêt (${ln.id}) — mensualité`, repay);
 
         if (newRemaining <= 0) {
+          setLoan(null);
           addToast({
             icon  : "🎉",
             title : "Prêt remboursé !",
@@ -102,13 +104,12 @@ export const useSalary = ({
             color : "#2a5c3f",
             tab   : "stats",
           });
-          return null;
+        } else {
+          setLoan({ ...ln, remaining: newRemaining });
         }
-
-        return { ...ln, remaining: newRemaining };
-      });
+      }
     }, 60_000); // 1 heure de jeu = 60 s réelles
 
     return () => clearInterval(iv);
-  }, [serversRef, kitchenRef, setCash, setLoan, addTx, addToast]);
+  }, [serversRef, kitchenRef, loanRef, setCash, setLoan, addTx, addToast]);
 };

@@ -434,22 +434,14 @@ export default function App(){
      formulas]);
 
   // Toutes les 5s : sauvegarder si dirty
+  // Utilise gdSyncStateRef.current (toujours à jour) pour éviter la fermeture périmée
   useEffect(()=>{
     if(!isLoaded) return;
     const interval = setInterval(()=>{
       if(!isDirtyRef.current) return;
       isDirtyRef.current = false;
       setSaveStatus("saving");
-      saveGame({
-        tables,servers,menu,stock,complaints,kitchen,
-        restoXp,cash,transactions,loan,supplierMode,
-        pendingDeliveries,dailySpecials,completedIds,
-        challengeDate,todayChallenges,challengeProgress,
-        challengeClaimed,challengeLostToday,pendingClaim,
-        objStats,dailyStats,reputation,formulas,
-        candidatePool,candidateDate,
-        dayStartRealMs,
-      });
+      saveGame(gdSyncStateRef.current);
       setSaveStatus("saved");
       setTimeout(()=>setSaveStatus("idle"),2000);
     }, 5000);
@@ -548,6 +540,7 @@ export default function App(){
   const serversRef    = useRef(servers);
   const queueRef      = useRef(queue);
   const kitchenRef    = useRef(kitchen);
+  const loanRef       = useRef(loan);
   const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
 
@@ -559,6 +552,7 @@ export default function App(){
   useEffect(() => { serversRef.current    = servers;    }, [servers]);
   useEffect(() => { queueRef.current      = queue;      }, [queue]);
   useEffect(() => { kitchenRef.current    = kitchen;    }, [kitchen]);
+  useEffect(() => { loanRef.current       = loan;       }, [loan]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
   /* ── Horloge de jeu ────────────────────────────────── */
@@ -614,7 +608,7 @@ export default function App(){
     }, 500);
     return () => clearInterval(iv);
   }, [setTables, setServers]);
-  useSalary     ({ serversRef, kitchenRef, setCash, setLoan, addTx, addToast });
+  useSalary     ({ serversRef, kitchenRef, loanRef, setCash, setLoan, addTx, addToast });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useFreshness  ({ stockRef, kitchenRef, setStock, setComplaints, addToast });
   useEvents     ({
