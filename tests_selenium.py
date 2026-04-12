@@ -1,28 +1,36 @@
 #!/usr/bin/env python3
 """
 Tests Selenium — Mon Resto Manager
-Lancé sur Termux / Android (Chrome mobile).
+Lancé sur Termux / Android.
+
+Prérequis Termux :
+    pkg install chromium          # installe chromium + chromedriver
+    pip install selenium
 
 Usage :
     python tests_selenium.py
-
-Prérequis :
-    pip install selenium
-    # ChromeDriver installé et dans le PATH
-    # L'app tourne sur BASE_URL (npm run dev ou build servi)
 """
 
+import os, sys
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 import time
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 BASE_URL       = "http://localhost:5173"
 SCREENSHOT_DIR = "/sdcard/Download"
 WAIT           = 10   # secondes max par attente
+
+# Chemins Termux (pkg install chromium)
+TERMUX_PREFIX    = "/data/data/com.termux/files/usr"
+CHROMEDRIVER_BIN = os.environ.get("CHROMEDRIVER_BIN",
+                       f"{TERMUX_PREFIX}/bin/chromedriver")
+CHROMIUM_BIN     = os.environ.get("CHROMIUM_BIN",
+                       f"{TERMUX_PREFIX}/bin/chromium-browser")
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 passed = 0
@@ -69,12 +77,30 @@ def dismiss_tutorials(driver, wait):
             pass
 
 # ── Setup driver ───────────────────────────────────────────────────────────────
-options = Options()
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-dev-shm-usage")
-# options.add_argument("--headless")  # décommenter pour mode sans fenêtre
+def make_driver():
+    options = Options()
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-software-rasterizer")
+    # options.add_argument("--headless=new")  # décommenter si besoin
 
-driver = webdriver.Chrome(options=options)
+    # Sur Termux, Selenium Manager ne sait pas gérer android/any.
+    # On pointe explicitement vers le chromedriver et chromium installés
+    # via : pkg install chromium
+    if not os.path.isfile(CHROMEDRIVER_BIN):
+        print(f"⚠  chromedriver introuvable : {CHROMEDRIVER_BIN}")
+        print("   Installez-le avec : pkg install chromium")
+        print("   Ou définissez la variable : CHROMEDRIVER_BIN=/chemin/vers/chromedriver")
+        sys.exit(1)
+
+    if os.path.isfile(CHROMIUM_BIN):
+        options.binary_location = CHROMIUM_BIN
+
+    service = Service(executable_path=CHROMEDRIVER_BIN)
+    return webdriver.Chrome(service=service, options=options)
+
+driver = make_driver()
 wait   = WebDriverWait(driver, WAIT)
 
 # ══════════════════════════════════════════════════════════════════════════════
