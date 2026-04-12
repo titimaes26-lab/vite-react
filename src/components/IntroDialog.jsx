@@ -34,23 +34,28 @@ const INTRO_DIALOG = [
   {
     speaker: "elodie",
     text: "Bonjour ! Je suis Élodie, votre assistante de gestion. J'ai analysé les chiffres de ce lieu… Disons que « potentiel » est un mot poli pour « catastrophe financière imminente ».",
+    short: "Je suis Élodie. Ce lieu a du « potentiel »… alias catastrophe financière imminente.",
   },
   {
     speaker: "elodie",
     text: "Mon rôle est de m'assurer que nous ne fassions pas faillite avant la fin de la semaine. Le vôtre est de prendre les décisions stratégiques. Et le sien…",
+    short: "Moi : éviter la faillite. Vous : les décisions stratégiques. Et lui…",
     note: "Gustave arrive en trombe !",
   },
   {
     speaker: "gustave",
     text: "Sacrilège ! Il n'y a pas un seul grain de sel de Guérande dans cette cuisine ! Comment suis-je censé travailler dans ces conditions ?",
+    short: "Sacrilège ! Pas un grain de sel de Guérande ici ! Comment travailler dans ces conditions ?!",
   },
   {
     speaker: "elodie",
     text: "Gustave, je vous présente notre nouveau propriétaire. Vous savez, la personne qui a réellement de l'argent pour acheter votre sel.",
+    short: "Gustave, voici le Patron. Celui qui a de l'argent pour acheter votre sel.",
   },
   {
     speaker: "gustave",
     text: "Le Patron ! Enchanté ! Je suis Gustave, le vrai cœur battant de cet établissement. La légende locale de la sauce au poivre !",
+    short: "Le Patron ! Je suis Gustave, le cœur de cet établissement. La légende de la sauce au poivre !",
   },
   {
     speaker: "elodie",
@@ -59,14 +64,17 @@ const INTRO_DIALOG = [
   {
     speaker: "gustave",
     text: "Détails ! Mon plan est simple : nous créons le menu le plus divin de la région, et la gloire sera à nous !",
+    short: "Détails ! Le plan : le menu le plus divin de la région. La gloire nous attend !",
   },
   {
     speaker: "elodie",
     text: "Mon plan est plus réaliste : deux tables, la gazinière réparée, et des plats avec une marge positive. C'est là que vous intervenez, Patron.",
+    short: "Mon plan : deux tables, gazinière réparée, des plats rentables. C'est là que vous intervenez.",
   },
   {
     speaker: "gustave",
     text: "Allez, Patron ! Ne l'écoutez pas, elle parle comme un tableau Excel. Construisez-moi une cuisine digne de ce nom, et je vous promets des miracles !",
+    short: "Allez ! Elle parle en tableur. Construisez une vraie cuisine et je vous promets des miracles !",
     note: "Les deux se tournent vers vous…",
   },
   {
@@ -84,40 +92,49 @@ const TABLES_DIALOG = [
     speaker: "elodie",
     section: "L'Art de l'Accueil",
     text: "Patron, ouvrez l'onglet Tables. C'est ici que la théorie rencontre la réalité du terrain. Les clients arrivent en groupes toutes les 30 secondes — avec 65 % de chance de franchir la porte.",
+    short: "Ouvrez Tables. Les clients arrivent en groupes toutes les 30 s — 65 % de chance d'entrer.",
   },
   {
     speaker: "gustave",
     text: "Et quand ils entrent, c'est pour l'extase ! Mais voyez cette barre de patience ? Si elle vire au rouge et tombe à zéro, ils partent… et mon génie est gaspillé sur des ingrats qui n'ont pas su attendre !",
+    short: "Voyez cette barre de patience ? Si elle tombe à zéro, ils partent — et mon génie est gaspillé !",
   },
   {
     speaker: "elodie",
     text: "Surtout, ils partent sans payer. Pour éviter ce drame : cliquez sur une table pour ouvrir son panneau de détails. C'est votre tour de contrôle.",
+    short: "Ils partent sans payer ! Cliquez sur une table pour ouvrir son panneau de détails.",
   },
   {
     speaker: "elodie",
     section: "Le Cycle du Service",
     text: "Le processus est une horloge suisse. Le serveur prend la commande, puis dès que vous servez les assiettes, la table passe en mode 🍴 Repas.",
+    short: "Le serveur prend la commande, vous servez, la table passe en 🍴 Repas.",
   },
   {
     speaker: "gustave",
     text: "C'est le moment sacré ! Le silence de la dégustation… interrompu uniquement par le bruit des couverts.",
+    short: "C'est le moment sacré ! Le silence de la dégustation…",
   },
   {
     speaker: "elodie",
     text: "Puis vient le moment que je préfère : l'encaissement. Mais ne vous reposez pas ! Un serveur doit nettoyer la table avant qu'un nouveau groupe puisse s'installer.",
+    short: "Puis l'encaissement ! Mais un serveur doit nettoyer la table avant le prochain groupe.",
   },
   {
     speaker: "gustave",
     section: "Optimisation de l'Espace",
     text: "Patron, j'ai des visions de banquets royaux ! Deux chaises, c'est pour les rendez-vous timides. Il nous faut de la place pour la grandeur !",
+    short: "Deux chaises, c'est pour les timides. Il nous faut de la place pour la grandeur !",
   },
   {
     speaker: "elodie",
     text: "Pour une fois, il n'a pas tort. Sur chaque table libre, un bouton permet d'augmenter la capacité. Plus de sièges = des groupes plus grands = plus de chiffre d'affaires.",
+    short: "Sur chaque table, un bouton augmente la capacité. Plus de sièges = plus de clients = plus de recettes.",
   },
   {
     speaker: "elodie",
     text: "Gardez un œil sur l'espace : les groupes qui arrivent ne dépasseront jamais votre capacité maximale. Des tables de deux seulement ? Vous raterez les grandes tablées qui rapportent gros.",
+    short: "Les groupes ne dépassent jamais votre capacité. Tables de deux seulement ? Vous raterez les grandes tablées.",
   },
   {
     speaker: "gustave",
@@ -134,39 +151,48 @@ const SERVERS_DIALOG = [
     speaker: "elodie",
     section: "Brigade et Burnout",
     text: "Parlons ressources humaines. Pour l'instant, nous avons 2 serveurs — le strict minimum pour ne pas ressembler à un self-service. D'autres slots se débloqueront avec le niveau du restaurant.",
+    short: "2 serveurs pour l'instant. D'autres slots se débloquent avec le niveau du restaurant.",
   },
   {
     speaker: "gustave",
     text: "Mes plats sont des poèmes, Patron ! Il faut des messagers dignes de ce nom pour les porter. Mais regardez-les… ils ont l'air fatigués.",
+    short: "Mes plats sont des poèmes. Il faut des messagers dignes. Mais regardez-les… ils ont l'air fatigués.",
   },
   {
     speaker: "elodie",
     text: "C'est normal, Gustave. Un serveur actif perd 1 point de moral toutes les 5 minutes. S'ils tombent sous 10, c'est le 💀 Burnout : inutiles et indisponibles. Seuls les serveurs au moral solide sont assignés automatiquement.",
+    short: "Moral −1 pt/5 min. Sous 10 : 💀 Burnout — inutilisables. Seuls les serveurs solides sont assignés.",
   },
   {
     speaker: "gustave",
     text: "Sacrilège ! On ne peut pas servir un homard avec une mine déconfite ! Qu'ils fassent des pauses pour que leur moral remonte. Un artiste a besoin de repos !",
+    short: "On ne sert pas un homard avec une mine déconfite ! Des pauses pour le moral. Un artiste se repose !",
   },
   {
     speaker: "elodie",
     text: "Et le propriétaire a besoin d'économies. Les serveurs sont payés toutes les heures réelles, mais seulement s'ils sont actifs. En pause ou au repos, ils ne coûtent rien. C'est le moment d'être un manager efficace.",
+    short: "Salaires uniquement si le serveur est actif. En pause, il ne vous coûte rien. Gérez intelligemment !",
   },
   {
     speaker: "gustave",
     section: "Formation et Évolution",
     text: "Et si on les transformait en véritables maîtres ? Sommellerie, Prestige VIP, Rapidité pour qu'ils courent aussi vite que mon inspiration !",
+    short: "Et si on les formait ? Sommellerie, VIP, Rapidité — aussi vite que mon inspiration !",
   },
   {
     speaker: "elodie",
     text: "Les formations en Accueil ou en Bien-être sont aussi cruciales. Elles améliorent leurs spécialités et augmentent leur moral maximal. Plus ils sont formés, moins ils craquent.",
+    short: "Accueil et Bien-être améliorent spécialités et moral max. Plus formés, moins de burnouts.",
   },
   {
     speaker: "gustave",
     text: "L'expérience, Patron ! À chaque encaissement, ils gagnent de l'XP. Et plus ils montent de niveau, plus les clients sont généreux sur les pourboires.",
+    short: "À chaque encaissement : +XP. Niveau élevé = clients plus généreux en pourboires !",
   },
   {
     speaker: "elodie",
     text: "En résumé : gérez leur fatigue, investissez dans leur formation, et surveillez votre masse salariale. À vous de jouer, Patron.",
+    short: "Gérez la fatigue, formez-les, surveillez la masse salariale. À vous, Patron !",
     isLast: true,
   },
 ];
@@ -179,18 +205,22 @@ const BANK_DIALOG = [
     speaker: "gustave",
     section: "Le levier financier",
     text: "Élodie, j'ai envie de voir grand pour la nouvelle terrasse, mais mon épargne est un peu... timide. On a des options pour booster le budget ?",
+    short: "J'ai envie de voir grand, mais mon épargne est timide. Options pour booster le budget ?",
   },
   {
     speaker: "elodie",
     text: "On appelle ça le levier financier, Gustave. J'ai 3 options de prêts bancaires prêtes : le Petit prêt (1 500 €) pour les bricoles, le Standard (4 000 €) pour du sérieux, et le Grand prêt (9 000 €) si tu veux vraiment refaire la déco du sol au plafond.",
+    short: "3 prêts disponibles : Petit (1 500 €), Standard (4 000 €), Grand (9 000 €). À vous selon vos ambitions !",
   },
   {
     speaker: "gustave",
     text: "9 000 € ! Ça en fait des pizzas. Et je rembourse comment ? Je n'ai pas envie d'avoir un huissier en cuisine.",
+    short: "9 000 € ! Et je rembourse comment ? Pas d'huissier en cuisine !",
   },
   {
     speaker: "elodie",
-    text: "C'est indolore. Le remboursement est automatique par mensualités horaires : on prélève un petit peu chaque heure sur tes revenus. Règle d'or : un seul prêt actif à la fois. Pour en prendre un autre, il faudra d'abord faire un remboursement anticipé.",
+    text: "C'est indolore. Le remboursement est automatique par mensualités journalières : une mensualité prélevée à la fin de chaque journée. Règle d'or : un seul prêt actif à la fois. Pour en prendre un autre, il faudra d'abord faire un remboursement anticipé.",
+    short: "Remboursement auto — une mensualité par jour. Un seul prêt actif à la fois.",
   },
   {
     speaker: "gustave",
@@ -199,6 +229,7 @@ const BANK_DIALOG = [
   {
     speaker: "elodie",
     text: "Pas de panique, c'est géré. Les salaires sont débités automatiquement toutes les heures réelles. Je ne paie que les personnels actifs. Ton commis que tu n'as pas encore débloqué ? Il ne nous coûte pas un centime.",
+    short: "Salaires débités auto chaque heure, uniquement si le staff est actif. Non débloqué ? Zéro centime.",
   },
   {
     speaker: "gustave",
@@ -207,6 +238,7 @@ const BANK_DIALOG = [
   {
     speaker: "elodie",
     text: "Pas ici. Si le staff travaille, l'argent sort. Si tu renvoies tout le monde chez soi, le compteur s'arrête. C'est du flux tendu, Gustave, exactement comme ta cuisson !",
+    short: "Staff actif = argent qui sort. Au repos, le compteur s'arrête. Flux tendu, comme ta cuisson !",
     isLast: true,
   },
 ];
@@ -219,10 +251,12 @@ const STATS_DIALOG = [
     speaker: "gustave",
     section: "Le verdict des chiffres",
     text: "Bon, Élodie, dis-moi la vérité. On a eu un monde fou, mais est-ce que le tiroir-caisse suit la cadence ?",
+    short: "Dis-moi la vérité, Élodie. Le tiroir-caisse suit la cadence ?",
   },
   {
     speaker: "elodie",
     text: "Regarde l'onglet Statistiques. J'ai affiché les 3 courbes interactives. En bleu, tes Revenus grimpent, en vert, tes Clients servis suivent... et en doré, ta Réputation décolle.",
+    short: "Onglet Statistiques : 3 courbes. Revenus en bleu, Clients en vert, Réputation en doré.",
   },
   {
     speaker: "gustave",
@@ -231,6 +265,7 @@ const STATS_DIALOG = [
   {
     speaker: "elodie",
     text: "C'est parce que tu es en vue large. Utilise le Sélecteur 5 jours. Si tu veux analyser le rush de ce soir en détail, passe en Zoom 3 jours. C'est plus lisible, non ?",
+    short: "Vue trop large ? Utilise le Sélecteur 5 jours ou le Zoom 3 jours pour plus de lisibilité.",
   },
   {
     speaker: "gustave",
@@ -239,6 +274,7 @@ const STATS_DIALOG = [
   {
     speaker: "elodie",
     text: "Voici ton Compte de résultat : revenus encaissés d'un côté, dépenses de l'autre... et le Résultat Net en gras. Le Panier moyen est en hausse : tes clients dépensent un peu plus que d'habitude, c'est bon signe !",
+    short: "Revenus vs dépenses, Résultat Net en gras. Panier moyen en hausse : bon signe !",
   },
   {
     speaker: "gustave",
@@ -246,7 +282,8 @@ const STATS_DIALOG = [
   },
   {
     speaker: "elodie",
-    text: "C'est ton Camembert de répartition : il montre d'où viennent tes revenus par catégorie. Jette aussi un œil à la Masse salariale active — on voit le détail en €/h pour le chef, les commis et les serveurs.",
+    text: "C'est ton Camembert de répartition : il montre d'où viennent tes revenus par catégorie. Jette aussi un œil à la Masse salariale active — on voit le détail en €/j pour le chef, les commis et les serveurs.",
+    short: "Le camembert montre tes revenus par catégorie. Vérifie aussi la Masse salariale — détail €/j par poste.",
   },
   {
     speaker: "gustave",
@@ -255,6 +292,7 @@ const STATS_DIALOG = [
   {
     speaker: "elodie",
     text: "La ligne du jour est mise en avant pour que tu ne la rates pas. On a un Taux de service à 95% (la barre est bien verte), mais on a perdu 3 clients à cause de l'attente. Par rapport aux derniers jours, on reste dans notre meilleure moyenne.",
+    short: "Taux 95% ✅, mais 3 clients perdus à cause de l'attente. On reste dans notre meilleure moyenne.",
   },
   {
     speaker: "gustave",
@@ -271,10 +309,12 @@ const OBJECTIVES_DIALOG = [
     speaker: "gustave",
     section: "La chasse aux trophées",
     text: "Dis-moi Élodie, j'ai l'impression d'avoir abattu un boulot de titan aujourd'hui. On n'a rien pour marquer le coup ?",
+    short: "J'ai abattu un boulot de titan ! On n'a rien pour marquer le coup ?",
   },
   {
     speaker: "elodie",
     text: "Regarde l'onglet Objectifs, Gustave. Tu vois ce petit badge rouge qui clignote ? Ça ne veut pas dire que le four brûle, ça veut dire que tu as des récompenses qui dorment.",
+    short: "Onglet Objectifs : ce badge rouge qui clignote ? Des récompenses qui t'attendent !",
   },
   {
     speaker: "gustave",
@@ -283,6 +323,7 @@ const OBJECTIVES_DIALOG = [
   {
     speaker: "elodie",
     text: "On a tes Défis quotidiens. Il y en a 3 chaque jour, tirés au sort. Tu as déjà validé « Service sans faute » et « Maître des pâtes ». Les jalons sur la barre de progression sont passés à l'or.",
+    short: "3 défis quotidiens tirés au sort. Tu as déjà validé deux : les jalons sont dorés sur la barre !",
   },
   {
     speaker: "gustave",
@@ -291,6 +332,7 @@ const OBJECTIVES_DIALOG = [
   {
     speaker: "elodie",
     text: "Absolument. Chaque objectif complété te donne des espèces sonnantes et trébuchantes, mais aussi de l'XP restaurant pour monter en grade. Mais ça ne tombe pas tout seul dans ta poche.",
+    short: "Chaque objectif = cash + XP restaurant. Mais ça ne tombe pas tout seul dans ta poche !",
   },
   {
     speaker: "gustave",
@@ -299,14 +341,17 @@ const OBJECTIVES_DIALOG = [
   {
     speaker: "elodie",
     text: "Pas de piège, juste un clic. Il faut que tu cliques sur Récupérer pour encaisser tes gains. Sinon, c'est comme laisser un pourboire sur une table : ça finit par disparaître au prochain renouvellement des défis.",
+    short: "Clique sur Récupérer pour encaisser. Sinon tes gains disparaissent au prochain renouvellement !",
   },
   {
     speaker: "gustave",
     text: "Hors de question de laisser un centime ! Et pour le troisième défi ? Celui qui n'est pas encore doré ?",
+    short: "Pas question de laisser un centime ! Et le troisième défi, pas encore doré ?",
   },
   {
     speaker: "elodie",
     text: "Si tu gères bien ton stock, le badge rouge t'avertira dès que la récompense sera prête. À toi de surveiller et de récupérer avant que le défi expire.",
+    short: "Le badge rouge t'alertera dès que la récompense est prête. Récupère avant que le défi expire !",
   },
   {
     speaker: "gustave",
@@ -323,10 +368,12 @@ const STOCK_DIALOG = [
     speaker: "gustave",
     section: "Le coup de feu de 19h",
     text: "Élodie, j'ai un doute affreux. J'ai l'impression qu'on vide le frigo plus vite qu'on ne le remplit. On en est où ?",
+    short: "J'ai l'impression qu'on vide le frigo plus vite qu'on ne le remplit. On en est où ?",
   },
   {
     speaker: "elodie",
     text: "Respire, Gustave. Je bascule l'écran en 📊 Vue Graphique. Regarde ces barres horizontales : c'est trié par urgence. Plus la barre est courte, plus on approche de la catastrophe culinaire.",
+    short: "Vue Graphique 📊 : barres triées par urgence. Plus la barre est courte, plus c'est critique !",
   },
   {
     speaker: "gustave",
@@ -335,6 +382,7 @@ const STOCK_DIALOG = [
   {
     speaker: "elodie",
     text: "C'est le bloc 🔮. Il calcule combien de repas on peut sortir avec ce qu'il reste. Pour les tomates cerises, on est en ⛔ Rouge : moins de 3 repas possibles. Autant dire qu'on est à sec.",
+    short: "Le bloc 🔮 calcule les repas restants. Tomates cerises : ⛔ Rouge — moins de 3 repas. À sec !",
   },
   {
     speaker: "gustave",
@@ -343,6 +391,7 @@ const STOCK_DIALOG = [
   {
     speaker: "elodie",
     text: "Le basilic est en ⚠ Orange, 7 ou 8 plats possibles. La mozzarella est au ✓ Vert, on pourrait nourrir un régiment. Plus de 10 repas garantis.",
+    short: "Basilic ⚠ Orange (7-8 plats), mozzarella ✓ Vert (10+ plats). Commander en urgence le rouge !",
   },
   {
     speaker: "gustave",
@@ -351,6 +400,7 @@ const STOCK_DIALOG = [
   {
     speaker: "elodie",
     text: "J'ai le doigt sur le bouton 🛒 Commander. Le système va cibler les ingrédients les plus critiques. On joue la carte de l'économie ou de la survie ?",
+    short: "Le bouton 🛒 Commander cible les ingrédients critiques. Économie ou urgence ?",
   },
   {
     speaker: "gustave",
@@ -359,14 +409,17 @@ const STOCK_DIALOG = [
   {
     speaker: "elodie",
     text: "Soit le 🚚 Fournisseur Local : −20% sur la note, mais il faut attendre 2 minutes. Soit le ⚡ Grossiste Premium : prix fort, mais livraison immédiate.",
+    short: "🚚 Local : −20% mais 2 min d'attente. ⚡ Premium : prix fort, livraison immédiate.",
   },
   {
     speaker: "gustave",
     text: "2 minutes ? En cuisine, c'est une éternité ! Mais pour 20% d'économie, je vais faire patienter le client avec une mise en bouche. Va pour le local !",
+    short: "2 min c'est une éternité ! Mais pour 20% d'économie, on attend. Va pour le local !",
   },
   {
     speaker: "elodie",
     text: "C'est validé. En attendant, je te repasse les stocks en ☰ Vue Liste — plus compact. Pour tout le reste, on est larges. Trie par Catégorie pour t'y retrouver.",
+    short: "Validé. Je repasse en ☰ Vue Liste — plus compact. Trie par Catégorie pour t'y retrouver.",
     isLast: true,
   },
 ];
@@ -387,14 +440,17 @@ const MENU_DIALOG = [
   {
     speaker: "elodie",
     text: "L'art a un prix que le client accepte de payer, Gustave. Patron, vous pouvez ajuster les prix sur chaque fiche. Notez bien que les nouveaux tarifs s'appliquent uniquement aux prochaines commandes. On ne change pas l'addition d'un client qui est déjà en train de manger !",
+    short: "Ajustez les prix sur chaque fiche. Les nouveaux tarifs s'appliquent aux prochaines commandes seulement.",
   },
   {
     speaker: "gustave",
     text: "Regardez, j'ai aussi cliqué sur ce petit bouton ⏸. Ma Soupe à l'Oignon me barbait ce matin, alors je l'ai mise en pause. Disparue ! Envolée !",
+    short: "J'ai cliqué ⏸ sur la Soupe à l'Oignon ce matin. Disparue ! Envolée !",
   },
   {
     speaker: "elodie",
     text: "Exactement. Le bouton ⏸ désactive le plat : il reste dans nos archives, mais les clients ne le commanderont plus. C'est pratique pour gérer les stocks... ou les caprices du Chef.",
+    short: "⏸ désactive le plat : archivé, plus commandé. Pratique pour les stocks… ou les caprices du Chef.",
   },
   {
     speaker: "gustave",
@@ -403,14 +459,17 @@ const MENU_DIALOG = [
   {
     speaker: "elodie",
     text: "Ce badge récompense le score composé. Pour l'obtenir, le Patron doit jongler entre : 40% de marge brute (l'argent qui reste en caisse), 40% de popularité (le plaisir des clients), 20% de disponibilité (avoir les ingrédients en stock).",
+    short: "Badge 🔥 = score composé : 40% marge, 40% popularité, 20% disponibilité en stock.",
   },
   {
     speaker: "gustave",
     text: "Marge, stock... Vous parlez comme une épicière ! Patron, cherchez le feu ! Cherchez le 🔥 ! C'est lui qui fera de nous des rois !",
+    short: "Vous parlez comme une épicière ! Patron, cherchez le 🔥 — il fera de nous des rois !",
   },
   {
     speaker: "elodie",
     text: "Et c'est la marge qui nous permettra de payer le gaz pour vos fourneaux. À vous de fixer les priorités, Patron.",
+    short: "C'est la marge qui paye le gaz pour vos fourneaux. À vous les priorités, Patron.",
     isLast: true,
   },
 ];
@@ -423,30 +482,37 @@ const KITCHEN_DIALOG = [
     speaker: "gustave",
     section: "Le Feu Sacré... et la Rigueur",
     text: "Regardez-moi cette bête, Patron ! Elle n'attend que mon talent. Pour lancer la magie, il suffit de cliquer sur un plat ou sur « Tout démarrer » pour embraser tous les brûleurs d'un coup !",
+    short: "Elle n'attend que mon talent ! Cliquez sur un plat ou « Tout démarrer » pour embraser tous les brûleurs !",
   },
   {
     speaker: "elodie",
     text: "C'est surtout une question d'optimisation d'espace. Un brûleur vide est un brûleur qui nous coûte de l'argent. Remplissez les feux libres, mais ne vous laissez pas déborder par votre ego, Gustave.",
+    short: "Un brûleur vide coûte de l'argent. Remplissez les feux libres, sans ego excessif.",
   },
   {
     speaker: "gustave",
     text: "Déborder ? Jamais ! Dès que le petit ✅ PRÊT s'affiche sur chaque plat d'une même commande, c'est l'heure du spectacle ! On clique sur 🍽 Servir et la salle s'illumine de saveurs !",
+    short: "Quand ✅ PRÊT s'affiche sur tous les plats d'une commande, on clique 🍽 Servir et la salle s'illumine !",
   },
   {
     speaker: "elodie",
     text: "Et surtout, le client passe en phase repas, ce qui nous rapproche enfin du moment où il paye l'addition. C'est l'étape cruciale.",
+    short: "Le client passe en phase repas — on se rapproche de l'encaissement. Étape cruciale !",
   },
   {
     speaker: "gustave",
     text: "C'est aussi l'étape de ma gloire personnelle ! Chaque plat envoyé me rapporte +12 XP. Je deviens chaque jour plus légendaire !",
+    short: "Ma gloire ! Chaque plat envoyé : +12 XP. Je deviens chaque jour plus légendaire !",
   },
   {
     speaker: "elodie",
     text: "N'oubliez pas vos commis, Gustave. Ils ne font pas ça pour la gloire, mais ils apprennent à vos côtés. Ils gagnent 40% de votre expérience. S'ils progressent, l'établissement progresse.",
+    short: "Les commis gagnent 40% de votre XP. Leur progrès, c'est le vôtre !",
   },
   {
     speaker: "gustave",
     text: "40% ? C'est généreux ! Allez, Patron, assez de théorie ! Les brûleurs sont froids, les clients ont faim et mon talent trépigne d'impatience... On lance la première commande ?",
+    short: "40% ? Généreux ! Assez de théorie — les brûleurs sont froids et mon talent trépigne ! On lance ?",
     isLast: true,
   },
 ];
@@ -459,6 +525,13 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
   const [visible,  setVisible]  = useState(false);
   const [textAnim, setTextAnim] = useState(true);
   const [imgKey,   setImgKey]   = useState(0);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 480);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 480);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 80);
@@ -625,7 +698,7 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
               transform: textAnim ? "translateY(0)" : "translateY(5px)",
               transition: "opacity 0.28s ease, transform 0.28s ease",
             }}>
-              {line.text}
+              {(isMobile && line.short) ? line.short : line.text}
             </p>
           </div>
 
