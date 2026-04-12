@@ -79,11 +79,19 @@ def dismiss_tutorials(driver, wait):
 # ── Setup driver ───────────────────────────────────────────────────────────────
 def make_driver():
     options = Options()
+    # Obligatoire sur Termux/Android : pas de serveur d'affichage
+    options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-software-rasterizer")
-    # options.add_argument("--headless=new")  # décommenter si besoin
+    options.add_argument("--no-zygote")
+    options.add_argument("--single-process")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--no-first-run")
+    options.add_argument("--remote-debugging-port=0")
+    # Répertoire utilisateur isolé pour éviter les conflits de session
+    options.add_argument("--user-data-dir=/data/data/com.termux/files/home/.selenium-profile")
 
     # Sur Termux, Selenium Manager ne sait pas gérer android/any.
     # On pointe explicitement vers le chromedriver et chromium installés
