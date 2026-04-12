@@ -272,7 +272,7 @@ export default function App(){
   const [challengeLostToday,setChallengeLostToday]=useState(false);
   const [pendingClaim,setPendingClaim]=useState([]);
   const [objStats,setObjStats]=useState({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
-  const [dailyStats,setDailyStats]=useState([{date:_today,served:0,lost:0,revenue:0}]);
+  const [dailyStats,setDailyStats]=useState([{day:1,served:0,lost:0,revenue:0}]);
   const [reputation,setReputation]=useState(50); // 0–100
 
   /* ── Indicateur de sauvegarde ──────────────────────── */
@@ -315,7 +315,7 @@ export default function App(){
     setChallengeLostToday(false);
     setPendingClaim([]);
     setObjStats({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
-    setDailyStats([{date:today,served:0,lost:0,revenue:0}]);
+    setDailyStats([{day:1,served:0,lost:0,revenue:0}]);
     setReputation(50);
     setWaitlist([]);
     setFormulas([]);
@@ -333,7 +333,10 @@ export default function App(){
         if(sv.menu)      setMenu(sv.menu);
         if(sv.stock)     setStock(sv.stock);
         if(sv.complaints)setComplaints(sv.complaints);
-        if(sv.kitchen)   setKitchen(sv.kitchen);
+        if(sv.kitchen){
+          const _unlockedC=CHEF_LVL[Math.min(chefLv(sv.kitchen.chef?.totalXp||0).l,CHEF_LVL.length-1)].commis;
+          setKitchen({...sv.kitchen,commis:(sv.kitchen.commis||[]).slice(0,_unlockedC)});
+        }
         if(sv.restoXp!=null) setRestoXp(sv.restoXp);
         if(sv.cash!=null)    setCash(sv.cash);
         if(sv.transactions)  setTransactions(sv.transactions);
@@ -349,7 +352,7 @@ export default function App(){
         if(sv.challengeLostToday!=null) setChallengeLostToday(sv.challengeLostToday);
         if(sv.pendingClaim)  setPendingClaim(sv.pendingClaim);
         if(sv.objStats)      setObjStats(sv.objStats);
-        if(sv.dailyStats)    setDailyStats(sv.dailyStats);
+        if(sv.dailyStats)    setDailyStats(sv.dailyStats.map((d,i)=>d.day!=null?d:{...d,day:i+1}).slice(-15));
         if(sv.reputation!=null) setReputation(sv.reputation);
         if(sv.formulas)      setFormulas(sv.formulas);
         if(sv.candidatePool) setCandidatePool(sv.candidatePool);
@@ -393,17 +396,12 @@ export default function App(){
   },[addToast]);
 
   const addDayStat=useCallback((key,value=1)=>{
-    const today=new Date().toLocaleDateString("fr-FR");
     setDailyStats(p=>{
-      const idx=p.findIndex(d=>d.date===today);
-      if(idx>=0){
-        const updated=[...p];
-        updated[idx]={...updated[idx],[key]:+(updated[idx][key]+value).toFixed(2)};
-        // Check perfect day when losing a client
-        return updated;
-      }
-      const base={date:today,served:0,lost:0,revenue:0};
-      return [...p,{...base,[key]:+value.toFixed(2)}].slice(-5);
+      if(p.length===0) return [{day:1,served:0,lost:0,revenue:0,[key]:+value.toFixed(2)}];
+      const updated=[...p];
+      const idx=updated.length-1;
+      updated[idx]={...updated[idx],[key]:+(updated[idx][key]+value).toFixed(2)};
+      return updated;
     });
     if(key==="served") setObjStats(s=>({...s,totalServed:s.totalServed+1}));
     if(key==="rating") setObjStats(s=>({...s,totalRating:(s.totalRating||0)+value,ratingCount:(s.ratingCount||0)+1}));
@@ -412,7 +410,6 @@ export default function App(){
       setObjStats(s=>({...s,_hadLoss:true}));
       setChallengeLostToday(true);
       setChallengeProgress(p=>({...p,noLoss:0}));
-      updateReputation(REP_DELTA.lostClient,"client perdu");
     }
   },[]);
 
@@ -477,9 +474,12 @@ export default function App(){
         if (sv.stock)                 setStock(sv.stock);
         if (sv.servers)               setServers(sv.servers);
         if (sv.tables)                setTables(sv.tables);
-        if (sv.kitchen)               setKitchen(sv.kitchen);
+        if (sv.kitchen){
+          const _unlockedC=CHEF_LVL[Math.min(chefLv(sv.kitchen.chef?.totalXp||0).l,CHEF_LVL.length-1)].commis;
+          setKitchen({...sv.kitchen,commis:(sv.kitchen.commis||[]).slice(0,_unlockedC)});
+        }
         if (sv.objStats)              setObjStats(sv.objStats);
-        if (sv.dailyStats)            setDailyStats(sv.dailyStats);
+        if (sv.dailyStats)            setDailyStats(sv.dailyStats.map((d,i)=>d.day!=null?d:{...d,day:i+1}).slice(-15));
         if (sv.completedIds)          setCompletedIds(sv.completedIds);
         if (sv.challengeProgress)     setChallengeProgress(sv.challengeProgress);
         if (sv.loan          != null) setLoan(sv.loan);
@@ -587,10 +587,15 @@ export default function App(){
     setDayStartRealMs(now);
     summaryShownRef.current=false;
     setShowSummary(false);
+    setDailyStats(p=>{
+      const nextDay=(p[p.length-1]?.day||0)+1;
+      return [...p,{day:nextDay,served:0,lost:0,revenue:0}].slice(-15);
+    });
+    setObjStats(s=>({...s,_hadLoss:false}));
   },[]);
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
-  useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat });
+  useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient: REP_DELTA.lostClient });
 
   /* ── Auto-assign serveur pour le nettoyage des tables ── */
   useEffect(() => {
@@ -602,7 +607,7 @@ export default function App(){
       const freeSrv = curServers.find(s => s.status === "actif" && (s.moral ?? 100) > 10);
       if (!freeSrv) return;
       const tbl = waiting[0];
-      const cleanDur = tbl.cleanDur || 60;
+      const cleanDur = tbl.cleanDur || 30;
       const cleanEnd = Date.now() + cleanDur * 1000;
       setTables(p => p.map(t => t.id !== tbl.id ? t : { ...t, cleanUntil: cleanEnd, cleanServer: freeSrv.id }));
       setServers(p => p.map(s => s.id !== freeSrv.id ? s : { ...s, status: "nettoyage", cleanUntil: cleanEnd }));
@@ -635,8 +640,11 @@ export default function App(){
 
   const addRestoXp=useCallback((xp)=>{
     setRestoXp(prev=>{
+      const maxXp=RESTO_LVL[RESTO_LVL.length-1].xpNeeded;
+      if(prev>=maxXp) return prev;
+      const next=Math.min(maxXp,prev+xp);
       const before=restoLv(prev);
-      const after=restoLv(prev+xp);
+      const after=restoLv(next);
       if(after.l>before.l){
         const nd=RESTO_LVL[after.l];
         setTimeout(()=>setLevelUpData(nd), 50);
@@ -665,7 +673,7 @@ export default function App(){
         }),50);
         setObjStats(s=>({...s,restoLevel:after.l}));
       }
-      return prev+xp;
+      return next;
     });
   },[addToast]);
 
@@ -991,40 +999,6 @@ export default function App(){
             </button>
           </div>
 
-          {/* Bouton sauvegarde manuelle */}
-          <button
-            onClick={()=>{
-              if(saveStatus==="saving") return;
-              setSaveStatus("saving");
-              if(saveTimerRef.current) clearTimeout(saveTimerRef.current);
-              saveGame({
-                tables,servers,menu,stock,complaints,kitchen,
-                restoXp,cash,transactions,loan,supplierMode,
-                pendingDeliveries,dailySpecials,completedIds,
-                challengeDate,todayChallenges,challengeProgress,
-                challengeClaimed,challengeLostToday,pendingClaim,
-                objStats,dailyStats,reputation,formulas,
-                candidatePool,candidateDate,
-              });
-              setSaveStatus("saved");
-              setTimeout(()=>setSaveStatus("idle"),2000);
-            }}
-            title="Sauvegarder maintenant"
-            style={{
-              flexShrink:0,display:"flex",alignItems:"center",gap:5,
-              padding:"5px 12px",borderRadius:7,
-              background:saveStatus==="saved"?C.green:saveStatus==="saving"?C.amber:C.navy,
-              border:"none",cursor:saveStatus==="saving"?"not-allowed":"pointer",
-              transition:"background 0.3s",fontFamily:F.body}}>
-            <span style={{fontSize:13,
-              animation:saveStatus==="saving"?"pulse 0.8s ease-in-out infinite":undefined}}>
-              {saveStatus==="saved"?"✅":saveStatus==="saving"?"⏳":"💾"}
-            </span>
-            <span style={{fontSize:11,fontWeight:700,color:"#fff",whiteSpace:"nowrap",
-              display:"inline-block",minWidth:"72px",textAlign:"center"}}>
-              {saveStatus==="saved"?"Sauvé !":saveStatus==="saving"?"…":"Sauvegarder"}
-            </span>
-          </button>
         </div>
       </div>
 
@@ -1150,10 +1124,10 @@ export default function App(){
       {/* Content */}
       <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
-        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} restoLvN={rl.l} stock={stock} bp={bp}/>}
+        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} restoLvN={rl.l} stock={stock} formulas={formulas} bp={bp}/>}
         {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
         {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} restoLvN={rl.l} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp}/>}
-        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} dailyStats={dailyStats} bp={bp}/>}
+        {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} dailyStats={dailyStats} restoLvN={rl.l} bp={bp}/>}
         {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
         {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
         {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}

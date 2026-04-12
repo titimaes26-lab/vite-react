@@ -8,7 +8,7 @@ import { C, F, CAP_UPGRADES, SRV_LVL, GAME_EVENTS, RESTO_LVL } from "../constant
 import { getRepTier } from "../constants/gameConstants.js";
 import { REP_DELTA } from "../constants/gameConstants.js";
 import { Badge, Btn, Sel, Modal, XpBar, Lbl, Inp } from "../components/ui/index.js";
-import { srvLv, calcRating, ratingColor, ratingStars, calcTip, restoXpFromCheckout, srvXpFromCheckout } from "../utils/levelUtils.js";
+import { srvLv, calcRating, ratingColor, ratingStars, calcTip, restoXpFromCheckout, srvXpFromCheckout, SRV_MAX_XP } from "../utils/levelUtils.js";
 import { generateOrderWithFormulas } from "../utils/randomUtils.js";
 import { buildKitchenTickets, svcDuration, eatDuration, calcBill } from "../utils/orderUtils.js";
 
@@ -655,7 +655,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     addDayStat("rating", r);
     if (srvObj) {
       const xp = srvXpFromCheckout(r, t.group.size);
-      setServers(p=>p.map(s=>s.id===srvObj.id?{...s,totalXp:s.totalXp+xp,rating:+(s.rating*0.9+r*0.1).toFixed(1)}:s));
+      setServers(p=>p.map(s=>s.id===srvObj.id?{...s,totalXp:Math.min(SRV_MAX_XP,s.totalXp+xp),rating:+(s.rating*0.9+r*0.1).toFixed(1)}:s));
     }
     addRestoXp(restoXpFromCheckout(t.group.size, t.group.mood.b, t.group.isVIP||false));
     if (updateReputation) {
@@ -665,7 +665,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     setTables(p=>p.map(x=>x.id!==tid?x:{...x,
       status:"nettoyage",group:null,order:[],server:null,
       patienceLeftRatio:null,svcUntil:null,placedAt:null,
-      cleanUntil:null,cleanDur:60,cleanServer:null,freedAt:null
+      cleanUntil:null,cleanDur:30,cleanServer:null,freedAt:null
     }));
     setChallengeProgress&&setChallengeProgress(p=>({
       ...p,

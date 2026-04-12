@@ -9,7 +9,7 @@ import { REP_THRESHOLDS, getRepTier } from "../constants/gameConstants.js";
 import { restoLv, chefLv } from "../utils/levelUtils.js";
 
 export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=50,transactions=[],menu=[],bp={}}){
-  const [period,setPeriod]=useState(5);   // 3 or 5 days
+  const [period,setPeriod]=useState(7);   // 5, 7 or 15 game-days
   const [hovRevIdx,setHovRevIdx]=useState(null);
   const [hovCliIdx,setHovCliIdx]=useState(null);
   const [hovRepIdx,setHovRepIdx]=useState(null);
@@ -95,7 +95,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
           <text key={i} x={pts[i]?.[0]||0} y={H-5} textAnchor="middle"
             fontSize="8" fill={i===chartDays.length-1?color:C.muted}
             fontFamily="sans-serif" fontWeight={i===chartDays.length-1?"700":"400"}>
-            {d.date.slice(0,5)}
+            {`J${d.day??""}`}
           </text>
         ))}
       </svg>
@@ -181,7 +181,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
       {/* ── Période + KPIs ── */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
         <div style={{display:"flex",gap:5}}>
-          {[3,5].map(p=>(
+          {[5,7,15].map(p=>(
             <button key={p} onClick={()=>setPeriod(p)} style={{
               padding:"5px 14px",borderRadius:8,fontSize:12,fontWeight:600,
               background:period===p?C.navy:"transparent",
@@ -481,7 +481,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
           <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:420}}>
             <thead>
               <tr style={{background:C.bg}}>
-                {["Date","✅ Servis","😤 Perdus","Taux","💶 Revenus"].map(h=>(
+                {["Jour","✅ Servis","😤 Perdus","Taux","💶 Revenus"].map(h=>(
                   <th key={h} style={{padding:"9px 14px",fontSize:10,fontWeight:700,color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`}}>{h}</th>
                 ))}
               </tr>
@@ -492,9 +492,9 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                 const rate=total>0?Math.round((d.served/total)*100):0;
                 const rc=rate>=80?C.green:rate>=50?C.amber:C.red;
                 return(
-                  <tr key={d.date} style={{background:i===0?C.greenP:i%2===0?C.card:C.bg}}>
+                  <tr key={d.day??i} style={{background:i===0?C.greenP:i%2===0?C.card:C.bg}}>
                     <td style={{padding:"9px 14px",fontSize:12,fontWeight:i===0?700:500,color:C.ink,borderBottom:`1px solid ${C.border}11`}}>
-                      {d.date}{i===0&&<span style={{marginLeft:5,fontSize:8,background:C.green,color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700}}>Auj.</span>}
+                      {`Jour ${d.day??""}`}{i===0&&<span style={{marginLeft:5,fontSize:8,background:C.green,color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700}}>En cours</span>}
                     </td>
                     <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
                       <span style={{fontSize:12,fontWeight:700,color:C.green}}>{d.served}</span>

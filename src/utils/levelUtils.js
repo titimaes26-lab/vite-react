@@ -21,6 +21,7 @@ import {
      n = XP nécessaire pour passer au suivant (999 si max)
 ───────────────────────────────────────────────────── */
 const SRV_XP_CAP = [80, 160, 280, 440];
+export const SRV_MAX_XP    = SRV_XP_CAP.reduce((a, b) => a + b, 0);    // 960
 
 /**
  * @param {number} xp - XP total du serveur
@@ -45,6 +46,8 @@ export const srvLv = (xp) => {
  * @param {number} xp - XP total du chef
  * @returns {{ l: number, r: number, n: number }}
  */
+export const CHEF_MAX_XP   = CHEF_XP_CAP.reduce((a, b) => a + b, 0);   // 2580
+
 export const chefLv = (xp) => {
   let l = 0, r = xp;
   while (l < CHEF_XP_CAP.length && r >= CHEF_XP_CAP[l]) {
@@ -73,6 +76,8 @@ export const chefLvData = (l) => CHEF_LVL[Math.min(l, CHEF_LVL.length - 1)];
  * @param {number} xp - XP total du commis
  * @returns {{ l: number, r: number, n: number }}
  */
+export const COMMIS_MAX_XP = COMMIS_XP_CAP.reduce((a, b) => a + b, 0); // 280
+
 export const commisLv = (xp) => {
   let l = 0, r = xp;
   while (l < COMMIS_XP_CAP.length && r >= COMMIS_XP_CAP[l]) {

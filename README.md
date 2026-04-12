@@ -36,14 +36,14 @@ src/
     gameData.js             ← Données statiques (tables, serveurs, menu, stock…)
     gameConstants.js        ← Règles de jeu (réputation, thèmes, formules)
   utils/
-    levelUtils.js           ← Calculs de niveaux (resto, chef, serveur, commis)
+    levelUtils.js           ← Calculs de niveaux + constantes XP max
     randomUtils.js          ← Génération aléatoire (clients, noms, humeurs)
     orderUtils.js           ← Commandes, tickets cuisine, calcul addition
   hooks/
     useGameClock.js         ← Horloge de jeu (tick 250ms)
-    useSpawner.js           ← Arrivée des clients (B/C/D/F)
+    useSpawner.js           ← Arrivée des clients
     useExpiry.js            ← Expiration file, fin nettoyage, libération serveurs
-    useSalary.js            ← Paiement des salaires
+    useSalary.js            ← Paiement des salaires (toutes les 60s réelles = 1h jeu)
     useDeliveries.js        ← Livraisons fournisseurs
     useEvents.js            ← Événements aléatoires
     useServerMoral.js       ← Gestion du moral des serveurs
@@ -51,7 +51,7 @@ src/
     useObjectives.js        ← Objectifs de progression
   views/
     TablesView.jsx          ← Salle (placement, service, encaissement, nettoyage)
-    KitchenView.jsx         ← Cuisine (cuisson, service des plats)
+    KitchenView.jsx         ← Cuisine (cuisson, commis, pipeline)
     ServersView.jsx         ← Gestion des serveurs
     MenuView.jsx            ← Carte et formules
     StockView.jsx           ← Stock et fournisseurs
@@ -61,6 +61,19 @@ src/
   components/
     ui/                     ← Composants UI réutilisables (Btn, Badge, Modal…)
 ```
+
+---
+
+## Système de temps
+
+| Unité | Durée réelle |
+|-------|-------------|
+| 1 minute de jeu | 1 seconde réelle |
+| 1 heure de jeu | 60 secondes réelles |
+| 1 journée de jeu (08h00 → 00h00) | 960 secondes réelles (~16 min) |
+
+- Les **salaires** sont débités toutes les **60s réelles** (= 1 heure de jeu)
+- L'**horloge** tourne avec `useGameClock` (tick 250ms), `dayStartRealMs` est le timestamp de début de journée
 
 ---
 
@@ -75,7 +88,7 @@ LIBRE → occupée (prise de commande) → occupée (en cuisine) → mange → n
 - **Prise de commande** : un serveur est assigné, durée 30/60/90s selon taille du groupe
 - **Cuisine** : tickets envoyés au chef, timer par plat
 - **Repas** : timer basé sur le plat le plus long
-- **Nettoyage** : démarre uniquement quand un serveur est disponible ; le serveur est occupé pendant toute la durée
+- **Nettoyage** : 30s, démarre uniquement quand un serveur est disponible ; le serveur est occupé pendant toute la durée
 
 ### Serveurs — statuts possibles
 
@@ -85,6 +98,20 @@ LIBRE → occupée (prise de commande) → occupée (en cuisine) → mange → n
 | `service` | En prise de commande ou service de plats (timer) |
 | `nettoyage` | Nettoyage d'une table (timer = `cleanUntil`) |
 | `pause` | En pause (moral en récupération) |
+
+### XP et niveaux serveurs
+
+| Niveau | Nom | XP cumulé requis |
+|--------|-----|-----------------|
+| 0 | Stagiaire | 0 |
+| 1 | Serveur | 80 |
+| 2 | Senior | 240 |
+| 3 | Expert | 520 |
+| 4 | Maître | 960 (max) |
+
+- XP par encaissement : `srvXpFromCheckout(groupSize, mood, isVIP)`
+- XP par formation : variable selon le niveau de formation
+- **Plafond** : `SRV_MAX_XP = 960` — aucun XP ajouté au-delà
 
 ### Niveaux restaurant
 
@@ -96,6 +123,7 @@ LIBRE → occupée (prise de commande) → occupée (en cuisine) → mange → n
 | 3 | Restaurant | 9 | 1 800 |
 | 4 | Grand Restaurant | 11 | 3 500 |
 | 5 | Palace | 12 | 6 000 |
+| … | (10 niveaux au total) | … | … |
 
 ### XP restaurant par encaissement
 
@@ -103,7 +131,39 @@ LIBRE → occupée (prise de commande) → occupée (en cuisine) → mange → n
 (20 + groupSize × 8) × moodBonus × (isVIP ? 3 : 1)
 ```
 
+### Niveaux chef
+
+| Niveau | Nom | Vitesse cuisson | Commis débloqués | XP requis (cumulé) |
+|--------|-----|----------------|-----------------|-------------------|
+| 0 | Apprenti | ×1.0 | 1 | 0 |
+| 1 | Cuisinier | ×1.2 | 1 | 120 |
+| 2 | Chef de Partie | ×1.5 | 2 | 380 |
+| 3 | Sous-Chef | ×1.8 | 2 | 830 |
+| 4 | Chef Cuisine | ×2.2 | 3 | 1 530 |
+| 5 | Chef Étoilé | ×3.0 | 3 | 2 580 (max) |
+
+- **Plafond** : `CHEF_MAX_XP = 2580`
+- XP par plat cuisiné : 12 XP chef
+- Un toast est affiché à chaque montée de niveau et quand un nouveau slot commis est débloqué
+
+### Commis
+
+- **3 slots au total**, débloqués progressivement selon le niveau du chef (voir tableau ci-dessus)
+- La partie démarre avec **1 commis** (Léa Fontaine) ; les autres slots doivent être embauchés
+- Slots verrouillés : affichent le niveau chef requis pour les débloquer
+- **Plafond commis** : `COMMIS_MAX_XP = 280`
+
+| Niveau | Nom | XP cumulé requis |
+|--------|-----|-----------------|
+| 0 | Débutant | 0 |
+| 1 | Confirmé | 80 |
+| 2 | Expert | 280 (max) |
+
+- XP par plat cuisiné : `round(12 × 0.4) = 5 XP` par commis actif
+
 ### Réputation (0–100)
+
+Valeur initiale : **50**. Sauvegardée avec la partie.
 
 | Palier | Min | Clients | Pourboires |
 |--------|-----|---------|------------|
@@ -113,7 +173,30 @@ LIBRE → occupée (prise de commande) → occupée (en cuisine) → mange → n
 | Apprécié 😊 | 60 | +10% | +10% |
 | Réputé 🌟 | 80 | +20% | +25% |
 
-Variations : `rating5` +4 · `rating4` +2 · `rating3` 0 · `rating2` −4 · `rating1` −8 · `vip` +6 · `lostClient` −3 · `complaint` −5
+**Variations par événement :**
+
+| Événement | Delta |
+|-----------|-------|
+| Note ★★★★★ | +4 |
+| Note ★★★★ | +2 |
+| Note ★★★ | 0 |
+| Note ★★ | −4 |
+| Note ★ | −8 |
+| Client VIP bien servi | +6 |
+| Client perdu (parti sans être servi) | −3 |
+| Plainte générée | −5 |
+| Inspection ratée | −6 |
+| Inspection réussie | +3 |
+| Buzz réseaux sociaux (événement) | +5 |
+
+Un toast est automatiquement affiché lors d'un **changement de palier**.
+
+### Statistiques journalières
+
+- Indexées par **numéro de jour de jeu** (`day: N`), pas par date réelle
+- Les **15 derniers jours** sont conservés (les plus anciens sont supprimés)
+- Un nouveau jour est poussé dans `dailyStats` à chaque appel de `startNewDay()`
+- Les saves existantes sont migrées automatiquement (ajout du champ `day`)
 
 ### Spawner clients
 
@@ -124,6 +207,8 @@ Variations : `rating5` +4 · `rating4` +2 · `rating3` 0 · `rating2` −4 · `r
 | Probabilité arrivée | 65 % |
 | Vague (Rush) | 5 % de chance, 2–3 groupes + toast |
 | Salle vide | Force un spawn après 60s d'inactivité |
+
+Le taux d'arrivée est multiplié par `repTier.spawnMult` (réputation).
 
 ---
 
@@ -175,7 +260,7 @@ Envoyé toutes les **2 secondes** via `window.parent.postMessage`.
       defisJour: [{ id, titre, icone, recompense, reclame }],
       dateDefis, progression, clientPerduAujourdhui,
     },
-    statsJournalieres:[{ date, revenue, served, lost, rating }],
+    statsJournalieres:[{ day, revenue, served, lost }],  // numéro de jour jeu
     theme:            { id, nom, prixMult, repBonus, xpMult },
     evenement:        { id, nom, desc, effect } | null,
     savedAt,          // timestamp
@@ -288,6 +373,4 @@ setJ("transactions",msg.transactions);
 | Branche | Usage |
 |---------|-------|
 | `main` | Production stable |
-| `Test` / `testclaude` | Développement en cours |
-| `claude/project-structure-summary-qPQt9` | Branch de session Claude |
-| `claude/add-kitchen-features-9lhlE` | Branch de session Claude — suppression thèmes menu |
+| `claude/fix-purchase-limit-check-Rau1w` | Branche de développement active |

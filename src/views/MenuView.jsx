@@ -62,7 +62,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
     if(sortBy==="score")   return perfScore(b)-perfScore(a);
     return 0;
   });
-  const locked=base.filter(m=>!unlocked(m)).sort((a,b)=>(a.unlockLevel??0)-(b.unlockLevel??0));
+  const locked=base.filter(m=>!unlocked(m)).sort((a,b)=>(a.unlockLevel??0)-(b.unlockLevel??0)).slice(0,3);
   const maxOrders=Math.max(...menu.map(m=>m.orderCount||0),1);
 
   /* ── Helpers ── */
@@ -80,7 +80,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
   const openFormula=(preset)=>{
     const sel={};
     preset.cats.forEach(cat=>{
-      const first=menu.find(m=>m.cat===cat&&m.enabled!==false);
+      const first=menu.find(m=>m.cat===cat&&m.enabled!==false&&unlocked(m));
       if(first)sel[cat]=String(first.id);
     });
     setFSelections(sel);
@@ -128,7 +128,6 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
   const criticalDishes=menu.filter(m=>m.enabled!==false&&unlocked(m)&&portionsLeft(m)<2&&portionsLeft(m)>=0&&(m.ingredients||[]).length>0);
   const disabledCount=menu.filter(m=>m.enabled===false&&unlocked(m)).length;
   const lockedAllCount=menu.filter(m=>!unlocked(m)).length;
-  const nextUnlocks=MENU0.filter(m=>(m.unlockLevel??0)>restoLvN).sort((a,b)=>(a.unlockLevel??0)-(b.unlockLevel??0)).slice(0,3);
 
   return(
     <div style={{background:C.bg,borderRadius:16,padding:16}}>
@@ -223,57 +222,6 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
               ))}
             </div>
           </div>
-
-          {/* ── Prochains déblocages ── */}
-          {nextUnlocks.length>0&&(
-            <div style={{marginBottom:20,background:C.card,border:`1.5px solid ${C.amber}55`,
-              borderRadius:14,padding:14,boxShadow:`0 2px 10px ${C.amber}15`}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-                <span style={{fontSize:15}}>🔓</span>
-                <span style={{fontSize:13,fontWeight:700,color:C.amber,fontFamily:F.title}}>
-                  Prochains déblocages
-                </span>
-                <span style={{fontSize:11,color:C.muted,fontFamily:F.body,flex:1}}>
-                  — les 3 prochains plats à venir
-                </span>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":"repeat(3,1fr)",gap:8}}>
-                {nextUnlocks.map((m,i)=>{
-                  const cc=catC[m.cat]||C.navy;
-                  const lvReq=m.unlockLevel??0;
-                  const lvDiff=lvReq-restoLvN;
-                  return(
-                    <div key={m.id} style={{
-                      background:C.bg,border:`1px solid ${C.amber}33`,
-                      borderRadius:10,padding:10,position:"relative"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
-                        <span style={{fontSize:10,background:C.amber,color:"#fff",borderRadius:20,
-                          padding:"1px 7px",fontFamily:F.body,fontWeight:800}}>#{i+1}</span>
-                        <span style={{fontSize:10,background:C.amberP,color:C.amber,borderRadius:20,
-                          padding:"1px 7px",fontFamily:F.body,fontWeight:800,
-                          border:`1px solid ${C.amber}44`}}>Niv.{lvReq}</span>
-                      </div>
-                      <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title,
-                        lineHeight:1.3,marginBottom:5}}>{m.name}</div>
-                      <div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:6}}>
-                        <Badge color={cc} sm>{m.cat}</Badge>
-                        <span style={{fontSize:9,background:C.amberP,color:C.amber,borderRadius:5,
-                          padding:"1px 5px",fontFamily:F.body,fontWeight:600}}>
-                          ⏱{m.prepTime>=60?`${Math.floor(m.prepTime/60)}m`:m.prepTime+"s"}
-                        </span>
-                        <span style={{fontSize:9,background:C.greenP,color:C.green,borderRadius:5,
-                          padding:"1px 5px",fontFamily:F.body,fontWeight:700}}>{m.price}€</span>
-                      </div>
-                      <div style={{fontSize:9,color:C.amber,fontFamily:F.body,fontWeight:600,
-                        background:C.amberP,borderRadius:5,padding:"3px 7px",textAlign:"center"}}>
-                        encore {lvDiff} niveau{lvDiff>1?"x":""} à gagner
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(240px,1fr))",gap:bp.isMobile?8:12}}>
             {sorted.map(m=>{
@@ -392,10 +340,10 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                 borderTop:`2px dashed ${C.purple}44`,paddingTop:14}}>
                 <span style={{fontSize:16}}>🔒</span>
                 <span style={{fontSize:13,fontWeight:700,color:C.purple,fontFamily:F.title}}>
-                  Plats à débloquer
+                  Prochains débloquages
                 </span>
                 <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
-                  — disponibles en progressant en niveau
+                  — {locked.length} prochain{locked.length>1?"s":""} sur {base.filter(m=>!unlocked(m)).length} verrouillé{base.filter(m=>!unlocked(m)).length>1?"s":""}
                 </span>
               </div>
               <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(220px,1fr))",gap:bp.isMobile?8:10}}>
@@ -501,7 +449,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                     <Lbl>{cat}</Lbl>
                     <Sel value={fSelections[cat]||""} onChange={e=>setFSelections(p=>({...p,[cat]:e.target.value}))}>
                       <option value="">Choisir…</option>
-                      {menu.filter(m=>m.cat===cat&&m.enabled!==false).map(m=>(
+                      {menu.filter(m=>m.cat===cat&&m.enabled!==false&&unlocked(m)).map(m=>(
                         <option key={m.id} value={String(m.id)}>{m.name} — {m.price}€</option>
                       ))}
                     </Sel>

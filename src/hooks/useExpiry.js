@@ -8,7 +8,7 @@
    4. Fin de service → libère les serveurs (status → "actif")
 
    Usage dans App.jsx :
-     useExpiry({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat });
+     useExpiry({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient });
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
@@ -30,6 +30,8 @@ export const useExpiry = ({
   setServers,
   addToast,
   addDayStat,
+  updateReputation,
+  repDeltaLostClient,
 }) => {
   useEffect(() => {
     const iv = setInterval(() => {
@@ -43,21 +45,22 @@ export const useExpiry = ({
         return expired.length > 0 ? q.filter(c => t < c.expiresAt) : q;
       });
 
-      // Effets de bord hors setter (toasts + waitlist)
+      // Effets de bord hors setter (toasts + waitlist + réputation immédiate)
       if (expired.length > 0) {
         setWaitlist(w => [
           ...w,
           ...expired.map(c => ({ ...c, leftAt: t, recallUntil: t + 120_000 })),
         ]);
-        expired.forEach(c =>
+        expired.forEach(c => {
           addToast({
             icon  : "😤",
             title : "Groupe parti !",
-            msg   : `${c.name} n'a plus patience — rappelable 2 min`,
+            msg   : `${c.name} n'a plus patience — rappelable 2 min · Rép. ${repDeltaLostClient}`,
             color : "#c4622d",
             tab   : "tables",
-          })
-        );
+          });
+          if (updateReputation) updateReputation(repDeltaLostClient, "client impatient");
+        });
       }
 
       /* ── 2. Waitlist : groupes non rappelés → perdus ─ */
@@ -107,5 +110,5 @@ export const useExpiry = ({
     }, 500);
 
     return () => clearInterval(iv);
-  }, [setQueue, setWaitlist, setTables, setServers, addToast, addDayStat]);
+  }, [setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient]);
 };
