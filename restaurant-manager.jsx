@@ -434,22 +434,14 @@ export default function App(){
      formulas]);
 
   // Toutes les 5s : sauvegarder si dirty
+  // Utilise gdSyncStateRef.current (toujours à jour) pour éviter la fermeture périmée
   useEffect(()=>{
     if(!isLoaded) return;
     const interval = setInterval(()=>{
       if(!isDirtyRef.current) return;
       isDirtyRef.current = false;
       setSaveStatus("saving");
-      saveGame({
-        tables,servers,menu,stock,complaints,kitchen,
-        restoXp,cash,transactions,loan,supplierMode,
-        pendingDeliveries,dailySpecials,completedIds,
-        challengeDate,todayChallenges,challengeProgress,
-        challengeClaimed,challengeLostToday,pendingClaim,
-        objStats,dailyStats,reputation,formulas,
-        candidatePool,candidateDate,
-        dayStartRealMs,
-      });
+      saveGame(gdSyncStateRef.current);
       setSaveStatus("saved");
       setTimeout(()=>setSaveStatus("idle"),2000);
     }, 5000);
@@ -547,7 +539,9 @@ export default function App(){
   const tablesRef     = useRef(tables);
   const serversRef    = useRef(servers);
   const queueRef      = useRef(queue);
+  const waitlistRef   = useRef(waitlist);
   const kitchenRef    = useRef(kitchen);
+  const loanRef       = useRef(loan);
   const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
 
@@ -558,7 +552,9 @@ export default function App(){
   useEffect(() => { tablesRef.current     = tables;     }, [tables]);
   useEffect(() => { serversRef.current    = servers;    }, [servers]);
   useEffect(() => { queueRef.current      = queue;      }, [queue]);
+  useEffect(() => { waitlistRef.current   = waitlist;   }, [waitlist]);
   useEffect(() => { kitchenRef.current    = kitchen;    }, [kitchen]);
+  useEffect(() => { loanRef.current       = loan;       }, [loan]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
   /* ── Horloge de jeu ────────────────────────────────── */
@@ -568,10 +564,26 @@ export default function App(){
   const phaseRef = useRef(phase);
   useEffect(()=>{ phaseRef.current = phase; }, [phase]);
 
-  // Fin de journée (00h00 simulée) → afficher le bilan
+  // Fin de journée (00h00 simulée) → mensualité prêt + bilan
   useEffect(()=>{
     if(!isLoaded||!isDayOver||summaryShownRef.current) return;
     summaryShownRef.current=true;
+
+    /* ── Mensualité quotidienne du prêt ─────────────────── */
+    const ln = loanRef.current;
+    if (ln) {
+      const repay        = Math.min(ln.remaining, ln.repayPerDay);
+      const newRemaining = +(ln.remaining - repay).toFixed(2);
+      setCash(c => +Math.max(0, c - repay).toFixed(2));
+      addTx("remboursement", `Mensualité prêt (${ln.id})`, repay);
+      if (newRemaining <= 0) {
+        setLoan(null);
+        addToast({ icon:"🎉", title:"Prêt remboursé !", msg:"Votre emprunt est entièrement soldé.", color:C.green, tab:"stats" });
+      } else {
+        setLoan({ ...ln, remaining: newRemaining });
+      }
+    }
+
     const today=dailyStats[dailyStats.length-1];
     const isRecord=today&&today.revenue>prevRevenueRef.current&&today.revenue>0;
     setSummaryIsRecord(isRecord);
@@ -595,7 +607,7 @@ export default function App(){
   },[]);
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
-  useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient: REP_DELTA.lostClient });
+  useExpiry     ({ queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient: REP_DELTA.lostClient });
 
   /* ── Auto-assign serveur pour le nettoyage des tables ── */
   useEffect(() => {
@@ -614,7 +626,7 @@ export default function App(){
     }, 500);
     return () => clearInterval(iv);
   }, [setTables, setServers]);
-  useSalary     ({ serversRef, kitchenRef, setCash, setLoan, addTx, addToast });
+  useSalary     ({ serversRef, kitchenRef, setCash, addTx, addToast });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useFreshness  ({ stockRef, kitchenRef, setStock, setComplaints, addToast });
   useEvents     ({
