@@ -166,6 +166,7 @@ export default function App(){
   const [candidateDate,setCandidateDate]=useState("");
   const [commisPool,setCommisPool]=useState([]);
   const [commisPoolDate,setCommisPoolDate]=useState("");
+  const [dayStartRealMs,setDayStartRealMs]=useState(()=>Date.now());
   const [showSummary,setShowSummary]=useState(false);
   const [summaryIsRecord,setSummaryIsRecord]=useState(false);
   const prevRevenueRef=useRef(0);
@@ -238,6 +239,7 @@ export default function App(){
     setPendingClaim([]);
     setObjStats({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
     setDailyStats([{date:today,day:1,served:0,lost:0,revenue:0}]);
+    setDayStartRealMs(Date.now());
     summaryShownRef.current=0;
     prevRevenueRef.current=0;
     setReputation(50);
@@ -271,6 +273,7 @@ export default function App(){
     setChallengeProgress({served:0,revenue:0,noLoss:1,highRating:0,fastPlace:0,vip:0,fullHouse:0,tips:0});
     setChallengeClaimed({});
     setChallengeLostToday(false);
+    setDayStartRealMs(Date.now());
     setShowSummary(false);
   },[]);
 
@@ -496,9 +499,12 @@ export default function App(){
   /* ── Hooks métier ────────────────────────────────────── */
   // Remplacent 13 useEffect inline (salary, moralDrain, deliveries,
   // events, dailySpecials, spawner, challenges, expiry, clockNow, objectives)
-  const clockNow = useGameClock();
+  const { clockNow, phase } = useGameClock(dayStartRealMs);
 
-  useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast });
+  const phaseRef = useRef(phase);
+  useEffect(() => { phaseRef.current = phase; });
+
+  useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
   useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat });
   useSalary     ({ setServers, setKitchen, setCash, setLoan, addTx, addToast });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
