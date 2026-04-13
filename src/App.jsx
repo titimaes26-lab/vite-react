@@ -481,6 +481,8 @@ export default function App(){
   const complaintsRef = useRef(complaints);
   const repRef        = useRef(reputation);
   const tablesRef     = useRef(tables);
+  const queueRef      = useRef(queue);
+  const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
 
   useEffect(() => { stockRef.current      = stock;      }, [stock]);
@@ -488,13 +490,15 @@ export default function App(){
   useEffect(() => { complaintsRef.current = complaints; }, [complaints]);
   useEffect(() => { repRef.current        = reputation; }, [reputation]);
   useEffect(() => { tablesRef.current     = tables;     }, [tables]);
+  useEffect(() => { queueRef.current      = queue;      }, [queue]);
+  useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
   /* ── Hooks métier ────────────────────────────────────── */
   // Remplacent 13 useEffect inline (salary, moralDrain, deliveries,
   // events, dailySpecials, spawner, challenges, expiry, clockNow, objectives)
   const clockNow = useGameClock();
 
-  useSpawner    ({ setQueue, tablesRef, lastSpawnRef, repRef, getRepTier });
+  useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast });
   useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat });
   useSalary     ({ setServers, setKitchen, setCash, setLoan, addTx, addToast });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
