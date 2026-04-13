@@ -155,7 +155,7 @@ export default function App(){
   const [challengeLostToday,setChallengeLostToday]=useState(false);
   const [pendingClaim,setPendingClaim]=useState([]);
   const [objStats,setObjStats]=useState({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
-  const [dailyStats,setDailyStats]=useState([{date:_today,served:0,lost:0,revenue:0}]);
+  const [dailyStats,setDailyStats]=useState([{date:_today,day:1,served:0,lost:0,revenue:0}]);
   const [reputation,setReputation]=useState(50); // 0–100
 
   /* ── Indicateur de sauvegarde ──────────────────────── */
@@ -169,21 +169,44 @@ export default function App(){
   const [showSummary,setShowSummary]=useState(false);
   const [summaryIsRecord,setSummaryIsRecord]=useState(false);
   const prevRevenueRef=useRef(0);
-  // Résumé de fin de journée : s'affiche après 10 min de jeu réel
-  const summaryShownRef=useRef(false);
+  const dailyStatsRef=useRef(dailyStats);
+  useEffect(()=>{ dailyStatsRef.current=dailyStats; },[dailyStats]);
+
+  // summaryShownRef stocke le numéro du dernier jour affiché (0 = jamais)
+  const summaryShownRef=useRef(0);
+  const lastDateRef=useRef(new Date().toLocaleDateString("fr-FR"));
+
+  // Déclenche la modale de résumé si ce jour ne l'a pas encore montrée
+  const showDailySummary=useCallback(()=>{
+    const stats=dailyStatsRef.current;
+    const today=stats[stats.length-1];
+    if(!today) return;
+    const dayNum=today.day??1;
+    if(summaryShownRef.current===dayNum) return;
+    summaryShownRef.current=dayNum;
+    const isRecord=today.revenue>prevRevenueRef.current&&today.revenue>0;
+    setSummaryIsRecord(isRecord);
+    setShowSummary(true);
+  },[]);
+
+  // Résumé toutes les 10 min de jeu réel (réarmable à chaque nouveau jour)
   useEffect(()=>{
     if(!isLoaded) return;
-    const t=setTimeout(()=>{
-      if(summaryShownRef.current) return;
-      summaryShownRef.current=true;
-      const today=dailyStats[dailyStats.length-1];
-      const isRecord=today&&today.revenue>prevRevenueRef.current&&today.revenue>0;
-      setSummaryIsRecord(isRecord);
-      setShowSummary(true);
-    },600000); // 10 minutes
-    return()=>clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[isLoaded]);
+    const iv=setInterval(showDailySummary,600000);
+    return()=>clearInterval(iv);
+  },[isLoaded,showDailySummary]);
+
+  // Détection de minuit : changement de date calendaire
+  useEffect(()=>{
+    if(!isLoaded) return;
+    const iv=setInterval(()=>{
+      const now=new Date().toLocaleDateString("fr-FR");
+      if(now===lastDateRef.current) return;
+      lastDateRef.current=now;
+      showDailySummary();
+    },30000);
+    return()=>clearInterval(iv);
+  },[isLoaded,showDailySummary]);
 
   /* ── Réinitialisation complète (sans reload) ────────── */
   const doReset = useCallback(() => {
@@ -214,13 +237,41 @@ export default function App(){
     setChallengeLostToday(false);
     setPendingClaim([]);
     setObjStats({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
-    setDailyStats([{date:today,served:0,lost:0,revenue:0}]);
+    setDailyStats([{date:today,day:1,served:0,lost:0,revenue:0}]);
+    summaryShownRef.current=0;
+    prevRevenueRef.current=0;
     setReputation(50);
     setWaitlist([]);
     setFormulas([]);
     setActiveTheme("none");
     setTab("tables");
     setShowResetModal(false);
+  },[]);
+
+  /* ── Nouvelle journée (fermeture modale résumé) ─────── */
+  const startNewDay=useCallback(()=>{
+    const today=new Date().toLocaleDateString("fr-FR");
+    lastDateRef.current=today;
+    setDailyStats(p=>{
+      const lastDay=p[p.length-1];
+      prevRevenueRef.current=lastDay?.revenue??0;
+      const newDay={date:today,day:(lastDay?.day??0)+1,served:0,lost:0,revenue:0};
+      return [...p,newDay].slice(-5);
+    });
+    // Nouveaux spéciaux du jour
+    setMenu(m=>{
+      const base=m.filter(d=>d.cat!=="Boissons");
+      const picks=base.sort(()=>Math.random()-0.5).slice(0,2);
+      setDailySpecials(picks.map(d=>({...d,originalPrice:d.price,price:+(d.price*0.8).toFixed(2),isSpecial:true})));
+      return m;
+    });
+    // Réinitialiser les défis
+    setChallengeDate(today);
+    setTodayChallenges(pickSeeded(CHALLENGES_POOL,3,today));
+    setChallengeProgress({served:0,revenue:0,noLoss:1,highRating:0,fastPlace:0,vip:0,fullHouse:0,tips:0});
+    setChallengeClaimed({});
+    setChallengeLostToday(false);
+    setShowSummary(false);
   },[]);
 
   /* ── Chargement depuis localStorage ───────────────── */
@@ -269,7 +320,8 @@ export default function App(){
         // Check perfect day when losing a client
         return updated;
       }
-      const base={date:today,served:0,lost:0,revenue:0};
+      const lastDay=p[p.length-1]?.day??1;
+      const base={date:today,day:lastDay+1,served:0,lost:0,revenue:0};
       return [...p,{...base,[key]:+value.toFixed(2)}].slice(-5);
     });
     if(key==="served") setObjStats(s=>({...s,totalServed:s.totalServed+1}));
@@ -1138,7 +1190,7 @@ export default function App(){
 
       {showSummary&&(
         <DailySummaryModal
-          onClose={()=>setShowSummary(false)}
+          onClose={startNewDay}
           dailyStats={dailyStats}
           objStats={objStats}
           servers={servers}
