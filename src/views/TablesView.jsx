@@ -680,7 +680,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
 
   const openKitchen = (g, table, srv) => {
     const speedMult = srv.specialty?.id==="speed"?(srv.specialty.speedMult||1.0):1.0;
-    const svcDur = Math.round((g.size<=2?15000:g.size<=4?30000:45000)*speedMult);
+    const svcDur = Math.round(svcDuration(g.size).ms * speedMult);
     const svcUntil = Date.now()+svcDur;
     const orderLines = generateOrderWithFormulas(g, menu, formulas, restoLvN);
     const kitchenTickets = buildKitchenTickets(orderLines, table);
