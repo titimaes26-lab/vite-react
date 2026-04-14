@@ -23,7 +23,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
 
   const freshnessColor=(f)=>f<=0?"#7f0000":f<20?C.red:f<60?C.amber:C.green;
   const freshnessLabel=(f)=>f<=0?"Périmé":f<20?"Critique":f<60?"À utiliser":"Frais";
-  const sup=SUPPLIERS[supplierMode||"premium"];
+  const sup=SUPPLIERS[supplierMode||"normal"];
 
   /* ── Calcul prédictif : portions restantes par ingrédient ── */
   const portionsPerIngredient=(stockId)=>{
@@ -70,11 +70,13 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
       addTx("achat",`Achat ${item.name} — ${+addedQty.toFixed(3)} ${item.unit} (${sup.name})`,cost);
     }
     if(sup.delay>0){
+      const now=Date.now();
       setPendingDeliveries(p=>[...p,{
-        id:Date.now()+Math.random(),
+        id:now+Math.random(),
         items:[{stockId:item.id,qty:addedQty}],
         labels:`${item.name} ×${+addedQty.toFixed(3)} ${item.unit}`,
-        arrivedAt:Date.now()+sup.delay*1000,
+        orderedAt:now,
+        arrivedAt:now+sup.delay*1000,
       }]);
       return false;
     }
@@ -216,12 +218,13 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
             Approvisionnement
           </div>
           <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-            {SUPPLIERS[supplierMode||"premium"].desc}
+            {SUPPLIERS[supplierMode||"normal"].desc}
           </div>
         </div>
         <div style={{display:"flex",gap:5}}>
           {Object.values(SUPPLIERS).map(s=>{
-            const active=(supplierMode||"premium")===s.id;
+            const active=(supplierMode||"normal")===s.id;
+            const badge=s.discount>0?`−${(s.discount*100).toFixed(0)}%`:s.discount<0?`+${(-s.discount*100).toFixed(0)}%`:null;
             return(
               <button key={s.id} onClick={()=>setSupplierMode(s.id)} style={{
                 padding:"5px 12px",fontSize:11,fontWeight:600,
@@ -229,7 +232,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                 borderRadius:7,color:active?C.white:C.muted,cursor:"pointer",fontFamily:F.body,
                 display:"flex",alignItems:"center",gap:4}}>
                 <span>{s.icon}</span><span>{s.name}</span>
-                {s.discount>0&&<span style={{fontSize:9,background:"#ffffff33",borderRadius:3,padding:"1px 4px"}}>−{(s.discount*100).toFixed(0)}%</span>}
+                {badge&&<span style={{fontSize:9,background:"#ffffff33",borderRadius:3,padding:"1px 4px"}}>{badge}</span>}
               </button>
             );
           })}
@@ -246,14 +249,16 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
           </div>
           {pendingDeliveries.map(d=>{
             const secsLeft=Math.max(0,Math.ceil((d.arrivedAt-Date.now())/1000));
-            const pct=Math.max(0,Math.min(100,100-(secsLeft/120)*100));
+            const totalSecs=d.orderedAt?Math.max(1,(d.arrivedAt-d.orderedAt)/1000):secsLeft;
+            const pct=Math.max(0,Math.min(100,100-(secsLeft/totalSecs)*100));
+            const timeLabel=secsLeft>=120?`${Math.ceil(secsLeft/60)}min`:secsLeft>0?`${secsLeft}s`:"✓";
             return(
               <div key={d.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
                 <div style={{flex:1,fontSize:10,color:C.navy,fontFamily:F.body,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.labels}</div>
                 <div style={{width:70,height:4,background:C.border,borderRadius:99,overflow:"hidden",flexShrink:0}}>
                   <div style={{height:"100%",background:C.navy,width:`${pct}%`,transition:"width 1s linear",borderRadius:99}}/>
                 </div>
-                <span style={{fontSize:9,color:C.navy,fontWeight:700,fontFamily:F.body,flexShrink:0,minWidth:24}}>{secsLeft}s</span>
+                <span style={{fontSize:9,color:C.navy,fontWeight:700,fontFamily:F.body,flexShrink:0,minWidth:28}}>{timeLabel}</span>
               </div>
             );
           })}
