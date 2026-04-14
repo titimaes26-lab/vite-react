@@ -190,22 +190,10 @@ export default function App(){
     setShowSummary(true);
   },[]);
 
-  // Résumé toutes les 10 min de jeu réel (réarmable à chaque nouveau jour)
+  // Fallback : si la salle ne se vide jamais, résumé à la fin du temps simulé
   useEffect(()=>{
     if(!isLoaded) return;
     const iv=setInterval(showDailySummary,600000);
-    return()=>clearInterval(iv);
-  },[isLoaded,showDailySummary]);
-
-  // Détection de minuit : changement de date calendaire
-  useEffect(()=>{
-    if(!isLoaded) return;
-    const iv=setInterval(()=>{
-      const now=new Date().toLocaleDateString("fr-FR");
-      if(now===lastDateRef.current) return;
-      lastDateRef.current=now;
-      showDailySummary();
-    },30000);
     return()=>clearInterval(iv);
   },[isLoaded,showDailySummary]);
 
@@ -521,6 +509,14 @@ export default function App(){
   });
   useObjectives ({ objStats, completedIds, pendingClaim, setPendingClaim, addToast });
 
+  // Fin de journée : Fermeture + salle vide + file vide
+  useEffect(()=>{
+    if(!isLoaded) return;
+    if(phase?.id !== "fermeture") return;
+    const salleVide = tables.every(t => t.status === "libre" || t.status === "nettoyage");
+    if(!salleVide || queue.length > 0 || waitlist.length > 0) return;
+    showDailySummary();
+  },[isLoaded, phase, tables, queue, waitlist, showDailySummary]);
 
   const now=new Date(clockNow);
 

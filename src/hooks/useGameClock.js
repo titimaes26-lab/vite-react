@@ -2,11 +2,11 @@
    src/hooks/useGameClock.js
    Moteur de temps accéléré — 1 seconde réelle = 1 minute de jeu.
 
-   Journée simulée : 08:00 → 00:00 (16 h de jeu = 960 s réelles = 16 min réelles)
+   Journée simulée : 08:00 → 03:00 (19 h de jeu = 1140 s réelles = 19 min réelles)
 
    Exports :
      PHASES            — tableau des 5 phases de service
-     REAL_DAY_MS       — durée réelle d'une journée en ms (960 000)
+     REAL_DAY_MS       — durée réelle d'une journée en ms (1 140 000)
      realMsToGameTime  — convertit elapsed réel → { h, m, absMin, str }
      getPhase          — retourne la phase active pour un absMin donné
      useGameClock      — hook principal (prend dayStartRealMs)
@@ -17,9 +17,9 @@ import { useState, useEffect } from "react";
 /* ─── Échelle & bornes ───────────────────────────────── */
 
 const DAY_START_ABS = 8 * 60;   // 08:00 = 480 min depuis minuit
-const DAY_END_ABS   = 24 * 60;  // 00:00 = 1440 min (minuit suivant)
+const DAY_END_ABS   = 27 * 60;  // 03:00 (lendemain) = 1620 min
 
-// 960 min de jeu × 1 000 ms/min = 960 000 ms réelles (16 minutes réelles)
+// 1140 min de jeu × 1 000 ms/min = 1 140 000 ms réelles (19 minutes réelles)
 export const REAL_DAY_MS = (DAY_END_ABS - DAY_START_ABS) * 1_000;
 
 /* ─── Phases de service ──────────────────────────────── */
@@ -67,7 +67,7 @@ export const PHASES = [
     icon: "😴",
     color: "#3b82f6",
     startAbs: 870,   // 14:30
-    endAbs:   1110,  // 18:30
+    endAbs:   1080,  // 18:00
     spawnRate: 0.3,
     prepBonus: 0,
     patienceMultiplier: 1.2,
@@ -80,8 +80,8 @@ export const PHASES = [
     label: "Grand Service",
     icon: "✨",
     color: "#8b5cf6",
-    startAbs: 1110,  // 18:30
-    endAbs:   1350,  // 22:30
+    startAbs: 1080,  // 18:00
+    endAbs:   1260,  // 21:00
     spawnRate: 1.5,
     prepBonus: 0,
     patienceMultiplier: 0.9,
@@ -94,14 +94,14 @@ export const PHASES = [
     label: "Fermeture",
     icon: "🔒",
     color: "#ef4444",
-    startAbs: 1350,  // 22:30
-    endAbs:   1440,  // 00:00
+    startAbs: 1260,  // 21:00
+    endAbs:   1620,  // 03:00 (lendemain)
     spawnRate: 0,
     prepBonus: 0,
     patienceMultiplier: 1.0,
     cleanBonus: 0,
     priceMultiplier: 1.0,
-    desc: "Service terminé",
+    desc: "Service terminé — fin de journée quand la salle est vide",
   },
 ];
 
