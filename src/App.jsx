@@ -47,7 +47,7 @@ import {
 } from "./utils/orderUtils";
 
 // ── Hooks métier ───────────────────────────────────────
-import { useGameClock }   from "./hooks/useGameClock";
+import { useGameClock, getGameTimeStr } from "./hooks/useGameClock";
 import { useSpawner }     from "./hooks/useSpawner";
 import { useExpiry }      from "./hooks/useExpiry";
 import { useSalary }      from "./hooks/useSalary";
@@ -134,7 +134,7 @@ export default function App(){
   const [restoXp,setRestoXp]=useState(0);
   const [cash,setCash]=useState(5000);
   const [transactions,setTransactions]=useState([
-    {id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now()}
+    {id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now(),gameTime:"08h00"}
   ]);
   const [showLedger,setShowLedger]=useState(false);
   const [showBank,setShowBank]=useState(false);
@@ -166,11 +166,11 @@ export default function App(){
   const [candidateDate,setCandidateDate]=useState("");
   const [commisPool,setCommisPool]=useState([]);
   const [commisPoolDate,setCommisPoolDate]=useState("");
-  const [dayStartRealMs,setDayStartRealMs]=useState(()=>Date.now());
   const [showSummary,setShowSummary]=useState(false);
   const [summaryIsRecord,setSummaryIsRecord]=useState(false);
   const prevRevenueRef=useRef(0);
-  const dailyStatsRef=useRef(dailyStats);
+  const resetDayRef   =useRef(null);
+  const dailyStatsRef =useRef(dailyStats);
   useEffect(()=>{ dailyStatsRef.current=dailyStats; },[dailyStats]);
 
   // summaryShownRef stocke le numéro du dernier jour affiché (0 = jamais)
@@ -190,24 +190,11 @@ export default function App(){
     setShowSummary(true);
   },[]);
 
-  // Résumé toutes les 10 min de jeu réel (réarmable à chaque nouveau jour)
+  // Fallback : fin du temps simulé (03h00 = isDayOver)
   useEffect(()=>{
-    if(!isLoaded) return;
-    const iv=setInterval(showDailySummary,600000);
-    return()=>clearInterval(iv);
-  },[isLoaded,showDailySummary]);
-
-  // Détection de minuit : changement de date calendaire
-  useEffect(()=>{
-    if(!isLoaded) return;
-    const iv=setInterval(()=>{
-      const now=new Date().toLocaleDateString("fr-FR");
-      if(now===lastDateRef.current) return;
-      lastDateRef.current=now;
-      showDailySummary();
-    },30000);
-    return()=>clearInterval(iv);
-  },[isLoaded,showDailySummary]);
+    if(!isLoaded || !isDayOver) return;
+    showDailySummary();
+  },[isLoaded, isDayOver, showDailySummary]);
 
   /* ── Réinitialisation complète (sans reload) ────────── */
   const doReset = useCallback(() => {
@@ -223,7 +210,7 @@ export default function App(){
     setKitchen(KITCHEN0);
     setRestoXp(0);
     setCash(5000);
-    setTransactions([{id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now()}]);
+    setTransactions([{id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now(),gameTime:"08h00"}]);
     setLoan(null);
     setSupplierMode("premium");
     setPendingDeliveries([]);
@@ -239,7 +226,7 @@ export default function App(){
     setPendingClaim([]);
     setObjStats({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
     setDailyStats([{date:today,day:1,served:0,lost:0,revenue:0}]);
-    setDayStartRealMs(Date.now());
+    resetDayRef.current?.();
     summaryShownRef.current=0;
     prevRevenueRef.current=0;
     setReputation(50);
@@ -273,7 +260,7 @@ export default function App(){
     setChallengeProgress({served:0,revenue:0,noLoss:1,highRating:0,fastPlace:0,vip:0,fullHouse:0,tips:0});
     setChallengeClaimed({});
     setChallengeLostToday(false);
-    setDayStartRealMs(Date.now());
+    resetDayRef.current?.();
     setShowSummary(false);
   },[]);
 
@@ -338,7 +325,7 @@ export default function App(){
     }
   },[]);
   const addTx=useCallback((type,label,amount)=>{
-    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now()},...p].slice(0,200));
+    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:getGameTimeStr()},...p].slice(0,200));
   },[]);
 
   const [showHelp,setShowHelp]=useState(false);
@@ -485,6 +472,7 @@ export default function App(){
   const repRef        = useRef(reputation);
   const tablesRef     = useRef(tables);
   const queueRef      = useRef(queue);
+  const waitlistRef   = useRef(waitlist);
   const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
 
@@ -494,14 +482,16 @@ export default function App(){
   useEffect(() => { repRef.current        = reputation; }, [reputation]);
   useEffect(() => { tablesRef.current     = tables;     }, [tables]);
   useEffect(() => { queueRef.current      = queue;      }, [queue]);
+  useEffect(() => { waitlistRef.current   = waitlist;   }, [waitlist]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
   /* ── Hooks métier ────────────────────────────────────── */
   // Remplacent 13 useEffect inline (salary, moralDrain, deliveries,
   // events, dailySpecials, spawner, challenges, expiry, clockNow, objectives)
-  const { clockNow, phase } = useGameClock(dayStartRealMs);
+  const { clockNow, phase, isDayOver, gameTime, resetDay } = useGameClock();
+  resetDayRef.current = resetDay;
 
-  const phaseRef = useRef(phase);
+  const phaseRef    = useRef(phase);
   useEffect(() => { phaseRef.current = phase; });
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
@@ -521,6 +511,34 @@ export default function App(){
   });
   useObjectives ({ objStats, completedIds, pendingClaim, setPendingClaim, addToast });
 
+  // Fermeture : vider la file et la waitlist dès l'entrée dans la phase
+  useEffect(()=>{
+    if(!isLoaded || phase?.id !== "fermeture") return;
+    setQueue(q=>{
+      if(q.length === 0) return q;
+      addToast({ icon:"🔒", title:"Fermeture !", msg:`${q.length} groupe(s) renvoyé(s) — le restaurant ferme.`, color:"#ef4444", tab:"tables" });
+      return [];
+    });
+    setWaitlist(w=>{
+      if(w.length === 0) return w;
+      return [];
+    });
+  },[isLoaded, phase?.id]);
+
+  // Fin de journée : polling 500ms via refs (évite les stale closures)
+  useEffect(()=>{
+    if(!isLoaded) return;
+    const iv = setInterval(()=>{
+      if(phaseRef.current?.id !== "fermeture") return;
+      const tables  = tablesRef.current;
+      const queue   = queueRef.current;
+      const wlist   = waitlistRef.current;
+      const salleVide = tables.every(t => t.status === "libre" || t.status === "nettoyage");
+      if(!salleVide || queue.length > 0 || wlist.length > 0) return;
+      showDailySummary();
+    }, 500);
+    return () => clearInterval(iv);
+  },[isLoaded, showDailySummary]);
 
   const now=new Date(clockNow);
 
@@ -791,11 +809,11 @@ export default function App(){
               background:C.bg,border:`1px solid ${C.border}`,
               borderRadius:8,padding:"3px 9px",
             }}>
-              <div style={{fontSize:16,fontWeight:800,color:C.ink,fontFamily:F.title,lineHeight:1.1,letterSpacing:"-0.02em"}}>
-                {now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+              <div style={{fontSize:16,fontWeight:800,color:phase?.color??C.ink,fontFamily:F.title,lineHeight:1.1,letterSpacing:"-0.02em"}}>
+                {gameTime?.str??"08h00"}
               </div>
               <div style={{fontSize:8,color:C.muted,whiteSpace:"nowrap",marginTop:1}}>
-                {activeTables.filter(t=>t.status==="occupée"||t.status==="mange").length}/{activeTables.length} tables
+                {phase?.icon??""} {phase?.label??""}
               </div>
             </div>
             <button onClick={()=>setShowHelp(true)} title="Guide utilisateur" style={{
@@ -1132,8 +1150,7 @@ export default function App(){
                 const typeColors={revenu:C.green,achat:C.terra,salaire:C.navy};
                 const typeIcons={revenu:"💶",achat:"🛒",salaire:"💸"};
                 const c=typeColors[tx.type]||C.muted;
-                const d=new Date(tx.date);
-                const hm=d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+                const hm=tx.gameTime??"—";
                 return(
                   <div key={tx.id} style={{display:"flex",alignItems:"flex-start",gap:12,
                     padding:"10px 22px",borderBottom:`1px solid ${C.border}11`}}>

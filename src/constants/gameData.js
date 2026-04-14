@@ -250,8 +250,7 @@ export const TABLES0 = [
 
 /* ─── État initial : serveurs ────────────────────────── */
 export const SERVERS0 = [
-  { id: 1, name: "Marie Dupont",  status: "actif", totalXp: 320, rating: 4.8, salary: 14, moral: 90, specialty: null },
-  { id: 2, name: "Pierre Martin", status: "actif", totalXp: 180, rating: 4.5, salary: 12, moral: 75, specialty: null },
+  { id: 1, name: "Marie Dupont", status: "actif", totalXp: 320, rating: 4.8, salary: 14, moral: 90, specialty: null },
 ];
 
 /* ─── Taux de dégradation de la fraîcheur (%/min) ───── */
@@ -503,9 +502,7 @@ export const KITCHEN0 = {
     signature: "Entrecôte maison",
     salary: 28,
   },
-  commis: [
-    { id: 1, name: "Léa Fontaine", totalXp: 0, status: "actif", task: null, salary: 10, specialty: { id: "patissier", name: "Pâtissier", icon: "🍰", cat: "Desserts", bonus: 0.20 } },
-  ],
+  commis: [],
   queue:        [],
   cooking:      [],
   done:         [],
