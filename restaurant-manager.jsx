@@ -230,7 +230,7 @@ export default function App(){
   const [restoXp,setRestoXp]=useState(0);
   const [cash,setCash]=useState(5000);
   const [transactions,setTransactions]=useState([
-    {id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now()}
+    {id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now(),gameTime:"08h00"}
   ]);
   const [showLedger,setShowLedger]=useState(false);
   const [showBank,setShowBank]=useState(false);
@@ -300,7 +300,7 @@ export default function App(){
     setKitchen(KITCHEN0);
     setRestoXp(0);
     setCash(5000);
-    setTransactions([{id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now()}]);
+    setTransactions([{id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now(),gameTime:"08h00"}]);
     setLoan(null);
     setSupplierMode("premium");
     setPendingDeliveries([]);
@@ -372,7 +372,7 @@ export default function App(){
   },[]);
 
   const addTx=useCallback((type,label,amount)=>{
-    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now()},...p].slice(0,200));
+    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:gameTimeRef.current},...p].slice(0,200));
   },[]);
 
   const updateReputation = useCallback((delta, reason="")=>{
@@ -544,6 +544,7 @@ export default function App(){
   const loanRef       = useRef(loan);
   const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
+  const gameTimeRef   = useRef("08h00");
 
   useEffect(() => { stockRef.current      = stock;      }, [stock]);
   useEffect(() => { cashRef.current       = cash;       }, [cash]);
@@ -559,6 +560,7 @@ export default function App(){
 
   /* ── Horloge de jeu ────────────────────────────────── */
   const { clockNow, gameTime, phase, isDayOver } = useGameClock(dayStartRealMs);
+  gameTimeRef.current = gameTime.str;
 
   // Ref stable pour les hooks setInterval (évite les closures périmées)
   const phaseRef = useRef(phase);
@@ -1217,8 +1219,7 @@ export default function App(){
                 const typeColors={revenu:C.green,achat:C.terra,salaire:C.navy};
                 const typeIcons={revenu:"💶",achat:"🛒",salaire:"💸"};
                 const c=typeColors[tx.type]||C.muted;
-                const d=new Date(tx.date);
-                const hm=d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+                const hm=tx.gameTime??"—";
                 return(
                   <div key={tx.id} style={{display:"flex",alignItems:"flex-start",gap:12,
                     padding:"10px 22px",borderBottom:`1px solid ${C.border}11`}}>
