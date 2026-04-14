@@ -134,7 +134,7 @@ export default function App(){
   const [restoXp,setRestoXp]=useState(0);
   const [cash,setCash]=useState(5000);
   const [transactions,setTransactions]=useState([
-    {id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now()}
+    {id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now(),gameTime:"08h00"}
   ]);
   const [showLedger,setShowLedger]=useState(false);
   const [showBank,setShowBank]=useState(false);
@@ -166,11 +166,11 @@ export default function App(){
   const [candidateDate,setCandidateDate]=useState("");
   const [commisPool,setCommisPool]=useState([]);
   const [commisPoolDate,setCommisPoolDate]=useState("");
-  const [dayStartRealMs,setDayStartRealMs]=useState(()=>Date.now());
   const [showSummary,setShowSummary]=useState(false);
   const [summaryIsRecord,setSummaryIsRecord]=useState(false);
   const prevRevenueRef=useRef(0);
-  const dailyStatsRef=useRef(dailyStats);
+  const resetDayRef   =useRef(null);
+  const dailyStatsRef =useRef(dailyStats);
   useEffect(()=>{ dailyStatsRef.current=dailyStats; },[dailyStats]);
 
   // summaryShownRef stocke le numéro du dernier jour affiché (0 = jamais)
@@ -210,7 +210,7 @@ export default function App(){
     setKitchen(KITCHEN0);
     setRestoXp(0);
     setCash(5000);
-    setTransactions([{id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now()}]);
+    setTransactions([{id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now(),gameTime:"08h00"}]);
     setLoan(null);
     setSupplierMode("premium");
     setPendingDeliveries([]);
@@ -226,7 +226,7 @@ export default function App(){
     setPendingClaim([]);
     setObjStats({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
     setDailyStats([{date:today,day:1,served:0,lost:0,revenue:0}]);
-    setDayStartRealMs(Date.now());
+    resetDayRef.current?.();
     summaryShownRef.current=0;
     prevRevenueRef.current=0;
     setReputation(50);
@@ -260,7 +260,7 @@ export default function App(){
     setChallengeProgress({served:0,revenue:0,noLoss:1,highRating:0,fastPlace:0,vip:0,fullHouse:0,tips:0});
     setChallengeClaimed({});
     setChallengeLostToday(false);
-    setDayStartRealMs(Date.now());
+    resetDayRef.current?.();
     setShowSummary(false);
   },[]);
 
@@ -488,7 +488,8 @@ export default function App(){
   /* ── Hooks métier ────────────────────────────────────── */
   // Remplacent 13 useEffect inline (salary, moralDrain, deliveries,
   // events, dailySpecials, spawner, challenges, expiry, clockNow, objectives)
-  const { clockNow, phase, isDayOver, gameTime } = useGameClock(dayStartRealMs);
+  const { clockNow, phase, isDayOver, gameTime, resetDay } = useGameClock();
+  resetDayRef.current = resetDay;
 
   const phaseRef    = useRef(phase);
   const gameTimeRef = useRef(gameTime);

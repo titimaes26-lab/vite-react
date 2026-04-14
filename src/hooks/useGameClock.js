@@ -12,7 +12,7 @@
      useGameClock      — hook principal (prend dayStartRealMs)
 ═══════════════════════════════════════════════════════ */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 /* ─── Échelle & bornes ───────────────────────────────── */
 
@@ -145,28 +145,31 @@ export function getPhase(absMin) {
 /**
  * useGameClock — fournit l'horloge réelle et le temps de jeu simulé.
  *
- * @param {number} dayStartRealMs  - timestamp réel du début de la journée courante
- *                                   (Date.now() au moment du lancement du service)
  * @returns {{
  *   clockNow      : number,   // Date.now() réel — pour tous les timers existants
  *   gameTime      : { h, m, absMin, str },
  *   phase         : object,   // phase active (un élément de PHASES)
- *   isDayOver     : boolean,  // true quand 00h00 est atteint (960 000 ms écoulées)
+ *   isDayOver     : boolean,  // true quand 03h00 est atteint
  *   elapsedRealMs : number,   // ms réels depuis dayStart
+ *   resetDay      : Function, // remet l'horloge à 08h00
  * }}
  */
-export function useGameClock(dayStartRealMs) {
-  const [clockNow, setClockNow] = useState(() => Date.now());
+export function useGameClock() {
+  const [clockNow,   setClockNow]  = useState(() => Date.now());
+  const [dayStart,   setDayStart]  = useState(() => Date.now());
 
   useEffect(() => {
     const iv = setInterval(() => setClockNow(Date.now()), 250);
     return () => clearInterval(iv);
   }, []);
 
-  const elapsedRealMs = clockNow - dayStartRealMs;
+  // Remet la journée à 08h00 en alignant dayStart sur clockNow courant
+  const resetDay = useCallback(() => setDayStart(Date.now()), []);
+
+  const elapsedRealMs = Math.max(0, clockNow - dayStart);
   const gameTime      = realMsToGameTime(elapsedRealMs);
   const phase         = getPhase(gameTime.absMin);
   const isDayOver     = elapsedRealMs >= REAL_DAY_MS;
 
-  return { clockNow, gameTime, phase, isDayOver, elapsedRealMs };
+  return { clockNow, gameTime, phase, isDayOver, elapsedRealMs, resetDay };
 }
