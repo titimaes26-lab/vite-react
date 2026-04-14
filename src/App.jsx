@@ -47,7 +47,7 @@ import {
 } from "./utils/orderUtils";
 
 // ── Hooks métier ───────────────────────────────────────
-import { useGameClock, realMsToGameTime } from "./hooks/useGameClock";
+import { useGameClock, getGameTimeStr } from "./hooks/useGameClock";
 import { useSpawner }     from "./hooks/useSpawner";
 import { useExpiry }      from "./hooks/useExpiry";
 import { useSalary }      from "./hooks/useSalary";
@@ -170,7 +170,6 @@ export default function App(){
   const [summaryIsRecord,setSummaryIsRecord]=useState(false);
   const prevRevenueRef=useRef(0);
   const resetDayRef   =useRef(null);
-  const gameTimeRef   =useRef(realMsToGameTime(0)); // 08h00 au démarrage, mis à jour à chaque render
   const dailyStatsRef =useRef(dailyStats);
   useEffect(()=>{ dailyStatsRef.current=dailyStats; },[dailyStats]);
 
@@ -326,7 +325,7 @@ export default function App(){
     }
   },[]);
   const addTx=useCallback((type,label,amount)=>{
-    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:gameTimeRef.current?.str??null},...p].slice(0,200));
+    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:getGameTimeStr()},...p].slice(0,200));
   },[]);
 
   const [showHelp,setShowHelp]=useState(false);
@@ -493,8 +492,7 @@ export default function App(){
   resetDayRef.current = resetDay;
 
   const phaseRef    = useRef(phase);
-  useEffect(() => { phaseRef.current    = phase;    });
-  useEffect(() => { gameTimeRef.current = gameTime; });
+  useEffect(() => { phaseRef.current = phase; });
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
   useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat });

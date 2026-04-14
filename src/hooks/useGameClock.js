@@ -140,6 +140,13 @@ export function getPhase(absMin) {
     ?? PHASES[PHASES.length - 1];
 }
 
+/* ─── Variable de module : heure de jeu courante ────────
+   Mise à jour à chaque render de useGameClock.
+   Permet à addTx de lire l'heure simulée sans closure/ref.
+─────────────────────────────────────────────────────── */
+let _gameTimeStr = "08h00";
+export const getGameTimeStr = () => _gameTimeStr;
+
 /* ─── Hook principal ─────────────────────────────────── */
 
 /**
@@ -168,6 +175,7 @@ export function useGameClock() {
 
   const elapsedRealMs = Math.max(0, clockNow - dayStart);
   const gameTime      = realMsToGameTime(elapsedRealMs);
+  _gameTimeStr        = gameTime.str;               // toujours à jour avant addTx
   const phase         = getPhase(gameTime.absMin);
   const isDayOver     = elapsedRealMs >= REAL_DAY_MS;
 
