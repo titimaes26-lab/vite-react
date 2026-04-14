@@ -325,7 +325,7 @@ export default function App(){
     }
   },[]);
   const addTx=useCallback((type,label,amount)=>{
-    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now()},...p].slice(0,200));
+    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:gameTimeRef.current?.str??null},...p].slice(0,200));
   },[]);
 
   const [showHelp,setShowHelp]=useState(false);
@@ -488,10 +488,12 @@ export default function App(){
   /* ── Hooks métier ────────────────────────────────────── */
   // Remplacent 13 useEffect inline (salary, moralDrain, deliveries,
   // events, dailySpecials, spawner, challenges, expiry, clockNow, objectives)
-  const { clockNow, phase, isDayOver } = useGameClock(dayStartRealMs);
+  const { clockNow, phase, isDayOver, gameTime } = useGameClock(dayStartRealMs);
 
-  const phaseRef = useRef(phase);
-  useEffect(() => { phaseRef.current = phase; });
+  const phaseRef    = useRef(phase);
+  const gameTimeRef = useRef(gameTime);
+  useEffect(() => { phaseRef.current    = phase;    });
+  useEffect(() => { gameTimeRef.current = gameTime; });
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
   useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat });
@@ -1149,8 +1151,7 @@ export default function App(){
                 const typeColors={revenu:C.green,achat:C.terra,salaire:C.navy};
                 const typeIcons={revenu:"💶",achat:"🛒",salaire:"💸"};
                 const c=typeColors[tx.type]||C.muted;
-                const d=new Date(tx.date);
-                const hm=d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+                const hm=tx.gameTime??new Date(tx.date).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
                 return(
                   <div key={tx.id} style={{display:"flex",alignItems:"flex-start",gap:12,
                     padding:"10px 22px",borderBottom:`1px solid ${C.border}11`}}>
