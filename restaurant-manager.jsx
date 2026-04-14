@@ -341,7 +341,8 @@ export default function App(){
         if(sv.cash!=null)    setCash(sv.cash);
         if(sv.transactions)  setTransactions(sv.transactions);
         if(sv.loan!=null)    setLoan(sv.loan);
-        if(sv.supplierMode)  setSupplierMode(sv.supplierMode);
+        const validModes=["rapide","normal","lowcost"];
+        if(sv.supplierMode&&validModes.includes(sv.supplierMode)) setSupplierMode(sv.supplierMode);
         if(sv.pendingDeliveries) setPendingDeliveries(sv.pendingDeliveries);
         if(sv.dailySpecials) setDailySpecials(sv.dailySpecials);
         if(sv.completedIds)  setCompletedIds(sv.completedIds);

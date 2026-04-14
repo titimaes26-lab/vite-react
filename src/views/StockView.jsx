@@ -23,7 +23,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
 
   const freshnessColor=(f)=>f<=0?"#7f0000":f<20?C.red:f<60?C.amber:C.green;
   const freshnessLabel=(f)=>f<=0?"Périmé":f<20?"Critique":f<60?"À utiliser":"Frais";
-  const sup=SUPPLIERS[supplierMode||"normal"];
+  const sup=SUPPLIERS[supplierMode]??SUPPLIERS["normal"];
 
   /* ── Calcul prédictif : portions restantes par ingrédient ── */
   const portionsPerIngredient=(stockId)=>{
