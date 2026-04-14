@@ -47,7 +47,7 @@ import {
 } from "./utils/orderUtils";
 
 // ── Hooks métier ───────────────────────────────────────
-import { useGameClock }   from "./hooks/useGameClock";
+import { useGameClock, realMsToGameTime } from "./hooks/useGameClock";
 import { useSpawner }     from "./hooks/useSpawner";
 import { useExpiry }      from "./hooks/useExpiry";
 import { useSalary }      from "./hooks/useSalary";
@@ -170,6 +170,7 @@ export default function App(){
   const [summaryIsRecord,setSummaryIsRecord]=useState(false);
   const prevRevenueRef=useRef(0);
   const resetDayRef   =useRef(null);
+  const gameTimeRef   =useRef(realMsToGameTime(0)); // 08h00 au démarrage, mis à jour à chaque render
   const dailyStatsRef =useRef(dailyStats);
   useEffect(()=>{ dailyStatsRef.current=dailyStats; },[dailyStats]);
 
@@ -492,7 +493,6 @@ export default function App(){
   resetDayRef.current = resetDay;
 
   const phaseRef    = useRef(phase);
-  const gameTimeRef = useRef(gameTime);
   useEffect(() => { phaseRef.current    = phase;    });
   useEffect(() => { gameTimeRef.current = gameTime; });
 
@@ -1152,7 +1152,7 @@ export default function App(){
                 const typeColors={revenu:C.green,achat:C.terra,salaire:C.navy};
                 const typeIcons={revenu:"💶",achat:"🛒",salaire:"💸"};
                 const c=typeColors[tx.type]||C.muted;
-                const hm=tx.gameTime??new Date(tx.date).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+                const hm=tx.gameTime??"—";
                 return(
                   <div key={tx.id} style={{display:"flex",alignItems:"flex-start",gap:12,
                     padding:"10px 22px",borderBottom:`1px solid ${C.border}11`}}>
