@@ -73,9 +73,9 @@ export const buildKitchenTickets = (orderLines, table) =>
  * @returns {{ ms: number, label: string }}
  */
 export const svcDuration = (groupSize) => {
-  if (groupSize <= 2) return { ms: 30_000, label: "30s" };
-  if (groupSize <= 4) return { ms: 60_000, label: "1 min" };
-  return { ms: 90_000, label: "1m30" };
+  if (groupSize <= 2) return { ms: 15_000, label: "15s" };
+  if (groupSize <= 4) return { ms: 30_000, label: "30s" };
+  return { ms: 45_000, label: "45s" };
 };
 
 /* ─── Durée de repas (manger) ────────────────────────── */
