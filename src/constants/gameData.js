@@ -503,9 +503,7 @@ export const KITCHEN0 = {
     signature: "Entrecôte maison",
     salary: 28,
   },
-  commis: [
-    { id: 1, name: "Léa Fontaine", totalXp: 0, status: "actif", task: null, salary: 10, specialty: { id: "patissier", name: "Pâtissier", icon: "🍰", cat: "Desserts", bonus: 0.20 } },
-  ],
+  commis: [],
   queue:        [],
   cooking:      [],
   done:         [],
