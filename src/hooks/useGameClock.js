@@ -9,7 +9,7 @@
      REAL_DAY_MS       — durée réelle d'une journée en ms (1 140 000)
      realMsToGameTime  — convertit elapsed réel → { h, m, absMin, str }
      getPhase          — retourne la phase active pour un absMin donné
-     useGameClock      — hook principal (prend dayStartRealMs)
+     useGameClock      — hook principal ; retourne gameTime.str à jour
 ═══════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useCallback } from "react";
@@ -140,13 +140,6 @@ export function getPhase(absMin) {
     ?? PHASES[PHASES.length - 1];
 }
 
-/* ─── Variable de module : heure de jeu courante ────────
-   Mise à jour à chaque render de useGameClock.
-   Permet à addTx de lire l'heure simulée sans closure/ref.
-─────────────────────────────────────────────────────── */
-let _gameTimeStr = "08h00";
-export const getGameTimeStr = () => _gameTimeStr;
-
 /* ─── Hook principal ─────────────────────────────────── */
 
 /**
@@ -175,7 +168,6 @@ export function useGameClock() {
 
   const elapsedRealMs = Math.max(0, clockNow - dayStart);
   const gameTime      = realMsToGameTime(elapsedRealMs);
-  _gameTimeStr        = gameTime.str;               // toujours à jour avant addTx
   const phase         = getPhase(gameTime.absMin);
   const isDayOver     = elapsedRealMs >= REAL_DAY_MS;
 

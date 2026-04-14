@@ -47,7 +47,7 @@ import {
 } from "./utils/orderUtils";
 
 // ── Hooks métier ───────────────────────────────────────
-import { useGameClock, getGameTimeStr } from "./hooks/useGameClock";
+import { useGameClock } from "./hooks/useGameClock";
 import { useSpawner }     from "./hooks/useSpawner";
 import { useExpiry }      from "./hooks/useExpiry";
 import { useSalary }      from "./hooks/useSalary";
@@ -170,6 +170,7 @@ export default function App(){
   const [summaryIsRecord,setSummaryIsRecord]=useState(false);
   const prevRevenueRef=useRef(0);
   const resetDayRef   =useRef(null);
+  const gameTimeRef   =useRef("08h00");
   const dailyStatsRef =useRef(dailyStats);
   useEffect(()=>{ dailyStatsRef.current=dailyStats; },[dailyStats]);
 
@@ -325,7 +326,7 @@ export default function App(){
     }
   },[]);
   const addTx=useCallback((type,label,amount)=>{
-    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:getGameTimeStr()},...p].slice(0,200));
+    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:gameTimeRef.current},...p].slice(0,200));
   },[]);
 
   const [showHelp,setShowHelp]=useState(false);
@@ -489,7 +490,8 @@ export default function App(){
   // Remplacent 13 useEffect inline (salary, moralDrain, deliveries,
   // events, dailySpecials, spawner, challenges, expiry, clockNow, objectives)
   const { clockNow, phase, isDayOver, gameTime, resetDay } = useGameClock();
-  resetDayRef.current = resetDay;
+  resetDayRef.current  = resetDay;
+  gameTimeRef.current  = gameTime.str;
 
   const phaseRef    = useRef(phase);
   useEffect(() => { phaseRef.current = phase; });
