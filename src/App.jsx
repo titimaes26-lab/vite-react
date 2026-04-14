@@ -472,6 +472,7 @@ export default function App(){
   const repRef        = useRef(reputation);
   const tablesRef     = useRef(tables);
   const queueRef      = useRef(queue);
+  const waitlistRef   = useRef(waitlist);
   const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
 
@@ -481,6 +482,7 @@ export default function App(){
   useEffect(() => { repRef.current        = reputation; }, [reputation]);
   useEffect(() => { tablesRef.current     = tables;     }, [tables]);
   useEffect(() => { queueRef.current      = queue;      }, [queue]);
+  useEffect(() => { waitlistRef.current   = waitlist;   }, [waitlist]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
   /* ── Hooks métier ────────────────────────────────────── */
@@ -522,14 +524,20 @@ export default function App(){
     });
   },[isLoaded, phase?.id]);
 
-  // Fin de journée : Fermeture + salle vide + file vide
+  // Fin de journée : polling 500ms via refs (évite les stale closures)
   useEffect(()=>{
     if(!isLoaded) return;
-    if(phase?.id !== "fermeture") return;
-    const salleVide = tables.every(t => t.status === "libre" || t.status === "nettoyage");
-    if(!salleVide || queue.length > 0 || waitlist.length > 0) return;
-    showDailySummary();
-  },[isLoaded, phase, tables, queue, waitlist, showDailySummary]);
+    const iv = setInterval(()=>{
+      if(phaseRef.current?.id !== "fermeture") return;
+      const tables  = tablesRef.current;
+      const queue   = queueRef.current;
+      const wlist   = waitlistRef.current;
+      const salleVide = tables.every(t => t.status === "libre" || t.status === "nettoyage");
+      if(!salleVide || queue.length > 0 || wlist.length > 0) return;
+      showDailySummary();
+    }, 500);
+    return () => clearInterval(iv);
+  },[isLoaded, showDailySummary]);
 
   const now=new Date(clockNow);
 
