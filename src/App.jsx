@@ -508,6 +508,20 @@ export default function App(){
   });
   useObjectives ({ objStats, completedIds, pendingClaim, setPendingClaim, addToast });
 
+  // Fermeture : vider la file et la waitlist dès l'entrée dans la phase
+  useEffect(()=>{
+    if(!isLoaded || phase?.id !== "fermeture") return;
+    setQueue(q=>{
+      if(q.length === 0) return q;
+      addToast({ icon:"🔒", title:"Fermeture !", msg:`${q.length} groupe(s) renvoyé(s) — le restaurant ferme.`, color:"#ef4444", tab:"tables" });
+      return [];
+    });
+    setWaitlist(w=>{
+      if(w.length === 0) return w;
+      return [];
+    });
+  },[isLoaded, phase?.id]);
+
   // Fin de journée : Fermeture + salle vide + file vide
   useEffect(()=>{
     if(!isLoaded) return;
