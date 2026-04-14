@@ -810,11 +810,11 @@ export default function App(){
               background:C.bg,border:`1px solid ${C.border}`,
               borderRadius:8,padding:"3px 9px",
             }}>
-              <div style={{fontSize:16,fontWeight:800,color:C.ink,fontFamily:F.title,lineHeight:1.1,letterSpacing:"-0.02em"}}>
-                {now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+              <div style={{fontSize:16,fontWeight:800,color:phase?.color??C.ink,fontFamily:F.title,lineHeight:1.1,letterSpacing:"-0.02em"}}>
+                {gameTime?.str??"08h00"}
               </div>
               <div style={{fontSize:8,color:C.muted,whiteSpace:"nowrap",marginTop:1}}>
-                {activeTables.filter(t=>t.status==="occupée"||t.status==="mange").length}/{activeTables.length} tables
+                {phase?.icon??""} {phase?.label??""}
               </div>
             </div>
             <button onClick={()=>setShowHelp(true)} title="Guide utilisateur" style={{
