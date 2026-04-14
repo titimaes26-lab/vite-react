@@ -247,7 +247,7 @@ export default function App(){
   };
   const handleBankTutorialDone = () => setShowBankTutorial(false);
   const [loan,setLoan]=useState(null);
-  const [supplierMode,setSupplierMode]=useState("premium");
+  const [supplierMode,setSupplierMode]=useState("normal");
   const [pendingDeliveries,setPendingDeliveries]=useState([]);
   const [dailySpecials,setDailySpecials]=useState(()=>{
     const base=MENU0.filter(m=>m.cat!=="Boissons");

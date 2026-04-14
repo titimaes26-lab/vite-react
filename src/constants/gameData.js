@@ -591,15 +591,20 @@ export const KITCHEN_UPGRADES = [
 
 /* ─── Fournisseurs ───────────────────────────────────── */
 export const SUPPLIERS = {
-  standard: {
-    id: "standard", name: "Fournisseur Local", icon: "🚚",
-    desc: "Prix réduit (−20%) mais livraison en 2 minutes.",
-    discount: 0.20, delay: 120,
+  rapide: {
+    id: "rapide", name: "Rapide", icon: "⚡",
+    desc: "Livraison en 1h de jeu (1 min réelle) · +30 % sur les prix.",
+    discount: -0.30, delay: 60,
   },
-  premium: {
-    id: "premium", name: "Grossiste Premium", icon: "⚡",
-    desc: "Prix plein mais livraison instantanée.",
-    discount: 0, delay: 0,
+  normal: {
+    id: "normal", name: "Normal", icon: "🚚",
+    desc: "Livraison en 24h de jeu (24 min réelles) · prix de base.",
+    discount: 0, delay: 1440,
+  },
+  lowcost: {
+    id: "lowcost", name: "Low Cost", icon: "💰",
+    desc: "Livraison en 48h de jeu (48 min réelles) · −20 % sur les prix.",
+    discount: 0.20, delay: 2880,
   },
 };
 
