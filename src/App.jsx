@@ -190,12 +190,11 @@ export default function App(){
     setShowSummary(true);
   },[]);
 
-  // Fallback : si la salle ne se vide jamais, résumé à la fin du temps simulé
+  // Fallback : fin du temps simulé (03h00 = isDayOver)
   useEffect(()=>{
-    if(!isLoaded) return;
-    const iv=setInterval(showDailySummary,600000);
-    return()=>clearInterval(iv);
-  },[isLoaded,showDailySummary]);
+    if(!isLoaded || !isDayOver) return;
+    showDailySummary();
+  },[isLoaded, isDayOver, showDailySummary]);
 
   /* ── Réinitialisation complète (sans reload) ────────── */
   const doReset = useCallback(() => {
@@ -487,7 +486,7 @@ export default function App(){
   /* ── Hooks métier ────────────────────────────────────── */
   // Remplacent 13 useEffect inline (salary, moralDrain, deliveries,
   // events, dailySpecials, spawner, challenges, expiry, clockNow, objectives)
-  const { clockNow, phase } = useGameClock(dayStartRealMs);
+  const { clockNow, phase, isDayOver } = useGameClock(dayStartRealMs);
 
   const phaseRef = useRef(phase);
   useEffect(() => { phaseRef.current = phase; });
