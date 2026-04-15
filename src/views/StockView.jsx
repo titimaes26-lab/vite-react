@@ -8,8 +8,13 @@ import { C, F, SUPPLIERS } from "../constants/gameData";
 import { Btn, Inp, Sel } from "../components/ui";
 import { quickAmounts } from "../utils/orderUtils";
 
-export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMode,setSupplierMode,pendingDeliveries,setPendingDeliveries,menu=[],bp={}}){
+export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMode,setSupplierMode,pendingDeliveries,setPendingDeliveries,menu=[],restoLvN=0,bp={}}){
   const storageMult=1+(kitchen?.upgrades?.stockage||0);
+  // Ingrédients utilisés par au moins un plat débloqué
+  const unlockedStockIds=new Set(
+    menu.filter(d=>d.unlockLevel<=restoLvN).flatMap(d=>d.ingredients.map(i=>i.stockId))
+  );
+  const visibleStock=stock.filter(s=>unlockedStockIds.has(s.id));
   const [inlineAlertId, setInlineAlertId] = useState(null);
   const [inlineAlertVal, setInlineAlertVal] = useState("");
   const [adjId,setAdjId]=useState(null);
@@ -18,8 +23,8 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
   const [collapsedCats,setCollapsedCats]=useState({});
   const [sortMode,setSortMode]=useState("urgence"); // "urgence"|"alpha"|"cat"
 
-  const alerts=stock.filter(s=>s.qty<=s.alert);
-  const staleItems=stock.filter(s=>(s.freshness??100)<20&&s.qty>0);
+  const alerts=visibleStock.filter(s=>s.qty<=s.alert);
+  const staleItems=visibleStock.filter(s=>(s.freshness??100)<20&&s.qty>0);
 
   const freshnessColor=(f)=>f<=0?"#7f0000":f<20?C.red:f<60?C.amber:C.green;
   const freshnessLabel=(f)=>f<=0?"Périmé":f<20?"Critique":f<60?"À utiliser":"Frais";
@@ -48,7 +53,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
     .slice(0,3);
 
   // Valeur totale de l'inventaire
-  const inventoryValue=stock.reduce((sum,s)=>sum+(s.qty*(s.price||0)),0);
+  const inventoryValue=visibleStock.reduce((sum,s)=>sum+(s.qty*(s.price||0)),0);
 
   /* ── Commander selon prévision ── */
   const orderByForecast=()=>{
@@ -99,7 +104,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
     return[1,5,10];
   };
   const restockAll=()=>{
-    stock.filter(s=>s.qty<=s.alert).forEach(s=>{
+    visibleStock.filter(s=>s.qty<=s.alert).forEach(s=>{
       const added=+(s.alert*4-s.qty).toFixed(3);
       if(added>0){const inst=deductCost(s,added);if(inst)setStock(p=>p.map(x=>x.id===s.id?{...x,qty:+(s.alert*4).toFixed(2),freshness:100}:x));}
     });
@@ -110,12 +115,12 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
     return sum+(found?found.qty:0);
   },0);
 
-  const cats=[...new Set(stock.map(s=>s.cat))];
+  const cats=[...new Set(visibleStock.map(s=>s.cat))];
   const catIcon={Viandes:"🥩",Poissons:"🐟",Fins:"⭐",Légumes:"🥦","Légumes & Herbes":"🌿",Herbes:"🌿",Laitiers:"🧈",Épicerie:"🫙",Boissons:"🍷"};
   const toggleCat=(cat)=>setCollapsedCats(p=>({...p,[cat]:!p[cat]}));
 
   // Sorted stock for list/bar views
-  const sortedStock=[...stock].sort((a,b)=>{
+  const sortedStock=[...visibleStock].sort((a,b)=>{
     if(sortMode==="urgence"){
       const pa=a.alert>0?(a.qty/a.alert):99;
       const pb=b.alert>0?(b.qty/b.alert):99;
@@ -320,7 +325,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
       {viewMode==="graphique"&&(
         <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"16px 20px"}}>
           <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:14}}>
-            📊 Niveaux de stock — {stock.length} ingrédients
+            📊 Niveaux de stock — {visibleStock.length} ingrédients
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:5}}>
             {sortedStock.map(it=>{
@@ -471,7 +476,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
 
       {/* ══ VUE CARTES (accordéon par catégorie) ══ */}
       {viewMode==="cartes"&&cats.map(cat=>{
-        const items=stock.filter(s=>s.cat===cat);
+        const items=visibleStock.filter(s=>s.cat===cat);
         const collapsed=collapsedCats[cat];
         const catAlerts=items.filter(s=>s.qty<=s.alert).length;
         return(
