@@ -282,6 +282,7 @@ export default function App(){
   const [showSummary,setShowSummary]=useState(false);
   const [summaryIsRecord,setSummaryIsRecord]=useState(false);
   const prevRevenueRef=useRef(0);
+  const resetDayRef=useRef(null);
   // Résumé de fin de journée : s'affiche après 10 min de jeu réel
   const [seenIds,setSeenIds]=useState(new Set());
   const summaryShownRef=useRef(false);
@@ -321,6 +322,7 @@ export default function App(){
     setFormulas([]);
     setTab("tables");
     setShowResetModal(false);
+    resetDayRef.current?.();
   },[]);
 
   /* ── Chargement depuis localStorage ───────────────── */
@@ -560,8 +562,9 @@ export default function App(){
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
   /* ── Horloge de jeu ────────────────────────────────── */
-  const { clockNow, gameTime, phase, isDayOver } = useGameClock(dayStartRealMs);
-  gameTimeRef.current = gameTime.str;
+  const { clockNow, gameTime, phase, isDayOver, resetDay } = useGameClock(dayStartRealMs);
+  gameTimeRef.current  = gameTime.str;
+  resetDayRef.current  = resetDay;
 
   // Ref stable pour les hooks setInterval (évite les closures périmées)
   const phaseRef = useRef(phase);
@@ -608,6 +611,7 @@ export default function App(){
     const now=Date.now();
     try{localStorage.setItem("day_start",String(now));}catch(e){}
     setDayStartRealMs(now);
+    resetDayRef.current?.();
     summaryShownRef.current=false;
     setShowSummary(false);
     setDailyStats(p=>{
