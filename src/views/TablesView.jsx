@@ -289,19 +289,17 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
               const MR = 60;   // droite (bar)
               const MB = 48;   // bas (entrée + groupes en attente)
 
-              // ── 3. ViewBox proportionnelle 16:9 ─────────────
-              // On choisit un viewBox fixe large que le SVG remplit
-              // Les tables s'adaptent pour occuper tout l'espace
+              // ── 3. ViewBox dynamique ─────────────────────────
+              // CELL_H plafonné à 90 (moitié de l'ancien 180)
+              // VH s'adapte au contenu pour éviter l'espace vide
               const VW = 800;
-              const VH = 500;
 
               // Espace disponible pour les tables
               const gridW = VW - ML - MR;
-              const gridH = VH - MT - MB;
 
-              // Taille d'une cellule adaptée à l'espace
               const CELL_W = Math.min(220, Math.floor(gridW / cols));
-              const CELL_H = Math.min(180, Math.floor(gridH / rows));
+              const CELL_H = Math.min(90,  Math.floor(400   / rows));
+              const VH     = MT + rows * CELL_H + MB;
 
               // Taille des tables proportionnelle à la cellule
               // Table 2p: 60% de la cellule, table 4p: 70%, 6p: 78%
