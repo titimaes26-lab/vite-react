@@ -562,7 +562,7 @@ export default function App(){
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
   /* ── Horloge de jeu ────────────────────────────────── */
-  const { clockNow, gameTime, phase, isDayOver, resetDay } = useGameClock(dayStartRealMs);
+  const { clockNow, gameTime, phase, isDayOver: clockIsDayOver, resetDay } = useGameClock(dayStartRealMs);
   gameTimeRef.current  = gameTime.str;
   resetDayRef.current  = resetDay;
 
@@ -664,6 +664,8 @@ export default function App(){
   const rl=restoLv(restoXp);
   const rlD=rl.d;
   const activeTables=tables.slice(0,rlD.tables);
+  const tablesOccupied=activeTables.some(t=>t.status==="occupée"||t.status==="mange");
+  const isDayOver=(phase?.id==="fermeture"||clockIsDayOver)&&!tablesOccupied;
 
   const addRestoXp=useCallback((xp)=>{
     setRestoXp(prev=>{
