@@ -12,7 +12,7 @@
      useGameClock      — hook principal ; retourne gameTime.str à jour
 ═══════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 /* ─── Échelle & bornes ───────────────────────────────── */
 
@@ -154,17 +154,31 @@ export function getPhase(absMin) {
  *   resetDay      : Function, // remet l'horloge à 08h00
  * }}
  */
-export function useGameClock() {
+export function useGameClock({ pausedRef } = {}) {
   const [clockNow,   setClockNow]  = useState(() => Date.now());
   const [dayStart,   setDayStart]  = useState(() => Date.now());
+  const pausedAtRef = useRef(null);
 
   useEffect(() => {
-    const iv = setInterval(() => setClockNow(Date.now()), 250);
+    const iv = setInterval(() => {
+      if (pausedRef?.current) {
+        if (pausedAtRef.current === null) pausedAtRef.current = Date.now();
+        return;
+      }
+      if (pausedAtRef.current !== null) {
+        const dur = Date.now() - pausedAtRef.current;
+        setDayStart(ds => ds + dur);
+        pausedAtRef.current = null;
+      }
+      setClockNow(Date.now());
+    }, 250);
     return () => clearInterval(iv);
-  }, []);
+  }, [pausedRef]);
 
-  // Remet la journée à 08h00 en alignant dayStart sur clockNow courant
-  const resetDay = useCallback(() => setDayStart(Date.now()), []);
+  const resetDay = useCallback(() => {
+    pausedAtRef.current = null;
+    setDayStart(Date.now());
+  }, []);
 
   const elapsedRealMs = Math.max(0, clockNow - dayStart);
   const gameTime      = realMsToGameTime(elapsedRealMs);

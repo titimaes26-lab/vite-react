@@ -32,9 +32,11 @@ export const useExpiry = ({
   addDayStat,
   updateReputation,
   repDeltaLostClient,
+  pausedRef,
 }) => {
   useEffect(() => {
     const iv = setInterval(() => {
+      if (pausedRef?.current) return;
       const t = Date.now();
 
       /* ── 1. File d'attente expirée → waitlist ─────────── */

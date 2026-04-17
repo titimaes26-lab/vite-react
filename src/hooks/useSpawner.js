@@ -59,12 +59,14 @@ export const useSpawner = ({
   repRef,
   getRepTier,
   addToast,
-  phaseRef,   // { current: phase } — phase active du moteur de temps (optionnel)
+  phaseRef,
+  pausedRef,
 }) => {
   const lastActiveRef = useRef(Date.now()); // F — timestamp dernière table non-vide
 
   useEffect(() => {
     const iv = setInterval(() => {
+      if (pausedRef?.current) return;
       const now    = Date.now();
       const tables = tablesRef.current;
       const queue  = queueRef.current;

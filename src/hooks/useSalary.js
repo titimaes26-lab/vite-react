@@ -40,9 +40,11 @@ export const useSalary = ({
   setCash,
   addTx,
   addToast,
+  pausedRef,
 }) => {
   useEffect(() => {
     const iv = setInterval(() => {
+      if (pausedRef?.current) return;
       /* ── Collecte synchrone depuis les refs ───────────── */
       let total = 0;
       const lines = [];
