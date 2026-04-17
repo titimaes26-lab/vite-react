@@ -286,6 +286,8 @@ export default function App(){
   // Résumé de fin de journée : s'affiche après 10 min de jeu réel
   const [seenIds,setSeenIds]=useState(new Set());
   const summaryShownRef=useRef(false);
+  const pausedRef     = useRef(false);
+  const pauseStartRef = useRef(null);
 
   /* ── Réinitialisation complète (sans reload) ────────── */
   const doReset = useCallback(() => {
@@ -561,8 +563,47 @@ export default function App(){
   useEffect(() => { loanRef.current       = loan;       }, [loan]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
+  /* ── Pause lors des dialogues ───────────────────────── */
+  const isDialogOpen = !!(showIntro||showTablesTutorial||showServersTutorial||showStatsTutorial||showObjectivesTutorial||showStockTutorial||showMenuTutorial||showKitchenTutorial||showBankTutorial);
+  useEffect(() => {
+    if (isDialogOpen) {
+      pausedRef.current     = true;
+      pauseStartRef.current = Date.now();
+    } else if (pauseStartRef.current !== null) {
+      pausedRef.current = false;
+      const dur = Date.now() - pauseStartRef.current;
+      pauseStartRef.current = null;
+      if (dur > 100) {
+        setTables(ts => ts.map(t => ({
+          ...t,
+          eatUntil:   t.eatUntil   ? t.eatUntil   + dur : null,
+          cleanUntil: t.cleanUntil ? t.cleanUntil + dur : null,
+          svcUntil:   t.svcUntil   ? t.svcUntil   + dur : null,
+          placedAt:   t.placedAt   ? t.placedAt   + dur : null,
+        })));
+        setQueue(q => q.map(g => ({ ...g, expiresAt: g.expiresAt + dur })));
+        setWaitlist(w => w.map(g => ({
+          ...g,
+          recallUntil: g.recallUntil ? g.recallUntil + dur : null,
+        })));
+        setServers(ss => ss.map(s => ({
+          ...s,
+          serviceUntil: s.serviceUntil ? s.serviceUntil + dur : null,
+          cleanUntil:   s.cleanUntil   ? s.cleanUntil   + dur : null,
+        })));
+        setKitchen(k => ({
+          ...k,
+          cooking: (k.cooking ?? []).map(d => ({
+            ...d,
+            startedAt: d.startedAt ? d.startedAt + dur : null,
+          })),
+        }));
+      }
+    }
+  }, [isDialogOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ── Horloge de jeu ────────────────────────────────── */
-  const { clockNow, gameTime, phase, isDayOver: clockIsDayOver, resetDay } = useGameClock(dayStartRealMs);
+  const { clockNow, gameTime, phase, isDayOver: clockIsDayOver, resetDay } = useGameClock(dayStartRealMs, pausedRef);
   gameTimeRef.current  = gameTime.str;
   resetDayRef.current  = resetDay;
   const tablesOccupied = tables.some(t=>t.status==="occupée"||t.status==="mange");
@@ -623,8 +664,8 @@ export default function App(){
     setObjStats(s=>({...s,_hadLoss:false}));
   },[]);
 
-  useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
-  useExpiry     ({ queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient: REP_DELTA.lostClient });
+  useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef, pausedRef });
+  useExpiry     ({ queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient: REP_DELTA.lostClient, pausedRef });
 
   /* ── Auto-assign serveur pour le nettoyage des tables ── */
   useEffect(() => {
@@ -643,7 +684,7 @@ export default function App(){
     }, 500);
     return () => clearInterval(iv);
   }, [setTables, setServers]);
-  useSalary     ({ serversRef, kitchenRef, setCash, addTx, addToast });
+  useSalary     ({ serversRef, kitchenRef, setCash, addTx, addToast, pausedRef });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useFreshness  ({ stockRef, kitchenRef, setStock, setComplaints, addToast });
   useEvents     ({
@@ -652,7 +693,7 @@ export default function App(){
     setTables, setServers, setKitchen,
     setActiveEvent, addToast, addTx, updateReputation,
   });
-  useServerMoral({ setServers, addToast });
+  useServerMoral({ setServers, addToast, pausedRef });
   useChallenges ({
     tables,
     setChallengeProgress, setChallengeDate,

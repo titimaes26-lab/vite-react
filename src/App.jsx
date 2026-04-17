@@ -74,6 +74,7 @@ import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./components/ui";
 import { Toasts } from "./components/system/Toasts";
 import { BankModal } from "./components/system/BankModal";
 import { HelpModal, DailySummaryModal } from "./components/system/HelpModal";
+import { IntroDialog } from "./components/IntroDialog";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./views/TablesView";
@@ -157,6 +158,17 @@ export default function App(){
   const [objStats,setObjStats]=useState({totalServed:0,totalRevenue:0,perfectDays:0,tablesUpgraded:0,restoLevel:0});
   const [dailyStats,setDailyStats]=useState([{date:_today,day:1,served:0,lost:0,revenue:0}]);
   const [reputation,setReputation]=useState(50); // 0–100
+
+  /* ── Dialogs tutoriels & pause ──────────────────────── */
+  const [introSeen, setIntroSeen] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem("resto_save_v1");
+      return raw ? JSON.parse(raw)?.introSeen === true : false;
+    } catch { return false; }
+  });
+  const [showDialog, setShowDialog] = useState(null);
+  const pausedRef     = useRef(false);
+  const pauseStartRef = useRef(null);
 
   /* ── Indicateur de sauvegarde ──────────────────────── */
   const [saveStatus,setSaveStatus]=useState("idle");
@@ -295,6 +307,7 @@ export default function App(){
         if(sv.reputation!=null) setReputation(sv.reputation);
         if(sv.formulas)      setFormulas(sv.formulas);
         if(sv.activeTheme)   setActiveTheme(sv.activeTheme);
+        if(sv.introSeen)     setIntroSeen(true);
         setQueue(sv.queue||[]);
       }
       setIsLoaded(true);
@@ -375,6 +388,7 @@ export default function App(){
         challengeDate,todayChallenges,challengeProgress,
         challengeClaimed,challengeLostToday,pendingClaim,
         objStats,dailyStats,reputation,formulas,activeTheme,
+        introSeen,
       });
       setSaveStatus("saved");
       setTimeout(()=>setSaveStatus("idle"),2000);
@@ -486,26 +500,69 @@ export default function App(){
   useEffect(() => { waitlistRef.current   = waitlist;   }, [waitlist]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
+  /* ── Pause lors des dialogues ───────────────────────── */
+  useEffect(() => {
+    if (showDialog !== null) {
+      pausedRef.current = true;
+      pauseStartRef.current = Date.now();
+    } else if (pauseStartRef.current !== null) {
+      pausedRef.current = false;
+      const dur = Date.now() - pauseStartRef.current;
+      pauseStartRef.current = null;
+      if (dur > 100) {
+        setTables(ts => ts.map(t => ({
+          ...t,
+          eatUntil:   t.eatUntil   ? t.eatUntil   + dur : null,
+          cleanUntil: t.cleanUntil ? t.cleanUntil + dur : null,
+          svcUntil:   t.svcUntil   ? t.svcUntil   + dur : null,
+          placedAt:   t.placedAt   ? t.placedAt   + dur : null,
+        })));
+        setQueue(q => q.map(g => ({ ...g, expiresAt: g.expiresAt + dur })));
+        setWaitlist(w => w.map(g => ({
+          ...g,
+          recallUntil: g.recallUntil ? g.recallUntil + dur : null,
+        })));
+        setServers(ss => ss.map(s => ({
+          ...s,
+          serviceUntil: s.serviceUntil ? s.serviceUntil + dur : null,
+          cleanUntil:   s.cleanUntil   ? s.cleanUntil   + dur : null,
+        })));
+        setKitchen(k => ({
+          ...k,
+          cooking: (k.cooking ?? []).map(d => ({
+            ...d,
+            startedAt: d.startedAt ? d.startedAt + dur : null,
+          })),
+        }));
+      }
+    }
+  }, [showDialog]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── Afficher l'intro au premier lancement ─────────── */
+  useEffect(() => {
+    if (isLoaded && !introSeen) setShowDialog("intro");
+  }, [isLoaded, introSeen]);
+
   /* ── Hooks métier ────────────────────────────────────── */
   // Remplacent 13 useEffect inline (salary, moralDrain, deliveries,
   // events, dailySpecials, spawner, challenges, expiry, clockNow, objectives)
-  const { clockNow, phase, isDayOver, gameTime, resetDay } = useGameClock();
+  const { clockNow, phase, isDayOver, gameTime, resetDay } = useGameClock({ pausedRef });
   resetDayRef.current  = resetDay;
   gameTimeRef.current  = gameTime.str;
 
   const phaseRef    = useRef(phase);
   useEffect(() => { phaseRef.current = phase; });
 
-  useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
-  useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat });
-  useSalary     ({ setServers, setKitchen, setCash, setLoan, addTx, addToast });
+  useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef, pausedRef });
+  useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, pausedRef });
+  useSalary     ({ setServers, setKitchen, setCash, setLoan, addTx, addToast, pausedRef });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useEvents     ({
     stockRef, cashRef, complaintsRef, tablesRef,
     setStock, setComplaints, setQueue, setCash,
     setActiveEvent, addToast, addTx, updateReputation,
   });
-  useServerMoral({ setServers, addToast });
+  useServerMoral({ setServers, addToast, pausedRef });
   useChallenges ({
     tables,
     setChallengeProgress, setChallengeDate,
@@ -1093,6 +1150,10 @@ export default function App(){
           );
         })}
       </div>
+
+      {showDialog==="intro"&&(
+        <IntroDialog onDone={()=>{setIntroSeen(true);setShowDialog(null);}}/>
+      )}
 
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
       {showBank&&<BankModal onClose={()=>setShowBank(false)} cash={cash} loan={loan}

@@ -424,7 +424,8 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                         else if(selectedClient&&!isLibre){/* occupied/cleaning — ignore */}
                         else if(selectedClient&&isClientIncompat){/* too small — ignore */}
                         else{if(selectedClient)onCancelClientSelect();setSelectedTable(t);}
-                      }} style={{cursor:isClientTarget?"crosshair":selectedClient&&!isClientTarget?"not-allowed":"pointer"}}>
+                      }} onDoubleClick={isMange&&!isEating?()=>{checkout(t.id);setSelectedTable(null);}:null}
+                      style={{cursor:isClientTarget?"crosshair":selectedClient&&!isClientTarget?"not-allowed":isMange&&!isEating?"cell":"pointer"}}>
 
                         {/* Halo sélection */}
                         {t.id===selectedTable?.id&&!selectedClient&&(

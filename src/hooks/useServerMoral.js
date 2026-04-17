@@ -30,9 +30,10 @@ const MORAL_DRAIN_INTERVAL = 300_000;
  *   addToast   : Function,
  * }} params
  */
-export const useServerMoral = ({ setServers, addToast }) => {
+export const useServerMoral = ({ setServers, addToast, pausedRef }) => {
   useEffect(() => {
     const iv = setInterval(() => {
+      if (pausedRef?.current) return;
       setServers(prev =>
         prev.map(s => {
           if (s.status === "actif" || s.status === "service") {
