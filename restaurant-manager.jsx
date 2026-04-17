@@ -882,9 +882,6 @@ export default function App(){
                 whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
                 letterSpacing:"-0.02em",lineHeight:1.2,
               }}>Le Grand Restaurant</div>
-              <div style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap",marginTop:1,letterSpacing:"0.02em"}}>
-                {now.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}
-              </div>
             </div>
           </div>
 
