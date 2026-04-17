@@ -567,6 +567,14 @@ export default function App(){
   const phaseRef = useRef(phase);
   useEffect(()=>{ phaseRef.current = phase; }, [phase]);
 
+  // Fermeture : vider immédiatement la file d'attente et la waitlist
+  useEffect(()=>{
+    if(phase?.id==="fermeture"){
+      setQueue([]);
+      setWaitlist([]);
+    }
+  },[phase?.id]);
+
   // Fin de journée (00h00 simulée) → mensualité prêt + bilan
   useEffect(()=>{
     if(!isLoaded||!isDayOver||summaryShownRef.current) return;
