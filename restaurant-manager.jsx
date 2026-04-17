@@ -565,6 +565,8 @@ export default function App(){
   const { clockNow, gameTime, phase, isDayOver: clockIsDayOver, resetDay } = useGameClock(dayStartRealMs);
   gameTimeRef.current  = gameTime.str;
   resetDayRef.current  = resetDay;
+  const tablesOccupied = tables.some(t=>t.status==="occupée"||t.status==="mange");
+  const isDayOver      = (phase?.id==="fermeture"||clockIsDayOver)&&!tablesOccupied;
 
   // Ref stable pour les hooks setInterval (évite les closures périmées)
   const phaseRef = useRef(phase);
@@ -664,8 +666,6 @@ export default function App(){
   const rl=restoLv(restoXp);
   const rlD=rl.d;
   const activeTables=tables.slice(0,rlD.tables);
-  const tablesOccupied=activeTables.some(t=>t.status==="occupée"||t.status==="mange");
-  const isDayOver=(phase?.id==="fermeture"||clockIsDayOver)&&!tablesOccupied;
 
   const addRestoXp=useCallback((xp)=>{
     setRestoXp(prev=>{
