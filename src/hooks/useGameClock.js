@@ -154,7 +154,7 @@ export function getPhase(absMin) {
  *   resetDay      : Function, // remet l'horloge à 08h00
  * }}
  */
-export function useGameClock({ pausedRef } = {}) {
+export function useGameClock(dayStartMs, pausedRef) {
   const [clockNow,   setClockNow]  = useState(() => Date.now());
   const [dayStart,   setDayStart]  = useState(() => Date.now());
   const pausedAtRef = useRef(null);
