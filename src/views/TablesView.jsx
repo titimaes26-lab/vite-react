@@ -343,12 +343,13 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                     fill="#8a7d6a" fontFamily="sans-serif">✦ ENTRÉE</text>
 
                   {/* Bar — droite */}
-                  <rect x={VW-MR+6} y={MT} width={MR-10} height={Math.min(rows*CELL_H, 50)} rx="6"
-                    fill="#c4a882" opacity="0.7"/>
-                  <text x={VW-MR+MR/2+1} y={MT+18} textAnchor="middle" fontSize="9"
-                    fill="#5a3e20" fontFamily="sans-serif">🍺</text>
-                  <text x={VW-MR+MR/2+1} y={MT+30} textAnchor="middle" fontSize="8"
-                    fill="#5a3e20" fontFamily="sans-serif">Bar</text>
+                  <image
+                    href="/bar.jpg"
+                    x={VW-MR+6} y={MT}
+                    width={MR-10} height={Math.min(rows*CELL_H, 50)}
+                    preserveAspectRatio="xMidYMid meet"
+                    style={{borderRadius:6}}
+                  />
 
                   {/* Cuisine — gauche */}
                   <rect x={2} y={MT} width={ML-4} height={30} rx="4"
