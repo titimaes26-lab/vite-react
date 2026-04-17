@@ -282,6 +282,7 @@ export default function App(){
   const [showSummary,setShowSummary]=useState(false);
   const [summaryIsRecord,setSummaryIsRecord]=useState(false);
   const prevRevenueRef=useRef(0);
+  const resetDayRef=useRef(null);
   // Résumé de fin de journée : s'affiche après 10 min de jeu réel
   const [seenIds,setSeenIds]=useState(new Set());
   const summaryShownRef=useRef(false);
@@ -321,6 +322,7 @@ export default function App(){
     setFormulas([]);
     setTab("tables");
     setShowResetModal(false);
+    resetDayRef.current?.();
   },[]);
 
   /* ── Chargement depuis localStorage ───────────────── */
@@ -560,12 +562,23 @@ export default function App(){
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
   /* ── Horloge de jeu ────────────────────────────────── */
-  const { clockNow, gameTime, phase, isDayOver } = useGameClock(dayStartRealMs);
-  gameTimeRef.current = gameTime.str;
+  const { clockNow, gameTime, phase, isDayOver: clockIsDayOver, resetDay } = useGameClock(dayStartRealMs);
+  gameTimeRef.current  = gameTime.str;
+  resetDayRef.current  = resetDay;
+  const tablesOccupied = tables.some(t=>t.status==="occupée"||t.status==="mange");
+  const isDayOver      = (phase?.id==="fermeture"||clockIsDayOver)&&!tablesOccupied;
 
   // Ref stable pour les hooks setInterval (évite les closures périmées)
   const phaseRef = useRef(phase);
   useEffect(()=>{ phaseRef.current = phase; }, [phase]);
+
+  // Fermeture : vider immédiatement la file d'attente et la waitlist
+  useEffect(()=>{
+    if(phase?.id==="fermeture"){
+      setQueue([]);
+      setWaitlist([]);
+    }
+  },[phase?.id]);
 
   // Fin de journée (00h00 simulée) → mensualité prêt + bilan
   useEffect(()=>{
@@ -600,6 +613,7 @@ export default function App(){
     const now=Date.now();
     try{localStorage.setItem("day_start",String(now));}catch(e){}
     setDayStartRealMs(now);
+    resetDayRef.current?.();
     summaryShownRef.current=false;
     setShowSummary(false);
     setDailyStats(p=>{
@@ -882,9 +896,6 @@ export default function App(){
                 whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
                 letterSpacing:"-0.02em",lineHeight:1.2,
               }}>Le Grand Restaurant</div>
-              <div style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap",marginTop:1,letterSpacing:"0.02em"}}>
-                {now.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}
-              </div>
             </div>
           </div>
 
@@ -1143,7 +1154,7 @@ export default function App(){
         {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
         {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} restoLvN={rl.l} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp}/>}
         {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} dailyStats={dailyStats} restoLvN={rl.l} bp={bp}/>}
-        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
+        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} restoLvN={rl.l} bp={bp}/>}
         {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
         {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
         {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} bp={bp}/>}
