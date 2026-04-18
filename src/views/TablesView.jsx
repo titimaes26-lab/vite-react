@@ -286,7 +286,7 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
               // ── 2. Marges fixes du plan ──────────────────────
               const ML = 30;   // gauche (cuisine)
               const MT = 52;   // haut
-              const MR = 110;  // droite (bar)
+              const MR = 85;   // droite (bar)
               const MB = 48;   // bas (entrée + groupes en attente)
 
               // ── 3. ViewBox dynamique ─────────────────────────
@@ -346,7 +346,7 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                   <image
                     href="/bar.png"
                     x={VW-MR+6} y={MT}
-                    width={MR-10} height={CELL_H * 6}
+                    width={MR-10} height={CELL_H * 3}
                     preserveAspectRatio="xMidYMid slice"
                   />
 
