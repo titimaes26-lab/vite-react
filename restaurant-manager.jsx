@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { LangProvider, useLang } from "./src/i18n/index.jsx";
+import { LanguageSelect } from "./src/components/LanguageSelect.jsx";
 
 // ── Services ───────────────────────────────────────────
 import { saveGame, loadGame, SAVE_KEY } from "./src/services/persistence.js";
@@ -82,7 +84,16 @@ import { ComplaintsView } from "./src/views/ComplaintsView.jsx";
 import { StatsView }      from "./src/views/StatsView.jsx";
 import { ObjectivesView } from "./src/views/ObjectivesView.jsx";
 
-export default function App(){
+export default function App() {
+  return (
+    <LangProvider>
+      <AppContent />
+    </LangProvider>
+  );
+}
+
+function AppContent(){
+  const { lang, t: tl } = useLang();
   const bp=useBreakpoint();
   const _today = new Date().toLocaleDateString("fr-FR");
 
@@ -768,6 +779,8 @@ export default function App(){
   const repTier    = getRepTier(reputation);
 
 
+  if (!lang) return <LanguageSelect />;
+
   return(
     <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:F.body}}>
       {/* Écran de chargement */}
@@ -777,8 +790,8 @@ export default function App(){
           <div style={{width:52,height:52,background:C.green,borderRadius:14,
             display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,
             animation:"pulse 1s ease-in-out infinite"}}>🍽</div>
-          <div style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>Chargement de la partie…</div>
-          <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Récupération de la sauvegarde</div>
+          <div style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>{tl("app.loading")}</div>
+          <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>{tl("app.saveLoading")}</div>
         </div>
       )}
       <style>{`
@@ -1062,7 +1075,7 @@ export default function App(){
               fontFamily:F.body,display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",
               boxShadow:loan?`0 2px 10px ${C.amber}66`:`0 2px 10px ${C.navy}44`,
               animation:loan?"bankPulse 2s ease-in-out infinite":"none"}}>
-              🏦 Banque
+              🏦 {tl("bank.title")}
             </button>
           </div>
 
@@ -1104,7 +1117,7 @@ export default function App(){
               position:"relative",
             }}>
               <span style={{fontSize:15,lineHeight:1}}>{t.icon}</span>
-              <span>{t.label}</span>
+              <span>{tl("tabs."+t.id)||t.label}</span>
               {badge>0&&(
                 <span className="badge-alert" style={{
                   background:C.red,color:"#fff",
@@ -1171,7 +1184,7 @@ export default function App(){
                 fontSize:9,fontWeight:active?700:400,fontFamily:F.body,
                 color:active?C.green:C.muted,
                 whiteSpace:"nowrap",letterSpacing:"0.01em",lineHeight:1,
-              }}>{t.label}</span>
+              }}>{tl("tabs."+t.id)||t.label}</span>
               {badge>0&&(
                 <span style={{
                   position:"absolute",top:4,right:"calc(50% - 18px)",
@@ -1228,9 +1241,9 @@ export default function App(){
             <div style={{padding:"18px 22px",borderBottom:`1px solid ${C.border}`,
               display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
               <div>
-                <div style={{fontSize:17,fontWeight:700,color:C.ink,fontFamily:F.title}}>💰 Grand livre</div>
+                <div style={{fontSize:17,fontWeight:700,color:C.ink,fontFamily:F.title}}>{tl("app.ledger")}</div>
                 <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                  Solde actuel : <span style={{fontWeight:700,color:cash<200?C.red:C.green}}>
+                  {tl("app.balance")} <span style={{fontWeight:700,color:cash<200?C.red:C.green}}>
                     {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
                   </span>
                 </div>
@@ -1246,9 +1259,9 @@ export default function App(){
               return(
                 <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
                   {[
-                    {label:"Recettes",val:totalIn,c:C.green,bg:C.greenP,icon:"📈"},
-                    {label:"Dépenses",val:totalOut,c:C.red,bg:C.redP,icon:"📉"},
-                    {label:"Résultat",val:totalIn-totalOut,c:totalIn-totalOut>=0?C.green:C.red,bg:totalIn-totalOut>=0?C.greenP:C.redP,icon:"⚖️"},
+                    {label:tl("app.revenue"),val:totalIn,c:C.green,bg:C.greenP,icon:"📈"},
+                    {label:tl("app.expenses"),val:totalOut,c:C.red,bg:C.redP,icon:"📉"},
+                    {label:tl("app.result"),val:totalIn-totalOut,c:totalIn-totalOut>=0?C.green:C.red,bg:totalIn-totalOut>=0?C.greenP:C.redP,icon:"⚖️"},
                   ].map(s=>(
                     <div key={s.label} style={{flex:1,background:s.bg,padding:"10px 14px",textAlign:"center",
                       borderRight:`1px solid ${C.border}`}}>
@@ -1265,7 +1278,7 @@ export default function App(){
             <div style={{overflowY:"auto",flex:1,padding:"8px 0"}}>
               {transactions.length===0?(
                 <div style={{padding:24,textAlign:"center",color:C.muted,fontFamily:F.body,fontSize:13}}>
-                  Aucune transaction
+                  {tl("app.noTransactions")}
                 </div>
               ):transactions.map(tx=>{
                 const isIn=tx.type==="revenu";
@@ -1312,25 +1325,25 @@ export default function App(){
             boxShadow:"0 24px 60px rgba(0,0,0,0.3)",textAlign:"center"}}>
             <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
             <div style={{fontSize:18,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8}}>
-              Nouvelle partie ?
+              {tl("app.newGame")}
             </div>
             <div style={{fontSize:13,color:C.muted,fontFamily:F.body,marginBottom:24,lineHeight:1.6}}>
-              Toute la progression sera effacée.<br/>
-              Cette action est <strong>irréversible</strong>.
+              {tl("app.newGameWarning")}<br/>
+              {tl("app.irreversible")}
             </div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
               <button onClick={()=>setShowResetModal(false)} style={{
                 padding:"10px 22px",borderRadius:9,border:`1.5px solid ${C.border}`,
                 background:C.bg,color:C.muted,cursor:"pointer",
                 fontSize:13,fontWeight:600,fontFamily:F.body}}>
-                Annuler
+                {tl("app.cancel")}
               </button>
               <button onClick={doReset} style={{
                 padding:"10px 22px",borderRadius:9,border:"none",
                 background:C.red,color:"#fff",cursor:"pointer",
                 fontSize:13,fontWeight:700,fontFamily:F.body,
                 boxShadow:`0 4px 14px ${C.red}55`}}>
-                🗑 Recommencer
+                {tl("app.restart")}
               </button>
             </div>
           </div>

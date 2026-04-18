@@ -8,9 +8,10 @@
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect } from "react";
 import { C, F } from "../constants/gameData.js";
+import { useLang } from "../i18n/index.jsx";
 
 /* ─── Config des personnages ─────────────────────────── */
-const SPEAKERS = {
+const SPEAKERS_FR = {
   elodie: {
     name: "Élodie",
     title: "Assistante de gestion",
@@ -25,6 +26,10 @@ const SPEAKERS = {
     color: "#b85520",
     bubble: { left: "43%", top: "3%", width: "54%", height: "44%" },
   },
+};
+const SPEAKERS_EN = {
+  elodie: { ...SPEAKERS_FR.elodie, title: "Management Assistant" },
+  gustave: { ...SPEAKERS_FR.gustave, title: "Head Chef" },
 };
 
 /* ═══════════════════════════════════════════════════════
@@ -520,7 +525,10 @@ const KITCHEN_DIALOG = [
 /* ═══════════════════════════════════════════════════════
    COMPOSANT GÉNÉRIQUE — DialogScene
 ═══════════════════════════════════════════════════════ */
-function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
+function DialogScene({ dialogData, ctaLabel = "OK", onDone }) {
+  const { lang, t } = useLang();
+  const SPEAKERS = lang === "en" ? SPEAKERS_EN : SPEAKERS_FR;
+
   const [step,     setStep]     = useState(0);
   const [visible,  setVisible]  = useState(false);
   const [textAnim, setTextAnim] = useState(true);
@@ -534,14 +542,14 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 80);
-    return () => clearTimeout(t);
+    const tm = setTimeout(() => setVisible(true), 80);
+    return () => clearTimeout(tm);
   }, []);
 
   useEffect(() => {
     setTextAnim(false);
-    const t = setTimeout(() => setTextAnim(true), 60);
-    return () => clearTimeout(t);
+    const tm = setTimeout(() => setTextAnim(true), 60);
+    return () => clearTimeout(tm);
   }, [step]);
 
   const line   = dialogData[step];
@@ -594,7 +602,7 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
           fontSize: 11, cursor: "pointer", fontFamily: F.body, zIndex: 1,
         }}
       >
-        Passer ›
+        {t("dialog.skip")}
       </button>
 
       <div
@@ -709,7 +717,7 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
             fontFamily: F.body,
             animation: "tapPulse 2s ease-in-out infinite",
           }}>
-            {!isLast && "Toucher pour continuer ▶"}
+            {!isLast && t("dialog.tapContinue")}
           </div>
         </div>
 
@@ -757,7 +765,7 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
                 fontSize: 10, color: "rgba(255,255,255,0.35)",
                 fontFamily: F.body,
               }}>
-                {nextSp.name} répond…
+                {t("dialog.nextSpeaker", { name: nextSp.name })}
               </div>
             )}
 
@@ -777,7 +785,7 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
                 letterSpacing: "0.01em",
               }}
             >
-              {isLast ? `✅ ${ctaLabel}` : "Suivant →"}
+              {isLast ? `✅ ${ctaLabel}` : t("dialog.next")}
             </button>
           </div>
         </div>
@@ -798,92 +806,54 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
 }
 
 /* ─── Exports ────────────────────────────────────────── */
+function useDialogCta(key) {
+  const { lang, t } = useLang();
+  return t(key + "Tutorial.cta") !== key + "Tutorial.cta"
+    ? t(key + "Tutorial.cta")
+    : t("intro.cta");
+}
+
 export function IntroDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={INTRO_DIALOG}
-      ctaLabel="Commencer !"
-      onDone={onDone}
-    />
-  );
+  const { t } = useLang();
+  return <DialogScene dialogData={INTRO_DIALOG} ctaLabel={t("intro.cta")} onDone={onDone} />;
 }
 
 export function TablesDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={TABLES_DIALOG}
-      ctaLabel="À table !"
-      onDone={onDone}
-    />
-  );
+  const { t } = useLang();
+  return <DialogScene dialogData={TABLES_DIALOG} ctaLabel={t("tablesTutorial.cta")} onDone={onDone} />;
 }
 
 export function ServersDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={SERVERS_DIALOG}
-      ctaLabel="Gérer l'équipe !"
-      onDone={onDone}
-    />
-  );
+  const { t } = useLang();
+  return <DialogScene dialogData={SERVERS_DIALOG} ctaLabel={t("serversTutorial.cta")} onDone={onDone} />;
 }
 
 export function BankDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={BANK_DIALOG}
-      ctaLabel="On gère le budget !"
-      onDone={onDone}
-    />
-  );
+  const { t } = useLang();
+  return <DialogScene dialogData={BANK_DIALOG} ctaLabel={t("bankTutorial.cta")} onDone={onDone} />;
 }
 
 export function StatsDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={STATS_DIALOG}
-      ctaLabel="On vise le 100% !"
-      onDone={onDone}
-    />
-  );
+  const { t } = useLang();
+  return <DialogScene dialogData={STATS_DIALOG} ctaLabel={t("statsTutorial.cta")} onDone={onDone} />;
 }
 
 export function ObjectivesDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={OBJECTIVES_DIALOG}
-      ctaLabel="On réclame nos pièces !"
-      onDone={onDone}
-    />
-  );
+  const { t } = useLang();
+  return <DialogScene dialogData={OBJECTIVES_DIALOG} ctaLabel={t("objectivesTutorial.cta")} onDone={onDone} />;
 }
 
 export function StockDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={STOCK_DIALOG}
-      ctaLabel="On gère le frigo !"
-      onDone={onDone}
-    />
-  );
+  const { t } = useLang();
+  return <DialogScene dialogData={STOCK_DIALOG} ctaLabel={t("stockTutorial.cta")} onDone={onDone} />;
 }
 
 export function MenuDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={MENU_DIALOG}
-      ctaLabel="On compose la carte !"
-      onDone={onDone}
-    />
-  );
+  const { t } = useLang();
+  return <DialogScene dialogData={MENU_DIALOG} ctaLabel={t("menuTutorial.cta")} onDone={onDone} />;
 }
 
 export function KitchenDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={KITCHEN_DIALOG}
-      ctaLabel="On allume les feux !"
-      onDone={onDone}
-    />
-  );
+  const { t } = useLang();
+  return <DialogScene dialogData={KITCHEN_DIALOG} ctaLabel={t("kitchenTutorial.cta")} onDone={onDone} />;
 }
