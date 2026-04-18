@@ -346,7 +346,7 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                   <image
                     href="/bar.png"
                     x={VW-MR+6-50} y={MT}
-                    width={100} height={CELL_H * 1.5}
+                    width={130} height={CELL_H * 2}
                     preserveAspectRatio="xMidYMid slice"
                   />
 
