@@ -523,6 +523,63 @@ const KITCHEN_DIALOG = [
 ];
 
 /* ═══════════════════════════════════════════════════════
+   ENGLISH DIALOG DATA
+═══════════════════════════════════════════════════════ */
+const INTRO_DIALOG_EN = [
+  {
+    speaker: "elodie",
+    text: "Hello! I'm Élodie, your management assistant. I've analyzed the numbers for this place… Let's say 'potential' is a polite word for 'imminent financial disaster.'",
+    short: "I'm Élodie. This place has 'potential'… aka imminent financial disaster.",
+  },
+  {
+    speaker: "elodie",
+    text: "My role is to ensure we don't go bankrupt before the end of the week. Yours is to make the strategic decisions. And his…",
+    short: "Me: avoid bankruptcy. You: strategic decisions. And him…",
+    note: "Gustave bursts in!",
+  },
+  {
+    speaker: "gustave",
+    text: "Outrageous! There isn't a single grain of Guérande salt in this kitchen! How am I supposed to work under these conditions?",
+    short: "Outrageous! Not one grain of Guérande salt here! How can I work like this?!",
+  },
+  {
+    speaker: "elodie",
+    text: "Gustave, meet our new owner. You know, the person who actually has money to buy your salt.",
+    short: "Gustave, meet the Boss. The one with money to buy your salt.",
+  },
+  {
+    speaker: "gustave",
+    text: "The Boss! Delighted! I'm Gustave, the true beating heart of this establishment. The local legend of pepper sauce!",
+    short: "The Boss! I'm Gustave, the heart of this establishment. The legend of pepper sauce!",
+  },
+  {
+    speaker: "elodie",
+    text: "And the local legend of unpaid butter bills…",
+  },
+  {
+    speaker: "gustave",
+    text: "Details! My plan is simple: we create the most divine menu in the region, and glory will be ours!",
+    short: "Details! The plan: the most divine menu in the region. Glory awaits!",
+  },
+  {
+    speaker: "elodie",
+    text: "My plan is more realistic: two tables, the stove fixed, and dishes with a positive margin. That's where you come in, Boss.",
+    short: "My plan: two tables, stove fixed, profitable dishes. That's where you come in.",
+  },
+  {
+    speaker: "gustave",
+    text: "Come on, Boss! Don't listen to her, she talks like a spreadsheet. Build me a proper kitchen, and I promise you miracles!",
+    short: "Come on! She talks in spreadsheets. Build a real kitchen and I promise miracles!",
+    note: "Both turn toward you…",
+  },
+  {
+    speaker: "elodie",
+    text: "Glory or profit… It's up to you to choose where to begin.",
+    isLast: true,
+  },
+];
+
+/* ═══════════════════════════════════════════════════════
    COMPOSANT GÉNÉRIQUE — DialogScene
 ═══════════════════════════════════════════════════════ */
 function DialogScene({ dialogData, ctaLabel = "OK", onDone }) {
