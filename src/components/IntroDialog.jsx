@@ -901,6 +901,93 @@ const STOCK_DIALOG_EN = [
   },
 ];
 
+const MENU_DIALOG_EN = [
+  {
+    speaker: "elodie",
+    section: "The Menu Alchemy",
+    text: "Boss, it's time to structure our offer. We have three levers: the 📋 Menu for individual dishes, 🍽 Combos for strategic bundles, and 🎨 Themes to set the overall ambiance of our kitchen.",
+  },
+  {
+    speaker: "gustave",
+    text: "And above all, freedom! I just doubled the price of my Lobster Thermidor. Art has no price, does it?",
+  },
+  {
+    speaker: "elodie",
+    text: "Art has a price the customer is willing to pay, Gustave. Boss, you can adjust prices on each item card. Note that new prices only apply to future orders. We don't change the bill for a customer who's already eating!",
+    short: "Adjust prices on each card. New prices apply to future orders only.",
+  },
+  {
+    speaker: "gustave",
+    text: "Look, I also clicked this little ⏸ button. My French Onion Soup was boring me this morning, so I paused it. Gone! Vanished!",
+    short: "I clicked ⏸ on the Onion Soup this morning. Gone! Vanished!",
+  },
+  {
+    speaker: "elodie",
+    text: "Exactly. The ⏸ button deactivates the dish: it stays in our archives, but customers won't order it anymore. Handy for managing stock… or the Chef's whims.",
+    short: "⏸ deactivates the dish: archived, no longer ordered. Handy for stock… or the Chef's whims.",
+  },
+  {
+    speaker: "gustave",
+    text: "And look at this magnificent 🔥 Badge! The consecration! My Filet Mignon is the star of the neighbourhood!",
+  },
+  {
+    speaker: "elodie",
+    text: "That badge rewards the composite score. To earn it, the Boss must balance: 40% gross margin (the money left in the till), 40% popularity (customer enjoyment), 20% availability (having the ingredients in stock).",
+    short: "🔥 Badge = composite score: 40% margin, 40% popularity, 20% stock availability.",
+  },
+  {
+    speaker: "gustave",
+    text: "Margin, stock… You talk like a grocer! Boss, chase the fire! Chase the 🔥! It's what will make us kings!",
+    short: "You talk like a grocer! Boss, chase the 🔥 — it will make us kings!",
+  },
+  {
+    speaker: "elodie",
+    text: "And it's the margin that will pay for the gas for your stoves. Priorities are yours, Boss.",
+    short: "The margin pays for the gas for your stoves. Priorities are yours, Boss.",
+    isLast: true,
+  },
+];
+
+const KITCHEN_DIALOG_EN = [
+  {
+    speaker: "gustave",
+    section: "Sacred Fire… and Rigour",
+    text: "Look at this beauty, Boss! It's just waiting for my talent. To start the magic, simply click on a dish or 'Start All' to fire up every burner at once!",
+    short: "It's waiting for my talent! Click a dish or 'Start All' to fire up every burner!",
+  },
+  {
+    speaker: "elodie",
+    text: "It's mainly a question of space optimisation. An empty burner is a burner costing us money. Fill the free hobs, but don't let your ego run wild, Gustave.",
+    short: "An empty burner costs money. Fill the free hobs, without excessive ego.",
+  },
+  {
+    speaker: "gustave",
+    text: "Run wild? Never! As soon as the little ✅ READY appears on every dish of the same order, it's showtime! Click 🍽 Serve and the dining room lights up with flavour!",
+    short: "When ✅ READY shows on all dishes of an order, click 🍽 Serve and the dining room lights up!",
+  },
+  {
+    speaker: "elodie",
+    text: "And most importantly, the customer enters the dining phase, which finally brings us closer to collecting the bill. That's the crucial step.",
+    short: "The customer enters dining phase — we're closer to collecting the bill. Crucial step!",
+  },
+  {
+    speaker: "gustave",
+    text: "It's also the step of my personal glory! Every dish sent earns me +12 XP. I become more legendary every day!",
+    short: "My glory! Every dish sent: +12 XP. I become more legendary every day!",
+  },
+  {
+    speaker: "elodie",
+    text: "Don't forget your sous-chefs, Gustave. They're not in it for the glory, but they're learning at your side. They earn 40% of your experience. When they grow, the establishment grows.",
+    short: "Sous-chefs earn 40% of your XP. Their progress is yours!",
+  },
+  {
+    speaker: "gustave",
+    text: "40%? That's generous! Right, Boss, enough theory! The burners are cold, the customers are hungry, and my talent is itching with impatience… Shall we fire up the first order?",
+    short: "40%? Generous! Enough theory — burners are cold and my talent is itching! Let's go?",
+    isLast: true,
+  },
+];
+
 /* ═══════════════════════════════════════════════════════
    COMPOSANT GÉNÉRIQUE — DialogScene
 ═══════════════════════════════════════════════════════ */
