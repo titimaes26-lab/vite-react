@@ -345,6 +345,8 @@ export const en = {
     useNow: "Use soon",
     fresh: "Fresh",
     clickAlert: "Click to change alert level",
+    low: "Low",
+    sort: "Sort:",
   },
 
   objectives: {

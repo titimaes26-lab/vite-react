@@ -4,6 +4,7 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
+import { useLang } from "../i18n/index.jsx";
 import { C, F, SUPPLIERS } from "../constants/gameData";
 import { Btn, Inp, Sel } from "../components/ui";
 import { quickAmounts } from "../utils/orderUtils";
@@ -22,12 +23,13 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
   const [viewMode,setViewMode]=useState("cartes"); // "cartes"|"liste"|"graphique"
   const [collapsedCats,setCollapsedCats]=useState({});
   const [sortMode,setSortMode]=useState("urgence"); // "urgence"|"alpha"|"cat"
+  const { t: tl } = useLang();
 
   const alerts=visibleStock.filter(s=>s.qty<=s.alert);
   const staleItems=visibleStock.filter(s=>(s.freshness??100)<20&&s.qty>0);
 
   const freshnessColor=(f)=>f<=0?"#7f0000":f<20?C.red:f<60?C.amber:C.green;
-  const freshnessLabel=(f)=>f<=0?"Périmé":f<20?"Critique":f<60?"À utiliser":"Frais";
+  const freshnessLabel=(f)=>f<=0?tl("stock.expired"):f<20?tl("stock.critical"):f<60?tl("stock.useNow"):tl("stock.fresh");
   const sup=SUPPLIERS[supplierMode]??SUPPLIERS["normal"];
 
   /* ── Calcul prédictif : portions restantes par ingrédient ── */
@@ -142,15 +144,15 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
       {/* ── KPI Header ── */}
       <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(140px,1fr))",gap:bp.isMobile?8:10,marginBottom:14}}>
         {[
-          {label:"Alertes stock",   val:alerts.length,               icon:"⚠️",c:alerts.length>0?C.red:C.green,       bg:alerts.length>0?C.redP:C.greenP},
-          {label:"Valeur inventaire",val:inventoryValue.toFixed(0)+"€",icon:"💶",c:C.amber,bg:C.amberP},
-          {label:"Ruptures prévues",val:criticalIngredients.length,  icon:"🔮",c:criticalIngredients.length>0?C.terra:C.green,bg:criticalIngredients.length>0?C.terraP:C.greenP},
-          {label:"Fraîcheur critique",val:staleItems.length,          icon:"🕐",c:staleItems.length>0?C.red:C.green,     bg:staleItems.length>0?C.redP:C.greenP},
+          {k:"alerts",          val:alerts.length,               icon:"⚠️",c:alerts.length>0?C.red:C.green,       bg:alerts.length>0?C.redP:C.greenP},
+          {k:"inventoryValue",  val:inventoryValue.toFixed(0)+"€",icon:"💶",c:C.amber,bg:C.amberP},
+          {k:"forecastShortage",val:criticalIngredients.length,  icon:"🔮",c:criticalIngredients.length>0?C.terra:C.green,bg:criticalIngredients.length>0?C.terraP:C.greenP},
+          {k:"criticalFreshness",val:staleItems.length,          icon:"🕐",c:staleItems.length>0?C.red:C.green,     bg:staleItems.length>0?C.redP:C.greenP},
         ].map(s=>(
-          <div key={s.label} style={{background:s.bg,border:`1.5px solid ${s.c}22`,borderRadius:12,padding:"12px 14px",textAlign:"center"}}>
+          <div key={s.k} style={{background:s.bg,border:`1.5px solid ${s.c}22`,borderRadius:12,padding:"12px 14px",textAlign:"center"}}>
             <div style={{fontSize:18,marginBottom:3}}>{s.icon}</div>
             <div style={{fontSize:18,fontWeight:800,color:s.c,fontFamily:F.title,lineHeight:1}}>{s.val}</div>
-            <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:3}}>{s.label}</div>
+            <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:3}}>{tl("stock."+s.k)}</div>
           </div>
         ))}
       </div>
@@ -164,15 +166,15 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
               <span style={{fontSize:18}}>🔮</span>
               <div>
                 <div style={{fontSize:13,fontWeight:700,color:C.terra,fontFamily:F.title}}>
-                  Prévision rupture
+                  {tl("stock.shortage")}
                 </div>
                 <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-                  Ingrédients critiques — basé sur les recettes actives
+                  {tl("stock.criticalIngredients")}
                 </div>
               </div>
             </div>
             <Btn sm v="terra" onClick={orderByForecast} icon="🛒">
-              Commander
+              {tl("stock.order")}
             </Btn>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
@@ -196,7 +198,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                         {it.name}
                       </span>
                       <span style={{fontSize:10,color:urgencyColor,fontWeight:700,fontFamily:F.body}}>
-                        {it.portions===0?"⛔ Épuisé":`~${it.portions} repas`}
+                        {it.portions===0?"⛔ "+tl("stock.empty"):"~"+it.portions+" "+tl("stock.meals")}
                       </span>
                     </div>
                     <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
@@ -220,7 +222,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
         <span style={{fontSize:16}}>🚛</span>
         <div style={{flex:1}}>
           <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:1}}>
-            Approvisionnement
+            {tl("stock.supply")}
           </div>
           <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
             {SUPPLIERS[supplierMode||"normal"].desc}
@@ -250,7 +252,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
           padding:"10px 14px",marginBottom:12}}>
           <div style={{fontSize:11,fontWeight:700,color:C.navy,fontFamily:F.title,marginBottom:6,
             display:"flex",alignItems:"center",gap:5}}>
-            <span>🚚</span><span>{pendingDeliveries.length} livraison{pendingDeliveries.length>1?"s":""} en cours</span>
+            <span>🚚</span><span>{tl("stock.deliveries",{n:pendingDeliveries.length,s:pendingDeliveries.length>1?"s":""})}</span>
           </div>
           {pendingDeliveries.map(d=>{
             const secsLeft=Math.max(0,Math.ceil((d.arrivedAt-Date.now())/1000));
@@ -277,7 +279,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
           display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
           <span>⚠️</span>
           <span style={{color:C.red,fontWeight:700,fontSize:12,fontFamily:F.body,flexShrink:0}}>
-            {alerts.length} alerte{alerts.length>1?"s":""} stock bas
+            {tl("stock.lowAlerts",{n:alerts.length,s:alerts.length>1?"s":""})}
           </span>
           <div style={{display:"flex",gap:6,flexWrap:"wrap",flex:1}}>
             {alerts.map(a=>(
@@ -289,7 +291,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
           </div>
           <button onClick={restockAll} style={{flexShrink:0,padding:"6px 12px",fontSize:11,fontWeight:700,
             background:C.terra,border:"none",borderRadius:7,color:C.white,cursor:"pointer",fontFamily:F.body}}>
-            ⟳ Tout réapprovisionner
+            ⟳ {tl("stock.restockAll")}
           </button>
         </div>
       )}
@@ -297,7 +299,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
       {/* ── Barre vue + tri ── */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
         <div style={{display:"flex",gap:5}}>
-          {[{k:"cartes",icon:"⊞",label:"Cartes"},{k:"liste",icon:"☰",label:"Liste"},{k:"graphique",icon:"📊",label:"Graphique"}].map(v=>(
+          {[{k:"cartes",icon:"⊞",label:tl("stock.viewCards")},{k:"liste",icon:"☰",label:tl("stock.viewList")},{k:"graphique",icon:"📊",label:tl("stock.viewChart")}].map(v=>(
             <button key={v.k} onClick={()=>setViewMode(v.k)} style={{
               padding:"5px 12px",borderRadius:8,fontSize:11,fontWeight:600,
               background:viewMode===v.k?C.navy:"transparent",
@@ -309,8 +311,8 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
           ))}
         </div>
         <div style={{display:"flex",gap:5,alignItems:"center"}}>
-          <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>Trier :</span>
-          {[{k:"urgence",label:"⚠ Urgence"},{k:"cat",label:"Catégorie"},{k:"alpha",label:"A→Z"}].map(s=>(
+          <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>{tl("stock.sort")}</span>
+          {[{k:"urgence",label:"⚠ "+tl("stock.sortUrgency")},{k:"cat",label:tl("stock.sortCategory")},{k:"alpha",label:tl("stock.sortAZ")}].map(s=>(
             <button key={s.k} onClick={()=>setSortMode(s.k)} style={{
               fontSize:10,padding:"3px 8px",borderRadius:6,
               background:sortMode===s.k?C.navy:C.bg,color:sortMode===s.k?"#fff":C.muted,
@@ -325,7 +327,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
       {viewMode==="graphique"&&(
         <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"16px 20px"}}>
           <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:14}}>
-            📊 Niveaux de stock — {visibleStock.length} ingrédients
+            📊 {tl("stock.stockLevels")} {visibleStock.length} {tl("stock.ingredients")}
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:5}}>
             {sortedStock.map(it=>{
@@ -361,7 +363,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                   <div style={{width:55,fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0,textAlign:"right"}}>
                     {portions!==null?(
                       <span style={{color:portions<3?C.red:portions<10?C.amber:C.muted,fontWeight:portions<10?700:400}}>
-                        ~{portions} repas
+                        ~{portions} {tl("stock.meals")}
                       </span>
                     ):null}
                   </div>
@@ -397,7 +399,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
           <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body}}>
             <thead>
               <tr style={{background:C.bg}}>
-                {["Ingrédient","Catégorie","Stock","Alerte","Valeur","Repas","Acheter"].map(h=>(
+                {[tl("stock.colIngredient"),tl("stock.colCategory"),tl("stock.colStock"),tl("stock.colAlert"),tl("stock.colValue"),tl("stock.colMeals"),tl("stock.buy")].map(h=>(
                   <th key={h} style={{padding:"8px 12px",fontSize:9,fontWeight:700,color:C.muted,
                     textAlign:"left",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                 ))}
@@ -442,7 +444,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                     <td style={{padding:"7px 12px",borderBottom:`1px solid ${C.border}11`}}>
                       {portions!==null?(
                         <span style={{fontSize:10,fontWeight:700,color:portions<3?C.red:portions<10?C.amber:C.green}}>
-                          {portions<3?"⛔":portions<10?"⚠":"✓"} {portions} repas
+                          {portions<3?"⛔":portions<10?"⚠":"✓"} {portions} {tl("stock.meals")}
                         </span>
                       ):<span style={{color:C.muted,fontSize:10}}>—</span>}
                     </td>
@@ -494,7 +496,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                 {cat}
               </span>
               <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-                {items.length} article{items.length>1?"s":""}
+                {items.length} {tl("stock.items")}
               </span>
               {catAlerts>0&&(
                 <span style={{fontSize:10,background:C.red,color:"#fff",borderRadius:20,
@@ -531,7 +533,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                         </div>
                         <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
                           {low
-                            ?<span style={{fontSize:9,color:C.red,fontWeight:700,background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:5,padding:"1px 5px"}}>⚠ Bas</span>
+                            ?<span style={{fontSize:9,color:C.red,fontWeight:700,background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:5,padding:"1px 5px"}}>⚠ {tl("stock.low")}</span>
                             :<span style={{fontSize:9,color:C.green,fontWeight:600,background:C.greenP,border:`1px solid ${C.green}33`,borderRadius:5,padding:"1px 5px"}}>✓ OK</span>
                           }
                           {/* Prévision portions */}
@@ -539,7 +541,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                             <span style={{fontSize:9,fontWeight:700,
                               color:portions<3?C.red:portions<10?C.amber:C.muted,
                               fontFamily:F.body}}>
-                              {portions<3?"⛔":portions<10?"⚠":"🍽"} ~{portions} repas
+                              {portions<3?"⛔":portions<10?"⚠":"🍽"} ~{portions} {tl("stock.meals")}
                             </span>
                           )}
                         </div>
@@ -590,7 +592,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                           </div>
                         ):(
                           <span
-                            title="Cliquer pour modifier l'alerte"
+                            title={tl("stock.clickAlert")}
                             onClick={e=>{e.stopPropagation();setInlineAlertId(it.id);setInlineAlertVal(String(it.alert));}}
                             style={{color:C.red,cursor:"pointer",borderBottom:`1px dashed ${C.red}66`,padding:"0 2px"}}
                           >
@@ -608,11 +610,11 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
                         return(
                           <div style={{marginBottom:7}}>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                              <span style={{fontSize:9,color:C.muted,fontFamily:F.body}}>Fraîcheur</span>
+                              <span style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tl("stock.freshness")}</span>
                               <span style={{fontSize:9,fontWeight:700,color:fc,fontFamily:F.body,
                                 background:fc+"18",borderRadius:99,padding:"1px 6px",
                                 border:`1px solid ${fc}33`}}>
-                                {f<=0?"⛔ Périmé":`${fl} · ${Math.round(f)}%`}
+                                {f<=0?"⛔ "+fl:`${fl} · ${Math.round(f)}%`}
                               </span>
                             </div>
                             <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
