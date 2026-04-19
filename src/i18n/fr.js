@@ -300,6 +300,13 @@ export const fr = {
     add: "Ajouter",
     delete: "Supprimer",
     saveDish: "Sauvegarder",
+    cancel: "Annuler",
+    noIng: "Aucun ingrédient défini",
+    inStock: "en stock",
+    modify: "Modifier",
+    create: "Créer",
+    criticalAlert: "{n} plat{s} en stock critique :",
+    nextUnlocksCount: "— {n} prochain{s} sur {total} verrouillé{s}",
   },
 
   stock: {

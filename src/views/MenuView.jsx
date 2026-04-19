@@ -4,6 +4,7 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
+import { useLang } from "../i18n/index.jsx";
 import { C, F, MENU0 } from "../constants/gameData.js";
 import { FORMULA_PRESETS } from "../constants/gameConstants.js";
 import { Badge, Btn, Modal, Lbl, Inp, Sel } from "../components/ui/index.js";
@@ -20,6 +21,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
   const [newIngQ,setNewIngQ]=useState("");
   const [formulaModal,setFormulaModal]=useState(null);
   const [fSelections,setFSelections]=useState({});
+  const { t: tl } = useLang();
 
   const cats=["Tout","Entrées","Plats","Desserts","Boissons"];
   const catC={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy};
@@ -138,7 +140,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
           padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <span>⚠️</span>
           <span style={{fontSize:12,fontWeight:700,color:C.red,fontFamily:F.body}}>
-            {criticalDishes.length} plat{criticalDishes.length>1?"s":""} en stock critique :
+            {tl("menu.criticalAlert",{n:criticalDishes.length,s:criticalDishes.length>1?"s":""})}
           </span>
           {criticalDishes.map(m=>(
             <span key={m.id} style={{fontSize:10,background:C.red+"18",color:C.red,
@@ -146,7 +148,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
               {m.name}
               <button onClick={()=>toggleEnabled(m.id)}
                 style={{marginLeft:5,background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:9,fontWeight:700,padding:0}}>
-                Désactiver
+                {tl("menu.disable")}
               </button>
             </span>
           ))}
@@ -156,9 +158,9 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
       {/* Sous-onglets */}
       <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
         {[
-          {k:"carte",    icon:"📋", label:"Carte"},
-          {k:"formules", icon:"🍽",  label:`Formules${(formulas||[]).filter(f=>f.active).length>0?" ("+(formulas||[]).filter(f=>f.active).length+")":""}`},
-          {k:"perf",     icon:"📊",  label:"Performance"},
+          {k:"carte",    icon:"📋", label:tl("menu.cardTab")},
+          {k:"formules", icon:"🍽",  label:tl("menu.formulasTab")+((formulas||[]).filter(f=>f.active).length>0?" ("+(formulas||[]).filter(f=>f.active).length+")":"")},
+          {k:"perf",     icon:"📊",  label:tl("menu.performanceTab")},
         ].map(t=>(
           <button key={t.k} onClick={()=>setMainTab(t.k)} style={{
             padding:"6px 14px",borderRadius:8,fontSize:12,fontWeight:600,
@@ -184,32 +186,32 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                   border:`1.5px solid ${catFilter===c?(catC[c]||C.green):C.border}`,
                   borderRadius:20,padding:"4px 12px",fontSize:12,
                   cursor:"pointer",fontFamily:F.body,fontWeight:500}}>
-                  {c}
+                  {c==="Tout"?tl("menu.all"):c}
                 </button>
               ))}
               {disabledCount>0&&(
                 <span style={{fontSize:11,background:C.amberP,color:C.amber,
                   border:`1px solid ${C.amber}33`,borderRadius:20,padding:"4px 10px",
                   fontFamily:F.body,fontWeight:600}}>
-                  ⏸ {disabledCount} désactivé{disabledCount>1?"s":""}
+                  ⏸ {disabledCount} {tl("menu.disabled")}
                 </span>
               )}
               {lockedAllCount>0&&(
                 <span style={{fontSize:11,background:C.purpleP,color:C.purple,
                   border:`1px solid ${C.purple}33`,borderRadius:20,padding:"4px 10px",
                   fontFamily:F.body,fontWeight:600}}>
-                  🔒 {lockedAllCount} à débloquer
+                  🔒 {lockedAllCount} {tl("menu.toUnlock")}
                 </span>
               )}
             </div>
             <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
-              <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>Trier :</span>
+              <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>{tl("menu.sort")}</span>
               {[
-                {k:"cat",     label:"Cat."},
-                {k:"margin",  label:"💰 Marge"},
-                {k:"popular", label:"🔥 Pop."},
-                {k:"stock",   label:"⚠ Stock"},
-                {k:"score",   label:"📊 Score"},
+                {k:"cat",     label:tl("menu.sortCat")},
+                {k:"margin",  label:"💰 "+tl("menu.sortMargin")},
+                {k:"popular", label:"🔥 "+tl("menu.sortPop")},
+                {k:"stock",   label:"⚠ "+tl("menu.sortStock")},
+                {k:"score",   label:"📊 "+tl("menu.sortScore")},
               ].map(s=>(
                 <button key={s.k} onClick={()=>setSortBy(s.k)} style={{
                   fontSize:10,padding:"3px 8px",borderRadius:6,
@@ -292,11 +294,11 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                       background:marginBg(mg),border:`1px solid ${marginColor(mg)}22`,
                       borderRadius:7,padding:"5px 8px"}}>
                       <div style={{flex:1}}>
-                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>Coût</div>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tl("menu.colCost")}</div>
                         <div style={{fontSize:11,fontWeight:700,color:C.ink,fontFamily:F.title}}>{cost.toFixed(2)}€</div>
                       </div>
                       <div style={{textAlign:"right"}}>
-                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>Marge</div>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tl("menu.colMargin")}</div>
                         <div style={{fontSize:15,fontWeight:800,color:marginColor(mg),fontFamily:F.title}}>{mg}%</div>
                       </div>
                     </div>
@@ -325,7 +327,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                       {isPriceModified&&<button onClick={e=>{e.stopPropagation();resetPrice(m.id);}} style={{padding:"2px 5px",fontSize:9,fontWeight:700,borderRadius:4,background:C.navyP,color:C.navy,border:`1px solid ${C.navy}33`,cursor:"pointer",fontFamily:F.body}}>↺</button>}
                     </div>
                     <button onClick={e=>{e.stopPropagation();toggleEnabled(m.id);}} style={{width:"100%",padding:"4px",fontSize:10,fontWeight:700,borderRadius:6,background:enabled?C.amberP:C.greenP,color:enabled?C.amber:C.green,border:`1.5px solid ${enabled?C.amber:C.green}44`,cursor:"pointer",fontFamily:F.body}}>
-                      {enabled?"⏸ Désactiver":"▶ Activer"}
+                      {enabled?"⏸ "+tl("menu.disable"):"▶ "+tl("menu.enable")}
                     </button>
                   </div>
                 </div>
@@ -340,10 +342,10 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                 borderTop:`2px dashed ${C.purple}44`,paddingTop:14}}>
                 <span style={{fontSize:16}}>🔒</span>
                 <span style={{fontSize:13,fontWeight:700,color:C.purple,fontFamily:F.title}}>
-                  Prochains débloquages
+                  {tl("menu.nextUnlocks")}
                 </span>
                 <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
-                  — {locked.length} prochain{locked.length>1?"s":""} sur {base.filter(m=>!unlocked(m)).length} verrouillé{base.filter(m=>!unlocked(m)).length>1?"s":""}
+                  {tl("menu.nextUnlocksCount",{n:locked.length,total:base.filter(m=>!unlocked(m)).length,s:locked.length>1?"s":""})}
                 </span>
               </div>
               <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(220px,1fr))",gap:bp.isMobile?8:10}}>
@@ -360,7 +362,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                       <div style={{position:"absolute",top:8,right:10,
                         background:C.purple,color:"#fff",fontSize:10,fontWeight:800,
                         borderRadius:20,padding:"2px 10px",letterSpacing:"0.5px"}}>
-                        🔒 Niv.{lvReq}
+                        🔒 {tl("kitchen.level")}{lvReq}
                       </div>
                       <div style={{fontSize:13,fontWeight:600,color:C.muted,
                         fontFamily:F.title,lineHeight:1.3,marginBottom:6,
@@ -378,7 +380,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                       </div>
                       <div style={{fontSize:10,color:C.purple,fontFamily:F.body,fontWeight:600,
                         background:C.purpleP,borderRadius:6,padding:"4px 8px",textAlign:"center"}}>
-                        Disponible au niveau {lvReq}
+                        {tl("menu.unlocksAt",{level:lvReq})}
                       </div>
                     </div>
                   );
@@ -393,7 +395,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
       {mainTab==="formules"&&(
         <div>
           <div style={{fontSize:12,color:C.muted,fontFamily:F.body,marginBottom:16,lineHeight:1.6}}>
-            Les formules combinent plusieurs plats à prix réduit. Une fois configurées et activées, les clients les commandent automatiquement en priorité.
+            {tl("menu.formulaDesc")}
           </div>
           <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"repeat(auto-fill,minmax(270px,1fr))",gap:bp.isMobile?10:14}}>
             {FORMULA_PRESETS.map(preset=>{
@@ -411,7 +413,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                     </div>
                     <div style={{textAlign:"right",flexShrink:0}}>
                       <div style={{fontSize:13,fontWeight:800,color:C.green,fontFamily:F.title}}>−{Math.round(preset.discount*100)}%</div>
-                      <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>réduction</div>
+                      <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tl("menu.discount")}</div>
                     </div>
                   </div>
                   <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}}>
@@ -429,8 +431,8 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                     </div>
                   )}
                   <div style={{display:"flex",gap:6}}>
-                    <Btn sm v="primary" onClick={()=>openFormula(preset)}>{existing?"✏️ Modifier":"➕ Créer"}</Btn>
-                    {existing&&<Btn sm v={existing.active?"terra":"primary"} onClick={()=>setFormulas(p=>p.map(f=>f.id!==existing.id?f:{...f,active:!f.active}))}>{existing.active?"⏸ Pause":"▶ Activer"}</Btn>}
+                    <Btn sm v="primary" onClick={()=>openFormula(preset)}>{existing?"✏️ "+tl("menu.modify"):"➕ "+tl("menu.create")}</Btn>
+                    {existing&&<Btn sm v={existing.active?"terra":"primary"} onClick={()=>setFormulas(p=>p.map(f=>f.id!==existing.id?f:{...f,active:!f.active}))}>{existing.active?"⏸ Pause":"▶ "+tl("menu.enable")}</Btn>}
                     {existing&&<Btn sm v="ghost" onClick={()=>setFormulas(p=>p.filter(f=>f.id!==existing.id))}>🗑</Btn>}
                   </div>
                 </div>
@@ -442,13 +444,13 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
             <Modal title={`Configurer — ${formulaModal.name}`} onClose={()=>setFormulaModal(null)}>
               <div style={{display:"flex",flexDirection:"column",gap:14}}>
                 <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>
-                  Sélectionnez un plat par catégorie. Réduction : <strong style={{color:C.green}}>−{Math.round(formulaModal.discount*100)}%</strong>
+                  {tl("menu.selectDish")} <strong style={{color:C.green}}>−{Math.round(formulaModal.discount*100)}%</strong>
                 </div>
                 {formulaModal.cats.map(cat=>(
                   <div key={cat}>
                     <Lbl>{cat}</Lbl>
                     <Sel value={fSelections[cat]||""} onChange={e=>setFSelections(p=>({...p,[cat]:e.target.value}))}>
-                      <option value="">Choisir…</option>
+                      <option value="">{tl("menu.choose")}</option>
                       {menu.filter(m=>m.cat===cat&&m.enabled!==false&&unlocked(m)).map(m=>(
                         <option key={m.id} value={String(m.id)}>{m.name} — {m.price}€</option>
                       ))}
@@ -464,16 +466,16 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                   return(
                     <div style={{background:C.greenP,border:`1px solid ${C.green}33`,borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <div>
-                        <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>À la carte : <s>{total.toFixed(2)}€</s></div>
-                        <div style={{fontSize:16,fontWeight:800,color:C.green,fontFamily:F.title}}>Formule : {fp}€</div>
+                        <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>{tl("menu.alaCarte")} <s>{total.toFixed(2)}€</s></div>
+                        <div style={{fontSize:16,fontWeight:800,color:C.green,fontFamily:F.title}}>{tl("menu.formula")} {fp}€</div>
                       </div>
                       <div style={{fontSize:22,fontWeight:800,color:C.green,fontFamily:F.title}}>−{Math.round(formulaModal.discount*100)}%</div>
                     </div>
                   );
                 })()}
                 <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-                  <Btn v="ghost" onClick={()=>setFormulaModal(null)}>Annuler</Btn>
-                  <Btn v="primary" disabled={!formulaModal.cats.every(cat=>fSelections[cat])} onClick={saveFormula}>Enregistrer</Btn>
+                  <Btn v="ghost" onClick={()=>setFormulaModal(null)}>{tl("menu.cancel")}</Btn>
+                  <Btn v="primary" disabled={!formulaModal.cats.every(cat=>fSelections[cat])} onClick={saveFormula}>{tl("menu.save")}</Btn>
                 </div>
               </div>
             </Modal>
@@ -487,15 +489,15 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
           {/* KPIs */}
           <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(130px,1fr))",gap:10,marginBottom:20}}>
             {[
-              {l:"Plats actifs",   v:menu.filter(m=>m.enabled!==false).length,      i:"✅",c:C.green, bg:C.greenP},
-              {l:"Désactivés",     v:menu.filter(m=>m.enabled===false).length,       i:"⏸", c:C.amber, bg:C.amberP},
-              {l:"CA généré",      v:menu.reduce((s,m)=>s+(m.price*(m.orderCount||0)),0).toFixed(0)+"€",i:"💶",c:C.terra, bg:C.terraP},
-              {l:"Commandes total",v:menu.reduce((s,m)=>s+(m.orderCount||0),0),     i:"📊",c:C.navy,  bg:C.navyP},
+              {k:"activeDishes",   v:menu.filter(m=>m.enabled!==false).length,      i:"✅",c:C.green, bg:C.greenP},
+              {k:"disabledDishes", v:menu.filter(m=>m.enabled===false).length,       i:"⏸", c:C.amber, bg:C.amberP},
+              {k:"revenueGenerated",v:menu.reduce((s,m)=>s+(m.price*(m.orderCount||0)),0).toFixed(0)+"€",i:"💶",c:C.terra, bg:C.terraP},
+              {k:"totalOrders",    v:menu.reduce((s,m)=>s+(m.orderCount||0),0),     i:"📊",c:C.navy,  bg:C.navyP},
             ].map(s=>(
-              <div key={s.l} style={{background:s.bg,border:`1px solid ${s.c}22`,borderRadius:12,padding:"12px",textAlign:"center"}}>
+              <div key={s.k} style={{background:s.bg,border:`1px solid ${s.c}22`,borderRadius:12,padding:"12px",textAlign:"center"}}>
                 <div style={{fontSize:18,marginBottom:3}}>{s.i}</div>
                 <div style={{fontSize:18,fontWeight:800,color:s.c,fontFamily:F.title,lineHeight:1}}>{s.v}</div>
-                <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:3}}>{s.l}</div>
+                <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:3}}>{tl("menu."+s.k)}</div>
               </div>
             ))}
           </div>
@@ -504,13 +506,13 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
           <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
             <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:8}}>
               <span style={{fontSize:14}}>📊</span>
-              <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>Tableau de performance — {menu.length} plats</span>
+              <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>{tl("menu.perfTable")} — {menu.length} {tl("kitchen.dishes")}</span>
             </div>
             <div style={{overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:560}}>
                 <thead>
                   <tr style={{background:C.bg}}>
-                    {["Plat","Cat.","Prix","Coût","Marge","Cmdes","CA","Stock","Score"].map(h=>(
+                    {[tl("menu.colDish"),tl("menu.colCat"),tl("menu.colPrice"),tl("menu.colCost"),tl("menu.colMargin"),tl("menu.colOrders"),tl("menu.colRevenue"),tl("menu.colStock"),tl("menu.colScore")].map(h=>(
                       <th key={h} style={{padding:"7px 10px",fontSize:9,fontWeight:700,color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
                     ))}
                   </tr>
@@ -528,7 +530,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                       <tr key={m.id} style={{background:i%2===0?C.card:C.bg,opacity:m.enabled===false?0.5:1}}>
                         <td style={{padding:"8px 10px",borderBottom:`1px solid ${C.border}11`}}>
                           <div style={{fontSize:11,fontWeight:600,color:C.ink,whiteSpace:"nowrap"}}>{m.name}</div>
-                          {m.enabled===false&&<span style={{fontSize:8,color:C.amber,fontWeight:700}}>⏸ off</span>}
+                          {m.enabled===false&&<span style={{fontSize:8,color:C.amber,fontWeight:700}}>⏸ {tl("menu.off")}</span>}
                         </td>
                         <td style={{padding:"8px 10px",borderBottom:`1px solid ${C.border}11`}}>
                           <span style={{fontSize:9,background:cc+"14",color:cc,border:`1px solid ${cc}22`,borderRadius:4,padding:"1px 5px",fontWeight:600}}>{m.cat}</span>
@@ -563,22 +565,22 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
 
       {/* Modal édition */}
       {modal&&(
-        <Modal title={editId?"Modifier le plat":"Nouveau plat"} onClose={()=>setModal(false)}>
+        <Modal title={editId?tl("menu.editDish"):tl("menu.newDish")} onClose={()=>setModal(false)}>
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"end"}}>
-              <div><Lbl>Nom du plat</Lbl><Inp value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/></div>
-              <div style={{width:90}}><Lbl>Prix (€)</Lbl><Inp type="number" value={form.price} onChange={e=>setForm(p=>({...p,price:e.target.value}))}/></div>
-              <div style={{width:100}}><Lbl>Prép. (sec)</Lbl><Inp type="number" value={form.prepTime} placeholder="60" onChange={e=>setForm(p=>({...p,prepTime:e.target.value}))}/></div>
+              <div><Lbl>{tl("menu.dishName")}</Lbl><Inp value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/></div>
+              <div style={{width:90}}><Lbl>{tl("menu.colPrice")} (€)</Lbl><Inp type="number" value={form.price} onChange={e=>setForm(p=>({...p,price:e.target.value}))}/></div>
+              <div style={{width:100}}><Lbl>{tl("menu.prepTime")}</Lbl><Inp type="number" value={form.prepTime} placeholder="60" onChange={e=>setForm(p=>({...p,prepTime:e.target.value}))}/></div>
             </div>
-            <div><Lbl>Catégorie</Lbl>
+            <div><Lbl>{tl("menu.category")}</Lbl>
               <Sel value={form.cat} onChange={e=>setForm(p=>({...p,cat:e.target.value}))}>
                 {["Entrées","Plats","Desserts","Boissons"].map(c=><option key={c}>{c}</option>)}
               </Sel>
             </div>
             <div style={{background:C.terraP,border:`1.5px solid ${C.terra}22`,borderRadius:12,padding:14}}>
-              <div style={{fontSize:12,fontWeight:600,color:C.terra,marginBottom:12,fontFamily:F.body}}>🧂 Recette</div>
+              <div style={{fontSize:12,fontWeight:600,color:C.terra,marginBottom:12,fontFamily:F.body}}>🧂 {tl("menu.recipe")}</div>
               {ingLines.length===0
-                ?<div style={{fontSize:12,color:C.muted,fontStyle:"italic",fontFamily:F.body,marginBottom:12}}>Aucun ingrédient défini</div>
+                ?<div style={{fontSize:12,color:C.muted,fontStyle:"italic",fontFamily:F.body,marginBottom:12}}>{tl("menu.noIng")}</div>
                 :<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>
                   {ingLines.map(ing=>{
                     const s=stock.find(x=>x.id===ing.stockId);
@@ -597,23 +599,23 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                 </div>
               }
               <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
-                <div style={{flex:1}}><Lbl>Élément primaire</Lbl>
+                <div style={{flex:1}}><Lbl>{tl("menu.ingPrimary")}</Lbl>
                   <Sel value={newIngS} onChange={e=>setNewIngS(e.target.value)}>
                     <option value="">Choisir…</option>
                     {stock.filter(s=>!ingLines.find(i=>i.stockId===s.id)).map(s=>(
-                      <option key={s.id} value={s.id}>{s.name} ({s.unit}) — {s.qty} en stock</option>
+                      <option key={s.id} value={s.id}>{s.name} ({s.unit}) — {s.qty} {tl("menu.inStock")}</option>
                     ))}
                   </Sel>
                 </div>
-                <div style={{width:80}}><Lbl>Qté</Lbl><Inp type="number" value={newIngQ} placeholder="0.0" onChange={e=>setNewIngQ(e.target.value)}/></div>
-                <Btn v="terra" onClick={addIngLine} disabled={!newIngS||!newIngQ} icon="+">Ajouter</Btn>
+                <div style={{width:80}}><Lbl>{tl("menu.qty")}</Lbl><Inp type="number" value={newIngQ} placeholder="0.0" onChange={e=>setNewIngQ(e.target.value)}/></div>
+                <Btn v="terra" onClick={addIngLine} disabled={!newIngS||!newIngQ} icon="+">{tl("menu.add")}</Btn>
               </div>
             </div>
             <div style={{display:"flex",gap:10,justifyContent:"space-between",marginTop:4}}>
-              <div>{editId&&<Btn v="danger" onClick={del}>Supprimer</Btn>}</div>
+              <div>{editId&&<Btn v="danger" onClick={del}>{tl("menu.delete")}</Btn>}</div>
               <div style={{display:"flex",gap:10}}>
-                <Btn onClick={()=>setModal(false)} v="ghost">Annuler</Btn>
-                <Btn onClick={save} disabled={!form.name||!form.price}>Sauvegarder</Btn>
+                <Btn onClick={()=>setModal(false)} v="ghost">{tl("menu.cancel")}</Btn>
+                <Btn onClick={save} disabled={!form.name||!form.price}>{tl("menu.saveDish")}</Btn>
               </div>
             </div>
           </div>
