@@ -1280,46 +1280,55 @@ function useDialogCta(key) {
 }
 
 export function IntroDialog({ onDone }) {
-  const { t } = useLang();
-  return <DialogScene dialogData={INTRO_DIALOG} ctaLabel={t("intro.cta")} onDone={onDone} />;
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? INTRO_DIALOG_EN : INTRO_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("intro.cta")} onDone={onDone} />;
 }
 
 export function TablesDialog({ onDone }) {
-  const { t } = useLang();
-  return <DialogScene dialogData={TABLES_DIALOG} ctaLabel={t("tablesTutorial.cta")} onDone={onDone} />;
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? TABLES_DIALOG_EN : TABLES_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("tablesTutorial.cta")} onDone={onDone} />;
 }
 
 export function ServersDialog({ onDone }) {
-  const { t } = useLang();
-  return <DialogScene dialogData={SERVERS_DIALOG} ctaLabel={t("serversTutorial.cta")} onDone={onDone} />;
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? SERVERS_DIALOG_EN : SERVERS_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("serversTutorial.cta")} onDone={onDone} />;
 }
 
 export function BankDialog({ onDone }) {
-  const { t } = useLang();
-  return <DialogScene dialogData={BANK_DIALOG} ctaLabel={t("bankTutorial.cta")} onDone={onDone} />;
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? BANK_DIALOG_EN : BANK_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("bankTutorial.cta")} onDone={onDone} />;
 }
 
 export function StatsDialog({ onDone }) {
-  const { t } = useLang();
-  return <DialogScene dialogData={STATS_DIALOG} ctaLabel={t("statsTutorial.cta")} onDone={onDone} />;
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? STATS_DIALOG_EN : STATS_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("statsTutorial.cta")} onDone={onDone} />;
 }
 
 export function ObjectivesDialog({ onDone }) {
-  const { t } = useLang();
-  return <DialogScene dialogData={OBJECTIVES_DIALOG} ctaLabel={t("objectivesTutorial.cta")} onDone={onDone} />;
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? OBJECTIVES_DIALOG_EN : OBJECTIVES_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("objectivesTutorial.cta")} onDone={onDone} />;
 }
 
 export function StockDialog({ onDone }) {
-  const { t } = useLang();
-  return <DialogScene dialogData={STOCK_DIALOG} ctaLabel={t("stockTutorial.cta")} onDone={onDone} />;
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? STOCK_DIALOG_EN : STOCK_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("stockTutorial.cta")} onDone={onDone} />;
 }
 
 export function MenuDialog({ onDone }) {
-  const { t } = useLang();
-  return <DialogScene dialogData={MENU_DIALOG} ctaLabel={t("menuTutorial.cta")} onDone={onDone} />;
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? MENU_DIALOG_EN : MENU_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("menuTutorial.cta")} onDone={onDone} />;
 }
 
 export function KitchenDialog({ onDone }) {
-  const { t } = useLang();
-  return <DialogScene dialogData={KITCHEN_DIALOG} ctaLabel={t("kitchenTutorial.cta")} onDone={onDone} />;
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? KITCHEN_DIALOG_EN : KITCHEN_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("kitchenTutorial.cta")} onDone={onDone} />;
 }
