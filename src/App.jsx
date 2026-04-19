@@ -137,6 +137,7 @@ export default function App(){
   const [toasts,setToasts]=useState([]);
   const [restoXp,setRestoXp]=useState(0);
   const [cash,setCash]=useState(5000);
+  const [isGameOver,setIsGameOver]=useState(false);
   const [transactions,setTransactions]=useState([
     {id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now(),gameTime:"08h00"}
   ]);
@@ -251,6 +252,7 @@ export default function App(){
     setActiveTheme("none");
     setTab("tables");
     setShowResetModal(false);
+    setIsGameOver(false);
   },[]);
 
   /* ── Nouvelle journée (fermeture modale résumé) ─────── */
@@ -523,6 +525,10 @@ export default function App(){
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
   useEffect(() => { serversRef.current    = servers;    }, [servers]);
   useEffect(() => { kitchenRef.current    = kitchen;    }, [kitchen]);
+
+  useEffect(() => {
+    if (isLoaded && cash < 0) setIsGameOver(true);
+  }, [isLoaded, cash]);
 
   const onSalaryAccrue = useCallback((amount, perPerson) => {
     const acc = salaryAccruedRef.current;
@@ -1324,7 +1330,7 @@ export default function App(){
       )}
 
       {/* Game over — trésorerie négative */}
-      {isLoaded && cash < 0 && (
+      {isGameOver && (
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",
           zIndex:99998,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:C.surface,borderRadius:22,width:"100%",maxWidth:420,
