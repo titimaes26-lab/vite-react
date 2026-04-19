@@ -784,6 +784,123 @@ const STATS_DIALOG_EN = [
   },
 ];
 
+const OBJECTIVES_DIALOG_EN = [
+  {
+    speaker: "gustave",
+    section: "Trophy Hunting",
+    text: "Tell me, Élodie, I feel like I've done a titan's work today. Don't we have something to mark the occasion?",
+    short: "I've done a titan's work today! Don't we have something to mark the occasion?",
+  },
+  {
+    speaker: "elodie",
+    text: "Look at the Objectives tab, Gustave. See that little red badge blinking? It doesn't mean the oven is on fire — it means you have rewards waiting.",
+    short: "Objectives tab: that blinking red badge? Rewards are waiting for you!",
+  },
+  {
+    speaker: "gustave",
+    text: "Ah! I love when things shine. What's on the rewards menu?",
+  },
+  {
+    speaker: "elodie",
+    text: "You have your Daily Challenges. There are 3 each day, drawn at random. You've already completed 'Flawless Service' and 'Pasta Master'. The milestones on the progress bar have turned gold.",
+    short: "3 daily challenges drawn at random. You've already completed two: milestones are gold on the bar!",
+  },
+  {
+    speaker: "gustave",
+    text: "Magnificent! And what does that earn me, concretely? Will my bank manager like me more?",
+  },
+  {
+    speaker: "elodie",
+    text: "Absolutely. Each completed objective gives you cold hard cash, but also restaurant XP to level up. But it doesn't just fall into your pocket.",
+    short: "Each objective = cash + restaurant XP. But it doesn't just fall into your pocket!",
+  },
+  {
+    speaker: "gustave",
+    text: "Oh? Is there a catch?",
+  },
+  {
+    speaker: "elodie",
+    text: "No catch, just a click. You need to click Collect to cash in your earnings. Otherwise, it's like leaving a tip on the table: it ends up disappearing at the next challenge renewal.",
+    short: "Click Collect to cash in. Otherwise your earnings disappear at the next renewal!",
+  },
+  {
+    speaker: "gustave",
+    text: "No way am I leaving a cent behind! And the third challenge? The one that isn't gold yet?",
+    short: "Not leaving a cent! And the third challenge, not yet gold?",
+  },
+  {
+    speaker: "elodie",
+    text: "If you manage your stock well, the red badge will alert you as soon as the reward is ready. Keep an eye on it and collect before the challenge expires.",
+    short: "The red badge alerts you when the reward is ready. Collect before the challenge expires!",
+  },
+  {
+    speaker: "gustave",
+    text: "Right, let's do it. Hit that Collect button for me — I want to hear the sound of coins!",
+    isLast: true,
+  },
+];
+
+const STOCK_DIALOG_EN = [
+  {
+    speaker: "gustave",
+    section: "The 7pm Rush",
+    text: "Élodie, I have a dreadful feeling. I think we're emptying the fridge faster than we're filling it. Where do we stand?",
+    short: "I think we're emptying the fridge faster than we fill it. Where do we stand?",
+  },
+  {
+    speaker: "elodie",
+    text: "Breathe, Gustave. I'm switching the screen to 📊 Graph View. See those horizontal bars: sorted by urgency. The shorter the bar, the closer we are to culinary disaster.",
+    short: "Graph View 📊: bars sorted by urgency. Shorter bar = more critical!",
+  },
+  {
+    speaker: "gustave",
+    text: "What's that big glowing block with the crystal ball?",
+  },
+  {
+    speaker: "elodie",
+    text: "That's the 🔮 block. It calculates how many meals we can still make with what's left. For cherry tomatoes, we're in ⛔ Red: fewer than 3 meals possible. Basically, we're bone dry.",
+    short: "The 🔮 block shows remaining meals. Cherry tomatoes: ⛔ Red — fewer than 3 meals. Bone dry!",
+  },
+  {
+    speaker: "gustave",
+    text: "Panic stations! And the rest?",
+  },
+  {
+    speaker: "elodie",
+    text: "Basil is at ⚠ Orange — 7 or 8 dishes possible. Mozzarella is at ✓ Green — we could feed a regiment. More than 10 meals guaranteed.",
+    short: "Basil ⚠ Orange (7-8 dishes), mozzarella ✓ Green (10+ dishes). Order the red items urgently!",
+  },
+  {
+    speaker: "gustave",
+    text: "No, leave it — the graph scares me but it's clear. We need to order. Now!",
+  },
+  {
+    speaker: "elodie",
+    text: "I've got my finger on the 🛒 Order button. The system will target the most critical ingredients. Are we playing it safe or going for survival?",
+    short: "The 🛒 Order button targets critical ingredients. Safe play or emergency mode?",
+  },
+  {
+    speaker: "gustave",
+    text: "Meaning?",
+  },
+  {
+    speaker: "elodie",
+    text: "Either 🚚 Local Supplier: −20% off the bill, but 2-minute wait. Or ⚡ Premium Wholesaler: full price, but immediate delivery.",
+    short: "🚚 Local: −20% but 2min wait. ⚡ Premium: full price, immediate delivery.",
+  },
+  {
+    speaker: "gustave",
+    text: "2 minutes? In a kitchen, that's an eternity! But for a 20% saving, I'll keep the customer busy with an amuse-bouche. Let's go local!",
+    short: "2 min is an eternity! But for 20% savings, we wait. Let's go local!",
+  },
+  {
+    speaker: "elodie",
+    text: "Confirmed. While we wait, I'm switching stock back to ☰ List View — more compact. For everything else, we're fine. Sort by Category to navigate easily.",
+    short: "Confirmed. Switching to ☰ List View — more compact. Sort by Category to navigate.",
+    isLast: true,
+  },
+];
+
 /* ═══════════════════════════════════════════════════════
    COMPOSANT GÉNÉRIQUE — DialogScene
 ═══════════════════════════════════════════════════════ */
