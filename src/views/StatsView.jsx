@@ -7,8 +7,10 @@ import { useState } from "react";
 import { C, F, RESTO_LVL, CHEF_LVL, OBJECTIVES_DEF } from "../constants/gameData.js";
 import { REP_THRESHOLDS, getRepTier } from "../constants/gameConstants.js";
 import { restoLv, chefLv } from "../utils/levelUtils.js";
+import { useLang } from "../i18n/index.jsx";
 
 export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=50,transactions=[],menu=[],bp={}}){
+  const { t: tl, lang } = useLang();
   const [period,setPeriod]=useState(7);   // 5, 7 or 15 game-days
   const [hovRevIdx,setHovRevIdx]=useState(null);
   const [hovCliIdx,setHovCliIdx]=useState(null);
@@ -104,20 +106,21 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
 
   // ── Financial analysis ─────────────────────────────────
   // Revenue by category from today's transactions
-  const todayLabel=new Date().toLocaleDateString("fr-FR");
-  const todayTx=transactions.filter(t=>t.type==="revenu"&&new Date(t.date).toLocaleDateString("fr-FR")===todayLabel);
+  const locale=lang==="en"?"en-US":"fr-FR";
+  const todayLabel=new Date().toLocaleDateString(locale);
+  const todayTx=transactions.filter(t=>t.type==="revenu"&&new Date(t.date).toLocaleDateString(locale)===todayLabel);
   const totalRevToday=todayTx.reduce((s,t)=>s+t.amount,0);
-  const expTodayTx=transactions.filter(t=>t.type!=="revenu"&&new Date(t.date).toLocaleDateString("fr-FR")===todayLabel);
+  const expTodayTx=transactions.filter(t=>t.type!=="revenu"&&new Date(t.date).toLocaleDateString(locale)===todayLabel);
   const totalExpToday=expTodayTx.reduce((s,t)=>s+t.amount,0);
   const netToday=+(totalRevToday-totalExpToday).toFixed(2);
   // Group expenses by type for detailed breakdown
   const expByType={};
   expTodayTx.forEach(t=>{if(!expByType[t.type])expByType[t.type]=0;expByType[t.type]+=t.amount;});
   const expTypeInfo={
-    achat:{l:"Achats & recrutement",icon:"🛒",c:"#e07b39"},
-    salaire:{l:"Salaires",icon:"💼",c:C.navy},
-    remboursement:{l:"Remboursement prêt",icon:"🏦",c:C.purple},
-    dépense:{l:"Équipements & frais",icon:"🔧",c:C.muted},
+    achat:{l:tl("stats.expPurchase"),icon:"🛒",c:"#e07b39"},
+    salaire:{l:tl("stats.expSalary"),icon:"💼",c:C.navy},
+    remboursement:{l:tl("stats.expLoan"),icon:"🏦",c:C.purple},
+    dépense:{l:tl("stats.expEquipment"),icon:"🔧",c:C.muted},
   };
 
   // Salary costs per hour (active staff)
@@ -188,21 +191,21 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
               color:period===p?"#fff":C.muted,
               border:`1.5px solid ${period===p?C.navy:C.border}`,
               cursor:"pointer",fontFamily:F.body}}>
-              {p} jours
+              {p} {tl("stats.days")}
             </button>
           ))}
         </div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           {[
-            {l:"CA total",     v:(objStats?.totalRevenue||0).toFixed(0)+"€", c:C.amber},
-            {l:"Clients",      v:objStats?.totalServed||0,                    c:C.green},
-            {l:"Panier moyen", v:avgBasket+"€",                               c:C.terra},
-            {l:"Note moy.",    v:objStats?.ratingCount>0?((objStats.totalRating||0)/objStats.ratingCount).toFixed(1)+" ★":"—", c:C.purple},
+            {k:"totalRevenue", v:(objStats?.totalRevenue||0).toFixed(0)+"€", c:C.amber},
+            {k:"clients",      v:objStats?.totalServed||0,                    c:C.green},
+            {k:"avgBasket",    v:avgBasket+"€",                               c:C.terra},
+            {k:"avgRating",    v:objStats?.ratingCount>0?((objStats.totalRating||0)/objStats.ratingCount).toFixed(1)+" ★":"—", c:C.purple},
           ].map(s=>(
-            <div key={s.l} style={{background:s.c+"12",border:`1px solid ${s.c}22`,
+            <div key={s.k} style={{background:s.c+"12",border:`1px solid ${s.c}22`,
               borderRadius:10,padding:"7px 13px",textAlign:"center",minWidth:90}}>
               <div style={{fontSize:15,fontWeight:800,color:s.c,fontFamily:F.title,lineHeight:1}}>{s.v}</div>
-              <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:2}}>{s.l}</div>
+              <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:2}}>{tl("stats."+s.k)}</div>
             </div>
           ))}
         </div>
@@ -213,7 +216,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
         {/* Revenue */}
         <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"14px 16px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>💶 Revenus</span>
+            <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>{"💶 "+tl("stats.revenue")}</span>
             {revTrend!==null&&(
               <span style={{fontSize:11,fontWeight:700,color:revTrend>=0?C.green:C.red,fontFamily:F.body}}>
                 {revTrend>=0?"↗":"↘"} {Math.abs(revTrend)}%
@@ -227,14 +230,14 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
         {/* Clients */}
         <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"14px 16px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>👥 Clients servis</span>
+            <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>{"👥 "+tl("stats.clientsServed")}</span>
             {srvTrend!==null&&(
               <span style={{fontSize:11,fontWeight:700,color:srvTrend>=0?C.green:C.red,fontFamily:F.body}}>
                 {srvTrend>=0?"↗":"↘"} {Math.abs(srvTrend)}%
               </span>
             )}
           </div>
-          <LineChart data={chartDays.map(d=>d.served)} color={C.green} unit=" clients"
+          <LineChart data={chartDays.map(d=>d.served)} color={C.green} unit={" "+tl("stats.clients")}
             hov={hovCliIdx} setHov={setHovCliIdx}/>
         </div>
 
@@ -242,7 +245,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
         <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"14px 16px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>
-              {repTier.icon} Réputation
+              {repTier.icon} {tl("stats.reputation")}
             </span>
             <span style={{fontSize:11,fontWeight:700,color:repTier.color,fontFamily:F.body}}>
               {Math.round(reputation)}/100
@@ -260,7 +263,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
         <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"18px 20px"}}>
           <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:14,
             display:"flex",alignItems:"center",gap:7}}>
-            <span>📊</span> Résultat du jour
+            <span>📊</span> {tl("stats.dayResult")}
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {/* Revenus */}
@@ -270,7 +273,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
               border:`1px solid ${C.green}18`}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:14}}>📈</span>
-                <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>Revenus encaissés</span>
+                <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>{tl("stats.revenueDay")}</span>
               </div>
               <span style={{fontSize:14,fontWeight:800,color:C.green,fontFamily:F.title}}>+{totalRevToday.toFixed(2)}€</span>
             </div>
@@ -279,7 +282,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",borderBottom:Object.keys(expByType).length>0?`1px solid ${C.red}10`:"none"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontSize:14}}>📉</span>
-                  <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>Dépenses totales</span>
+                  <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>{tl("stats.expensesDay")}</span>
                 </div>
                 <span style={{fontSize:14,fontWeight:800,color:C.red,fontFamily:F.title}}>−{totalExpToday.toFixed(2)}€</span>
               </div>
@@ -298,7 +301,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
             </div>
             <div style={{borderTop:`2px solid ${C.border}`,paddingTop:10,marginTop:4,
               display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>⚖️ Résultat net</span>
+              <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>{"⚖️ "+tl("stats.netResult")}</span>
               <span style={{fontSize:20,fontWeight:800,
                 color:netToday>=0?C.green:C.red,fontFamily:F.title}}>
                 {netToday>=0?"+":""}{netToday.toFixed(2)}€
@@ -310,22 +313,22 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
           <div style={{marginTop:14,padding:"10px 12px",background:C.navyP,
             borderRadius:9,border:`1px solid ${C.navy}22`}}>
             <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:5}}>
-              💸 Masse salariale active
+              {"💸 "+tl("stats.payroll")}
             </div>
             <div style={{display:"flex",gap:bp.isMobile?7:10,flexWrap:"wrap"}}>
               {[
-                {l:"Chef",v:chefSalary},
-                {l:"Commis",v:commissSalary},
-                {l:"Serveurs",v:serverSalary},
+                {k:"chef",v:chefSalary},
+                {k:"commis",v:commissSalary},
+                {k:"waiters",v:serverSalary},
               ].map(r=>(
-                <div key={r.l} style={{flex:1,textAlign:"center"}}>
+                <div key={r.k} style={{flex:1,textAlign:"center"}}>
                   <div style={{fontSize:13,fontWeight:700,color:C.navy,fontFamily:F.title}}>{r.v}€/h</div>
-                  <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{r.l}</div>
+                  <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tl("stats."+r.k)}</div>
                 </div>
               ))}
               <div style={{flex:1,textAlign:"center",borderLeft:`1px solid ${C.navy}22`,paddingLeft:8}}>
                 <div style={{fontSize:13,fontWeight:700,color:C.navy,fontFamily:F.title}}>{totalSalaryPerHour}€/h</div>
-                <div style={{fontSize:9,color:C.navy,fontFamily:F.body,fontWeight:600}}>TOTAL</div>
+                <div style={{fontSize:9,color:C.navy,fontFamily:F.body,fontWeight:600}}>{tl("stats.total")}</div>
               </div>
             </div>
           </div>
@@ -335,7 +338,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
         <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"18px 20px"}}>
           <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:14,
             display:"flex",alignItems:"center",gap:7}}>
-            <span>🥧</span> Revenus par catégorie
+            <span>🥧</span> {tl("stats.revenueByCat")}
           </div>
           <div style={{display:"flex",gap:16,alignItems:"center"}}>
             <PieChart data={Object.entries(catRevenue).map(([k,v])=>({color:catColors2[k]||C.navy,value:v,label:k}))} size={110}/>
@@ -368,7 +371,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
           <div style={{marginTop:14,padding:"8px 12px",background:C.greenP,
             borderRadius:9,border:`1px solid ${C.green}22`,
             display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>🛒 Panier moyen / client</span>
+            <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>{"🛒 "+tl("stats.avgBasketClient")}</span>
             <span style={{fontSize:16,fontWeight:800,color:C.green,fontFamily:F.title}}>{avgBasket}€</span>
           </div>
         </div>
@@ -430,7 +433,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                 <div style={{height:"100%",width:`${rl.pct||0}%`,background:rlD.color,borderRadius:99,transition:"width 0.8s"}}/>
               </div>
               <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                {rl.l<RESTO_LVL.length-1?`${restoXp||0} / ${nextRl.xpNeeded} XP`:"✦ Niveau max"}
+                {rl.l<RESTO_LVL.length-1?`${restoXp||0} / ${nextRl.xpNeeded} XP`:tl("stats.maxLevel")}
               </div>
             </div>
           </div>
@@ -446,7 +449,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                 <div style={{height:"100%",width:`${cl.l<CHEF_LVL.length-1?Math.min(100,Math.round(cl.r/cl.n*100)):100}%`,background:clD.color,borderRadius:99,transition:"width 0.8s"}}/>
               </div>
               <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                {cl.l<CHEF_LVL.length-1?`${cl.r} / ${cl.n} XP`:"✦ Niveau max"} · ⚡×{clD.speed}
+                {cl.l<CHEF_LVL.length-1?`${cl.r} / ${cl.n} XP`:tl("stats.maxLevel")} · ⚡×{clD.speed}
               </div>
             </div>
           </div>
@@ -459,9 +462,9 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
           padding:"12px 18px",marginBottom:16,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
           <span style={{fontSize:18}}>🏦</span>
           <div style={{flex:1}}>
-            <div style={{fontSize:11,fontWeight:700,color:C.amber,fontFamily:F.title}}>Prêt — {loan.label}</div>
+            <div style={{fontSize:11,fontWeight:700,color:C.amber,fontFamily:F.title}}>{tl("stats.loan")+" "+loan.label}</div>
             <div style={{fontSize:10,color:C.ink,fontFamily:F.body,marginTop:1}}>
-              Restant : <strong>{loan.remaining.toFixed(2)} €</strong> · {loan.repayPerDay} €/j
+              {tl("stats.remaining")} <strong>{loan.remaining.toFixed(2)} €</strong> · {loan.repayPerDay} {tl("stats.perDay")}
             </div>
           </div>
           <div style={{height:7,width:150,background:C.border,borderRadius:99,overflow:"hidden"}}>
@@ -475,13 +478,13 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
       <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
         <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:7}}>
           <span style={{fontSize:14}}>📅</span>
-          <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>{period} derniers jours</span>
+          <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>{period+" "+tl("stats.days")}</span>
         </div>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:420}}>
             <thead>
               <tr style={{background:C.bg}}>
-                {["Jour","✅ Servis","😤 Perdus","Taux","💶 Revenus"].map(h=>(
+                {[tl("stats.day"),"✅ "+tl("stats.served"),"😤 "+tl("stats.lost"),tl("stats.rate"),"💶 "+tl("stats.revenue")].map(h=>(
                   <th key={h} style={{padding:"9px 14px",fontSize:10,fontWeight:700,color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`}}>{h}</th>
                 ))}
               </tr>
@@ -494,7 +497,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                 return(
                   <tr key={d.day??i} style={{background:i===0?C.greenP:i%2===0?C.card:C.bg}}>
                     <td style={{padding:"9px 14px",fontSize:12,fontWeight:i===0?700:500,color:C.ink,borderBottom:`1px solid ${C.border}11`}}>
-                      {`Jour ${d.day??""}`}{i===0&&<span style={{marginLeft:5,fontSize:8,background:C.green,color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700}}>En cours</span>}
+                      {tl("stats.day")+" "+(d.day??"")}{i===0&&<span style={{marginLeft:5,fontSize:8,background:C.green,color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700}}>{tl("stats.inProgress")}</span>}
                     </td>
                     <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
                       <span style={{fontSize:12,fontWeight:700,color:C.green}}>{d.served}</span>
@@ -512,7 +515,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                     </td>
                     <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
                       <span style={{fontSize:12,fontWeight:700,color:C.amber}}>
-                        {d.revenue.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+                        {d.revenue.toLocaleString(locale,{minimumFractionDigits:2})} €
                       </span>
                     </td>
                   </tr>

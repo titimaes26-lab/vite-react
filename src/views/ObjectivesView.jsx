@@ -7,8 +7,10 @@ import { C, F, OBJECTIVES_DEF, SERIES_LABELS, SERIES_COLORS,
          CHALLENGES_POOL } from "../constants/gameData.js";
 import { Btn } from "../components/ui/index.js";
 import { restoLv } from "../utils/levelUtils.js";
+import { useLang } from "../i18n/index.jsx";
 
 export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,todayChallenges,challengeProgress,challengeClaimed,setChallengeClaimed,challengeLostToday,setCash,addTx,addRestoXp,addToast,restoXp,restoLvN,bp={}}){
+  const { t: tl } = useLang();
   const series=[1,2,3,4];
 
   const claimChallenge=(ch)=>{
@@ -17,7 +19,7 @@ export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,today
     setCash(c=>+(c+ch.reward.cash).toFixed(2));
     addTx("revenu",`Défi quotidien : ${ch.title}`,ch.reward.cash);
     addRestoXp(ch.reward.xp);
-    addToast({icon:ch.icon,title:`Défi complété — +${ch.reward.cash}€`,
+    addToast({icon:ch.icon,title:tl("objectives.claimedToast",{amount:ch.reward.cash}),
       msg:`${ch.title} · +${ch.reward.xp} XP`,color:C.purple,tab:"objectives"});
   };
 
@@ -35,8 +37,8 @@ export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,today
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
           <span style={{fontSize:20}}>🎯</span>
           <div>
-            <div style={{fontSize:15,fontWeight:700,color:C.purple,fontFamily:F.title}}>Défis du jour</div>
-            <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>Renouvelés chaque jour · récompenses immédiates</div>
+            <div style={{fontSize:15,fontWeight:700,color:C.purple,fontFamily:F.title}}>{tl("objectives.daily")}</div>
+            <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>{tl("objectives.dailySubtitle")}</div>
           </div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -61,10 +63,10 @@ export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,today
                       {ch.title}
                     </span>
                     {claimed&&<span style={{fontSize:10,background:C.green,color:"#fff",
-                      borderRadius:99,padding:"1px 8px",fontFamily:F.body,fontWeight:700}}>✓ Réclamé</span>}
+                      borderRadius:99,padding:"1px 8px",fontFamily:F.body,fontWeight:700}}>{"✓ "+tl("objectives.claimed")}</span>}
                     {done&&!claimed&&<span style={{fontSize:10,background:C.purple,color:"#fff",
                       borderRadius:99,padding:"1px 8px",fontFamily:F.body,fontWeight:700,
-                      animation:"pulse 1s infinite"}}>🎉 Complété !</span>}
+                      animation:"pulse 1s infinite"}}>{"🎉 "+tl("objectives.completed")}</span>}
                   </div>
                   <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginBottom:6}}>{ch.desc}</div>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -76,8 +78,8 @@ export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,today
                     <span style={{fontSize:10,color:done?C.purple:C.muted,
                       fontWeight:done?700:400,fontFamily:F.body,flexShrink:0}}>
                       {ch.key==="noLoss"?(challengeLostToday?"✗":"✓"):
-                       ch.key==="fullHouse"?(val>=1?"✓":"En attente"):
-                       ch.key==="vip"?(val>=1?"✓":"En attente"):
+                       ch.key==="fullHouse"?(val>=1?"✓":tl("objectives.waiting")):
+                       ch.key==="vip"?(val>=1?"✓":tl("objectives.waiting")):
                        `${typeof val==="number"&&ch.key==="revenue"?val.toFixed(0):val}/${ch.target}`}
                     </span>
                   </div>
@@ -91,7 +93,7 @@ export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,today
                       borderRadius:8,padding:"6px 14px",cursor:"pointer",
                       fontFamily:F.body,fontWeight:700,fontSize:12,marginTop:4,
                       boxShadow:`0 3px 10px ${C.purple}55`}}>
-                      Réclamer
+                      {tl("objectives.claim")}
                     </button>
                   )}
                 </div>
@@ -117,7 +119,7 @@ export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,today
             borderRadius:16,padding:"18px 20px",marginBottom:28}}>
             <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:16,
               display:"flex",alignItems:"center",gap:8}}>
-              <span>🗺</span> Jalons de progression
+              <span>🗺</span> {tl("objectives.milestones")}
             </div>
             <div style={{display:"flex",alignItems:"center",gap:0,position:"relative"}}>
               {/* connecting line */}
@@ -208,14 +210,14 @@ export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,today
                         {done&&!isPending&&(
                           <span style={{fontSize:10,background:C.green,color:"#fff",
                             borderRadius:99,padding:"1px 8px",fontFamily:F.body,fontWeight:700}}>
-                            ✓ Complété
+                            {"✓ "+tl("objectives.milestoneDone")}
                           </span>
                         )}
                         {isPending&&(
                           <span style={{fontSize:10,background:col,color:"#fff",
                             borderRadius:99,padding:"1px 8px",fontFamily:F.body,fontWeight:700,
                             animation:"pulse 1s infinite"}}>
-                            🎉 À récupérer !
+                            {"🎉 "+tl("objectives.milestoneReady")}
                           </span>
                         )}
                       </div>
@@ -239,7 +241,7 @@ export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,today
                         borderRadius:10,padding:"10px 18px",cursor:"pointer",
                         fontFamily:F.body,fontWeight:700,fontSize:13,flexShrink:0,
                         boxShadow:`0 4px 14px ${col}55`}}>
-                        Récupérer
+                        {tl("objectives.milestoneBtn")}
                       </button>
                     )}
                   </div>

@@ -360,6 +360,7 @@ export const en = {
     milestoneDone: "Completed",
     milestoneReady: "Ready to collect!",
     milestoneBtn: "Collect",
+    waiting: "Pending",
   },
 
   stats: {
@@ -394,6 +395,11 @@ export const en = {
     balance: "Balance",
     funds: "Funds",
     required: "required",
+    expPurchase: "Purchases & recruitment",
+    expSalary: "Salaries",
+    expLoan: "Loan repayment",
+    expEquipment: "Equipment & costs",
+    maxLevel: "✦ Max level",
   },
 
   complaints: {
@@ -408,6 +414,7 @@ export const en = {
     colStatus: "Status",
     statusNew: "New",
     statusInProgress: "In progress",
+    statusResolved: "Resolved",
     colDescription: "Description",
     report: "Report a complaint",
     colDate: "Date",
