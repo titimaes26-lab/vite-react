@@ -579,6 +579,113 @@ const INTRO_DIALOG_EN = [
   },
 ];
 
+const TABLES_DIALOG_EN = [
+  {
+    speaker: "elodie",
+    section: "The Art of Hospitality",
+    text: "Boss, open the Tables tab. This is where theory meets reality. Customers arrive in groups every 30 seconds — with a 65% chance of walking through the door.",
+    short: "Open Tables. Customers arrive every 30s — 65% chance of walking in.",
+  },
+  {
+    speaker: "gustave",
+    text: "And when they come in, it's for pure bliss! But see that patience bar? If it turns red and hits zero, they leave… and my genius is wasted on ingrates who couldn't wait!",
+    short: "See that patience bar? If it hits zero, they leave — and my genius is wasted!",
+  },
+  {
+    speaker: "elodie",
+    text: "More importantly, they leave without paying. To avoid this drama: click on a table to open its detail panel. That's your control tower.",
+    short: "They leave without paying! Click on a table to open its detail panel.",
+  },
+  {
+    speaker: "elodie",
+    section: "The Service Cycle",
+    text: "The process runs like clockwork. The server takes the order, then as soon as you serve the plates, the table switches to 🍴 Dining mode.",
+    short: "Server takes order, you serve, table switches to 🍴 Dining.",
+  },
+  {
+    speaker: "gustave",
+    text: "The sacred moment! The silence of tasting… broken only by the sound of cutlery.",
+    short: "The sacred moment! The silence of tasting…",
+  },
+  {
+    speaker: "elodie",
+    text: "Then comes my favourite part: collecting the bill. But don't rest yet! A server must clean the table before a new group can sit down.",
+    short: "Then the payout! But a server must clean the table before the next group.",
+  },
+  {
+    speaker: "gustave",
+    section: "Space Optimisation",
+    text: "Boss, I have visions of royal banquets! Two chairs is for shy dates. We need room for greatness!",
+    short: "Two chairs is for shy dates. We need room for greatness!",
+  },
+  {
+    speaker: "elodie",
+    text: "For once, he's not wrong. On each free table, a button lets you increase capacity. More seats = larger groups = more revenue.",
+    short: "On each table, a button increases capacity. More seats = more customers = more revenue.",
+  },
+  {
+    speaker: "elodie",
+    text: "Keep an eye on space: arriving groups will never exceed your maximum capacity. Only two-seat tables? You'll miss the large parties that bring in the most money.",
+    short: "Groups never exceed your capacity. Only two-seaters? You'll miss the big, high-spending parties.",
+  },
+  {
+    speaker: "gustave",
+    text: "Come on, Boss! Push the walls, fill the place, and let me dazzle them!",
+    isLast: true,
+  },
+];
+
+const SERVERS_DIALOG_EN = [
+  {
+    speaker: "elodie",
+    section: "Staff & Burnout",
+    text: "Let's talk human resources. For now, we have 2 servers — the bare minimum to avoid looking like a cafeteria. More slots will unlock as the restaurant levels up.",
+    short: "2 servers for now. More slots unlock as the restaurant levels up.",
+  },
+  {
+    speaker: "gustave",
+    text: "My dishes are poetry, Boss! We need worthy messengers to carry them. But look at them… they seem tired.",
+    short: "My dishes are poetry. We need worthy messengers. But look at them… they seem tired.",
+  },
+  {
+    speaker: "elodie",
+    text: "That's normal, Gustave. An active server loses 1 morale point every 5 minutes. Below 10, it's 💀 Burnout: useless and unavailable. Only servers with solid morale are auto-assigned.",
+    short: "Morale −1pt/5min. Below 10: 💀 Burnout — unusable. Only solid-morale servers are auto-assigned.",
+  },
+  {
+    speaker: "gustave",
+    text: "Outrageous! You can't serve lobster with a miserable face! Let them take breaks to recover morale. An artist needs rest!",
+    short: "You can't serve lobster with a miserable face! Breaks for morale. An artist needs rest!",
+  },
+  {
+    speaker: "elodie",
+    text: "And the owner needs savings. Servers are paid every real-world hour, but only when active. On break or resting, they cost nothing. Time to be an efficient manager.",
+    short: "Wages only when active. On break, they cost nothing. Manage smartly!",
+  },
+  {
+    speaker: "gustave",
+    section: "Training & Growth",
+    text: "What if we turned them into true masters? Sommelier skills, VIP Prestige, Speed so they run as fast as my inspiration!",
+    short: "What if we trained them? Sommelier, VIP, Speed — as fast as my inspiration!",
+  },
+  {
+    speaker: "elodie",
+    text: "Hospitality and Wellbeing training are just as crucial. They improve specialities and raise maximum morale. The better-trained they are, the less they break down.",
+    short: "Hospitality and Wellbeing improve specialities and max morale. Better trained = fewer burnouts.",
+  },
+  {
+    speaker: "gustave",
+    text: "Experience, Boss! Every time a bill is collected, they earn XP. And the higher their level, the more generous customers are with tips.",
+    short: "Every payout: +XP. Higher level = more generous tips!",
+  },
+  {
+    speaker: "elodie",
+    text: "In summary: manage their fatigue, invest in their training, and watch your wage bill. Your move, Boss.",
+    short: "Manage fatigue, train them, watch the wage bill. Your move, Boss!",
+    isLast: true,
+  },
+];
+
 /* ═══════════════════════════════════════════════════════
    COMPOSANT GÉNÉRIQUE — DialogScene
 ═══════════════════════════════════════════════════════ */
