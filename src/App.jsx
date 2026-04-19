@@ -259,7 +259,7 @@ export default function App(){
     const { total, perPerson } = salaryAccruedRef.current;
     if (total > 0) {
       const lines = Object.entries(perPerson).map(([n, v]) => `${n} ${v.toFixed(0)}€`);
-      setCash(c => +Math.max(0, c - total).toFixed(2));
+      setCash(c => +(c - total).toFixed(2));
       addTx("salaire", `Salaires — ${lines.join(", ")}`, total);
       addToast({
         icon  : "💸",
@@ -1321,6 +1321,34 @@ export default function App(){
           transactions={transactions}
           isRecord={summaryIsRecord}
           salaryData={salaryAccruedRef.current}/>
+      )}
+
+      {/* Game over — trésorerie négative */}
+      {isLoaded && cash < 0 && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",
+          zIndex:99998,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:C.surface,borderRadius:22,width:"100%",maxWidth:420,
+            textAlign:"center",padding:"48px 32px",
+            boxShadow:"0 32px 80px rgba(0,0,0,0.5)",animation:"popIn 0.4s ease"}}>
+            <div style={{fontSize:64,marginBottom:16}}>💸</div>
+            <div style={{fontSize:30,fontWeight:800,color:C.red,fontFamily:F.title,marginBottom:10}}>
+              {t("gameover.title")}
+            </div>
+            <div style={{fontSize:14,color:C.muted,fontFamily:F.body,marginBottom:36,lineHeight:1.7}}>
+              {t("gameover.msg")}
+            </div>
+            <div style={{fontSize:13,fontWeight:700,color:C.red,fontFamily:F.title,marginBottom:28}}>
+              {cash.toLocaleString(locale,{minimumFractionDigits:2})} €
+            </div>
+            <button onClick={doReset} style={{
+              padding:"14px 40px",borderRadius:12,border:"none",
+              background:C.red,color:"#fff",cursor:"pointer",
+              fontSize:15,fontWeight:700,fontFamily:F.body,
+              boxShadow:`0 4px 20px ${C.red}55`}}>
+              {t("app.restart")}
+            </button>
+          </div>
+        </div>
       )}
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>

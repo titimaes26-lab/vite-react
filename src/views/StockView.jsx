@@ -73,7 +73,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
     const unitPrice=(item.price||0)*(1-sup.discount);
     const cost=+(unitPrice*addedQty).toFixed(2);
     if(cost>0){
-      setCash(c=>+Math.max(0,c-cost).toFixed(2));
+      setCash(c=>+(c-cost).toFixed(2));
       addTx("achat",`Achat ${item.name} — ${+addedQty.toFixed(3)} ${item.unit} (${sup.name})`,cost);
     }
     if(sup.delay>0){

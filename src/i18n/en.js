@@ -526,6 +526,11 @@ export const en = {
     ledgerTooltip: "View ledger",
   },
 
+  gameover: {
+    title: "Game Over",
+    msg: "Your restaurant has run out of cash. Better luck next time!",
+  },
+
   dialog: {
     skip: "Skip ›",
     next: "Next →",

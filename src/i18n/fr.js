@@ -526,6 +526,11 @@ export const fr = {
     ledgerTooltip: "Voir le grand livre",
   },
 
+  gameover: {
+    title: "Partie perdue",
+    msg: "Votre restaurant n'a plus de trésorerie. La banque a fermé les portes.",
+  },
+
   dialog: {
     skip: "Passer ›",
     next: "Suivant →",
