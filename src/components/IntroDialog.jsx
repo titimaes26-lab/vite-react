@@ -686,6 +686,104 @@ const SERVERS_DIALOG_EN = [
   },
 ];
 
+const BANK_DIALOG_EN = [
+  {
+    speaker: "gustave",
+    section: "Financial Leverage",
+    text: "Élodie, I want to think big for the new terrace, but my savings are a bit… timid. Any options to boost the budget?",
+    short: "I want to think big, but my savings are timid. Options to boost the budget?",
+  },
+  {
+    speaker: "elodie",
+    text: "That's called financial leverage, Gustave. I have 3 bank loan options ready: the Small loan (€1,500) for minor expenses, the Standard (€4,000) for serious projects, and the Large loan (€9,000) if you really want to renovate from floor to ceiling.",
+    short: "3 loans available: Small (€1,500), Standard (€4,000), Large (€9,000). Choose based on your ambitions!",
+  },
+  {
+    speaker: "gustave",
+    text: "€9,000! That's a lot of pizzas. And how do I pay it back? I don't want a bailiff in the kitchen.",
+    short: "€9,000! And how do I repay it? No bailiffs in the kitchen!",
+  },
+  {
+    speaker: "elodie",
+    text: "It's painless. Repayment is automatic via daily instalments: one instalment deducted at the end of each day. Golden rule: only one active loan at a time. To take another, you'll need to make an early repayment first.",
+    short: "Auto-repayment — one instalment per day. Only one active loan at a time.",
+  },
+  {
+    speaker: "gustave",
+    text: "Alright, I'll think about it. And what about costs? What do wages look like tonight?",
+  },
+  {
+    speaker: "elodie",
+    text: "No panic, it's handled. Wages are automatically deducted every real-world hour. I only pay active staff. That sous-chef you haven't unlocked yet? Not a single cent.",
+    short: "Wages auto-deducted each hour, only for active staff. Not unlocked? Zero cost.",
+  },
+  {
+    speaker: "gustave",
+    text: "Thank goodness! I was afraid of paying people who just watch the flies on the wall.",
+  },
+  {
+    speaker: "elodie",
+    text: "Not here. If the staff works, money goes out. If you send everyone home, the meter stops. It's just-in-time, Gustave — exactly like your cooking!",
+    short: "Staff active = money out. At rest, the meter stops. Just-in-time, like your cooking!",
+    isLast: true,
+  },
+];
+
+const STATS_DIALOG_EN = [
+  {
+    speaker: "gustave",
+    section: "The Numbers Verdict",
+    text: "So, Élodie, tell me the truth. We had a packed house, but is the till keeping up?",
+    short: "Tell me the truth, Élodie. Is the till keeping up?",
+  },
+  {
+    speaker: "elodie",
+    text: "Look at the Statistics tab. I've displayed 3 interactive charts. In blue, your Revenue is climbing, in green, your Served Customers are following… and in gold, your Reputation is taking off.",
+    short: "Statistics tab: 3 charts. Revenue in blue, Customers in green, Reputation in gold.",
+  },
+  {
+    speaker: "gustave",
+    text: "It's a bit cramped on screen, isn't it? I can't see much.",
+  },
+  {
+    speaker: "elodie",
+    text: "That's because you're in wide view. Use the 5-day Selector. If you want to analyse tonight's rush in detail, switch to 3-day Zoom. More readable, right?",
+    short: "Too wide? Use the 5-day Selector or 3-day Zoom for better readability.",
+  },
+  {
+    speaker: "gustave",
+    text: "Ah yes, much clearer. And the day's verdict?",
+  },
+  {
+    speaker: "elodie",
+    text: "Here's your Income Statement: revenue collected on one side, expenses on the other… and the Net Result in bold. The average basket is up: your customers are spending a bit more than usual — good sign!",
+    short: "Revenue vs expenses, Net Result in bold. Average basket up: good sign!",
+  },
+  {
+    speaker: "gustave",
+    text: "Wait, what's that big colourful circle next to it?",
+  },
+  {
+    speaker: "elodie",
+    text: "That's your Revenue Breakdown chart: it shows where your income comes from by category. Also check the Active Wage Bill — it shows the daily cost breakdown in €/day for the chef, sous-chefs, and servers.",
+    short: "The pie chart shows revenue by category. Also check the Wage Bill — €/day breakdown by role.",
+  },
+  {
+    speaker: "gustave",
+    text: "Look at the Daily Table at the bottom — did we lose any customers?",
+  },
+  {
+    speaker: "elodie",
+    text: "Today's row is highlighted so you don't miss it. We have a 95% service rate (the bar is nicely green), but we lost 3 customers due to wait times. Compared to recent days, we're still in our best average.",
+    short: "95% service rate ✅, but 3 customers lost to waiting. Still in our best average.",
+  },
+  {
+    speaker: "gustave",
+    text: "95%? That's almost perfect. Right, close all that — tomorrow we aim for 100%!",
+    isLast: true,
+  },
+];
+
 /* ═══════════════════════════════════════════════════════
    COMPOSANT GÉNÉRIQUE — DialogScene
 ═══════════════════════════════════════════════════════ */
