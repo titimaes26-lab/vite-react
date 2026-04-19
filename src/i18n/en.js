@@ -235,6 +235,15 @@ export const en = {
     addCommis: "+ Sous-chef",
     incentive: "Team bonus",
     incentiveDesc: "Morale +30% · −150€",
+    feux: "burners",
+    burner: "Burner",
+    noOrders: "🍽 Orders will appear here",
+    noServer: "🚫 No server",
+    commis: "Sous-chef",
+    chefLvl: "Chef level {l}!",
+    lockedUpgrade: "🔒 Available at level {n}",
+    slotsAvailable: "{n} available",
+    full: "Full",
   },
 
   menu: {

@@ -235,6 +235,15 @@ export const fr = {
     addCommis: "+ Commis",
     incentive: "Prime brigade",
     incentiveDesc: "Moral +30% · −150€",
+    feux: "feux",
+    burner: "Feu",
+    noOrders: "🍽 Les commandes arriveront ici",
+    noServer: "🚫 Pas de serveur",
+    commis: "Commis",
+    chefLvl: "Chef niveau {l} !",
+    lockedUpgrade: "🔒 Disponible au niveau {n}",
+    slotsAvailable: "{n} libres",
+    full: "Complet",
   },
 
   menu: {
