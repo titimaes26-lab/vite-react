@@ -7,11 +7,12 @@ import { useState } from "react";
 import { C, F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL, STAFF_QUALITY_REQ } from "../constants/gameData.js";
 import { SRV_SPECIALTIES, TRAINING_CATALOG, pickSpecialty, getMaxMoral } from "../constants/serverConstants.js";
 import { Badge, Card, Btn, Modal, Lbl, Inp, Sel, XpBar } from "../components/ui/index.js";
+import { useLang } from "../i18n/index.jsx";
 import { srvLv, srvTierCap, TIER_UNLOCK_LV, SRV_MAX_XP } from "../utils/levelUtils.js";
 import { rName } from "../utils/randomUtils.js";
 /* ─── Helpers locaux ────────────────────────────────── */
 const moralIcon   = (m) => m>=70?"😊":m>=40?"😐":m>=20?"😓":"💀";
-const moralLabel  = (m) => m>=70?"En forme":m>=40?"Fatigué":m>=20?"Épuisé":"Burnout";
+const moralKey    = (m) => m>=70?"moralFine":m>=40?"moralTired":m>=20?"moralExhausted":"moralBurnout";
 const moralColor  = (m) => m>=70 ? "#236b47" : m>=40 ? "#a86e08" : "#b83025";
 
 // Plages XP, salaire et taux de spécialité des candidats selon le niveau resto
@@ -23,6 +24,7 @@ const _candidateSpecRate = (lv) => lv<5?0.10:lv<10?0.25:lv<20?0.40:0.60;
 
 
 export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast,candidatePool=[],setCandidatePool,candidateDate="",setCandidateDate,bp={}}){
+  const { t: tr } = useLang();
   const [modal,setModal]=useState(false);   // "hire" | "edit" | "fire" | "train" | false
   const [form,setForm]=useState({name:"",status:"actif",salary:"12"});
   const [editId,setEditId]=useState(null);
@@ -34,12 +36,12 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
   const doTrain = (sv, domain, level) => {
     const cost = level.cost;
     if(cash < cost){
-      addToast&&addToast({icon:"❌",title:"Fonds insuffisants",msg:`Formation : ${cost}€ requis`,color:C.red,tab:"servers"});
+      addToast&&addToast({icon:"❌",title:tr("servers.noFunds"),msg:tr("servers.noFundsTrain",{cost}),color:C.red,tab:"servers"});
       return;
     }
     const prevLevel = (sv.trainings||{})[domain.id] || 0;
     if(prevLevel >= domain.levels.length){
-      addToast&&addToast({icon:"✅",title:"Formation maximale",msg:`${sv.name} a déjà atteint le niveau maximum.`,color:C.muted,tab:"servers"});
+      addToast&&addToast({icon:"✅",title:tr("servers.trainingMax"),msg:tr("servers.trainingMaxMsg",{name:sv.name}),color:C.muted,tab:"servers"});
       return;
     }
     setCash&&setCash(c=>+(c-cost).toFixed(2));
@@ -75,8 +77,8 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
 
     addToast&&addToast({
       icon:domain.icon,
-      title:`${sv.name} — ${domain.name} N${level.l} !`,
-      msg:`${level.effect} · +${level.xp} XP · +${level.moralBonus} moral`,
+      title:tr("servers.trainingDone",{name:sv.name,domain:domain.name,level:level.l}),
+      msg:tr("servers.trainingDoneMsg",{effect:level.effect,xp:level.xp,moral:level.moralBonus}),
       color:domain.color, tab:"servers"
     });
     setModal(false);
@@ -138,11 +140,11 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
 
   const hireCandidate = (candidate) => {
     if(servers.length >= maxSlots){
-      addToast&&addToast({icon:"🚫",title:"Équipe complète",msg:"Licenciez un serveur d'abord.",color:C.red,tab:"servers"});
+      addToast&&addToast({icon:"🚫",title:tr("servers.teamComplete"),msg:tr("servers.teamCompleteMsg"),color:C.red,tab:"servers"});
       return;
     }
     if(cash < candidate.hireCost){
-      addToast&&addToast({icon:"❌",title:"Fonds insuffisants",msg:`Recrutement : ${candidate.hireCost}€ requis`,color:C.red,tab:"servers"});
+      addToast&&addToast({icon:"❌",title:tr("servers.noFunds"),msg:tr("servers.noFundsHire",{cost:candidate.hireCost}),color:C.red,tab:"servers"});
       return;
     }
     setCash&&setCash(c=>+(c-candidate.hireCost).toFixed(2));
@@ -159,8 +161,8 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
     }]);
     const remaining = candidatePool.filter(c=>c.id!==candidate.id);
     setCandidatePool(remaining);
-    addToast&&addToast({icon:"👔",title:`${candidate.name} embauché·e !`,
-      msg:`−${candidate.hireCost}€ · ${remaining.length} candidat${remaining.length>1?"s":""} restant${remaining.length>1?"s":""}`,
+    addToast&&addToast({icon:"👔",title:tr("servers.hired",{name:candidate.name}),
+      msg:tr("servers.hiredMsg",{cost:candidate.hireCost,remaining:remaining.length,s:remaining.length>1?"s":""}),
       color:C.green,tab:"servers"});
     if(remaining.length === 0 || servers.length + 1 >= maxSlots) setModal(false);
   };
@@ -193,15 +195,15 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
     if(!sv) return;
     const severance = (sv.salary||12) * 24; // 1 mois = 24h de salaire
     if(cash < severance){
-      addToast&&addToast({icon:"❌",title:"Fonds insuffisants",
-        msg:`Indemnité requise : ${severance}€`,color:C.red,tab:"servers"});
+      addToast&&addToast({icon:"❌",title:tr("servers.noFunds"),
+        msg:`${tr("servers.severance")} : ${severance}€`,color:C.red,tab:"servers"});
       return;
     }
     setCash&&setCash(c=>+(c-severance).toFixed(2));
     addTx&&addTx("dépense",`Indemnité licenciement — ${sv.name}`,severance);
     setServers(p=>p.filter(s=>s.id!==fireId));
-    addToast&&addToast({icon:"👋",title:`${sv.name} licencié·e`,
-      msg:`Indemnité versée : ${severance}€`,color:C.terra,tab:"servers"});
+    addToast&&addToast({icon:"👋",title:tr("servers.fired",{name:sv.name}),
+      msg:tr("servers.firedMsg",{cost:severance}),color:C.terra,tab:"servers"});
     setModal(false);
     setFireId(null);
   };
@@ -216,16 +218,16 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
         marginBottom:16,flexWrap:"wrap",gap:10}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <span style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>
-            👤 Équipe — {servers.length}/{maxSlots} serveurs
+            {tr("servers.team",{count:servers.length,max:maxSlots})}
           </span>
           <span style={{fontSize:11,background:canHire?C.greenP:C.redP,
             color:canHire?C.green:C.red,border:`1px solid ${canHire?C.green:C.red}33`,
             borderRadius:20,padding:"2px 10px",fontFamily:F.body,fontWeight:600}}>
-            {canHire?`${maxSlots-servers.length} poste${maxSlots-servers.length>1?"s":""} disponible${maxSlots-servers.length>1?"s":""}`:"Équipe complète"}
+            {canHire?tr("servers.slotsAvailable",{n:maxSlots-servers.length,s:maxSlots-servers.length>1?"s":""}):tr("servers.teamFull")}
           </span>
         </div>
         <Btn onClick={openHire} disabled={!canHire} v={canHire?"primary":"disabled"} icon="➕">
-          Embaucher un serveur
+          {tr("servers.hire")}
         </Btn>
       </div>
 
@@ -238,12 +240,12 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
           <span style={{fontSize:18}}>🎓</span>
           <div style={{flex:1}}>
             <div style={{fontSize:11,fontWeight:700,color:C.navy,fontFamily:F.body}}>
-              Tier max : {SRV_LVL[Math.min(tierCap,SRV_LVL.length-1)].icon} {SRV_LVL[Math.min(tierCap,SRV_LVL.length-1)].name}
+              {tr("servers.tierMax",{icon:SRV_LVL[Math.min(tierCap,SRV_LVL.length-1)].icon,name:SRV_LVL[Math.min(tierCap,SRV_LVL.length-1)].name})}
             </div>
             <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:1}}>
               {tierCap < 4
-                ? `${SRV_LVL[Math.min(tierCap+1,SRV_LVL.length-1)].icon} ${SRV_LVL[Math.min(tierCap+1,SRV_LVL.length-1)].name} débloqué au restaurant niv. ${TIER_UNLOCK_LV[tierCap+1]}`
-                : "Tous les tiers débloqués ✨"}
+                ? tr("servers.tierUnlocks",{icon:SRV_LVL[Math.min(tierCap+1,SRV_LVL.length-1)].icon,name:SRV_LVL[Math.min(tierCap+1,SRV_LVL.length-1)].name,level:TIER_UNLOCK_LV[tierCap+1]})
+                : tr("servers.allTiersUnlocked")}
             </div>
           </div>
         </div>
@@ -259,23 +261,23 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               <>
                 <div style={{fontSize:11,fontWeight:700,
                   color:reqMet?C.green:C.red,fontFamily:F.body}}>
-                  {reqMet?"Exigence remplie":"Exigence non remplie"} — {activeReq.icon} {activeReq.label}
+                  {reqMet?tr("servers.reqMet"):tr("servers.reqNotMet")} — {activeReq.icon} {activeReq.label}
                 </div>
                 <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:1}}>
                   {reqMet
                     ? nextReq
-                      ? `Prochaine : ${nextReq.icon} ${nextReq.label} au niv. ${nextReq.atLv}`
-                      : "Exigence maximale atteinte"
-                    : `Recrutez ou formez pour atteindre le niveau requis`}
+                      ? tr("servers.nextReq",{icon:nextReq.icon,label:nextReq.label,level:nextReq.atLv})
+                      : tr("servers.maxReq")
+                    : tr("servers.recruitOrTrain")}
                 </div>
               </>
             ) : (
               <>
                 <div style={{fontSize:11,fontWeight:700,color:C.muted,fontFamily:F.body}}>
-                  Aucune exigence pour ce niveau
+                  {tr("servers.noReq")}
                 </div>
                 <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:1}}>
-                  {nextReq ? `Première exigence : ${nextReq.icon} ${nextReq.label} au niv. ${nextReq.atLv}` : ""}
+                  {nextReq ? tr("servers.firstReq",{icon:nextReq.icon,label:nextReq.label,level:nextReq.atLv}) : ""}
                 </div>
               </>
             )}
@@ -296,7 +298,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
           const moral=sv.moral??100;
           const mc=moralColor(moral);
           const mi=moralIcon(moral);
-          const ml=moralLabel(moral);
+          const ml=tr("servers."+moralKey(moral));
           const isBurnout=moral<=10;
           const isExhausted=moral<=20;
           const sp=sv.specialty;
@@ -359,7 +361,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                 <div style={{background:C.bg,border:`1px dashed ${C.border}`,
                   borderRadius:8,padding:"6px 10px",marginBottom:10,
                   fontSize:10,color:C.muted,fontFamily:F.body}}>
-                  🔒 Spécialité débloquée au niveau 2
+                  {tr("servers.specialtyLocked")}
                 </div>
               ):null}
 
@@ -369,13 +371,13 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                   <>
                     <div style={{display:"flex",justifyContent:"space-between",
                       fontSize:10,marginBottom:4,fontFamily:F.body}}>
-                      <span style={{color:C.muted}}>XP · Niv.{sl.l} <span style={{color:C.amber,fontWeight:700}}>🔒 Plafonné</span></span>
+                      <span style={{color:C.muted}}>XP · Niv.{sl.l} <span style={{color:C.amber,fontWeight:700}}>{tr("servers.tierCapped")}</span></span>
                       <span style={{color:C.amber,fontWeight:600}}>{sl.r}/{sl.n}</span>
                     </div>
                     <XpBar xp={sl.r} needed={sl.n} color={C.amber}/>
                     {tierCap < 4 && (
                       <div style={{fontSize:9,color:C.amber,fontFamily:F.body,marginTop:3,fontWeight:600}}>
-                        {SRV_LVL[Math.min(tierCap+1,SRV_LVL.length-1)].icon} Tier suivant débloqué au restaurant niv. {TIER_UNLOCK_LV[tierCap+1]}
+                        {tr("servers.tierNextUnlocks",{icon:SRV_LVL[Math.min(tierCap+1,SRV_LVL.length-1)].icon,level:TIER_UNLOCK_LV[tierCap+1]})}
                       </div>
                     )}
                   </>
@@ -395,7 +397,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               <div style={{marginBottom:12}}>
                 <div style={{display:"flex",justifyContent:"space-between",
                   fontSize:10,marginBottom:4,fontFamily:F.body}}>
-                  <span style={{color:C.muted}}>Moral {mi} {ml}</span>
+                  <span style={{color:C.muted}}>{tr("servers.moralLabel")} {mi} {ml}</span>
                   <span style={{fontWeight:700,color:mc}}>{moral}/100</span>
                 </div>
                 <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden"}}>
@@ -405,20 +407,20 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                 {isBurnout&&(
                   <div style={{fontSize:9,color:C.red,fontWeight:700,fontFamily:F.body,marginTop:3,
                     animation:"pulse 1s infinite"}}>
-                    ⚠ Burnout — refuse les nouvelles tables !
+                    {tr("servers.burnoutWarning")}
                   </div>
                 )}
                 {!isBurnout&&isExhausted&&(
                   <div style={{fontSize:9,color:C.amber,fontFamily:F.body,marginTop:3}}>
-                    😓 Épuisé — service ralenti +20%
+                    {tr("servers.exhaustedWarning")}
                   </div>
                 )}
               </div>
 
               {/* Infos */}
               <div style={{fontSize:11,color:C.muted,marginBottom:12,fontFamily:F.body}}>
-                <div>📍 {asgn.length>0?asgn.map(t=>t.name).join(", "):"Aucune table"}</div>
-                <div style={{marginTop:2}}>🏆 {sv.totalXp} XP · 💸 {(sv.salary||0).toFixed(0)} €/h</div>
+                <div>{asgn.length>0?"📍 "+asgn.map(t=>t.name).join(", "):tr("servers.noTable")}</div>
+                <div style={{marginTop:2}}>{tr("servers.xpInfo",{xp:sv.totalXp,salary:(sv.salary||0).toFixed(0)})}</div>
                 {Object.keys(sv.trainings||{}).length>0&&(
                   <div style={{marginTop:5,display:"flex",gap:4,flexWrap:"wrap"}}>
                     {TRAINING_CATALOG.filter(d=>(sv.trainings||{})[d.id]>0).map(d=>(
@@ -436,17 +438,17 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
                 {sv.status==="actif"&&!isWorking&&(
                   <Btn sm v="terra" onClick={()=>setServers(p=>p.map(x=>x.id===sv.id?{...x,status:"pause"}:x))}>
-                    ⏸ Pause
+                    {tr("servers.pause")}
                   </Btn>
                 )}
                 {sv.status==="pause"&&(
                   <Btn sm v="primary" onClick={()=>setServers(p=>p.map(x=>x.id===sv.id?{...x,status:"actif"}:x))}>
-                    ▶ Activer
+                    {tr("servers.activate")}
                   </Btn>
                 )}
                 {isWorking&&(
                   <span style={{fontSize:11,color:C.amber,fontFamily:F.body,alignSelf:"center"}}>
-                    🛎 En service…
+                    {tr("servers.inService")}
                   </span>
                 )}
                 {/* Prime de motivation */}
@@ -458,22 +460,22 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                       setCash&&setCash(c=>+(c-primeCost).toFixed(2));
                       addTx&&addTx("achat",`Prime motivation — ${sv.name}`,primeCost);
                       setServers(p=>p.map(x=>x.id!==sv.id?x:{...x,moral:Math.min(100,x.moral+50)}));
-                      addToast&&addToast({icon:"🎁",title:`Prime versée à ${sv.name}`,
-                        msg:`+50 moral · −${primeCost}€`,color:C.navy,tab:"servers"});
+                      addToast&&addToast({icon:"🎁",title:tr("servers.incentivePaid",{name:sv.name}),
+                        msg:tr("servers.incentiveMsg",{cost:primeCost}),color:C.navy,tab:"servers"});
                     }}>
-                    🎁 Prime {primeCost}€
+                    {tr("servers.incentive",{cost:primeCost})}
                   </Btn>
                 )}
                 {isWorking?(
                   <div style={{fontSize:9,color:C.amber,fontFamily:F.body,fontWeight:600,
                     background:C.amberP,borderRadius:6,padding:"3px 8px",border:`1px solid ${C.amber}33`}}>
-                    ⏳ En service
+                    {tr("servers.inServiceShort")}
                   </div>
                 ):(
-                  <Btn sm v="danger" onClick={()=>openFire(sv)}>Licencier</Btn>
+                  <Btn sm v="danger" onClick={()=>openFire(sv)}>{tr("servers.fire")}</Btn>
                 )}
                 <Btn sm v="secondary" onClick={()=>openTrain(sv)} icon="🎓">
-                  Former
+                  {tr("servers.train")}
                 </Btn>
               </div>
             </Card>
@@ -494,10 +496,10 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               ➕
             </div>
             <div style={{fontSize:12,color:C.green,fontWeight:600,fontFamily:F.body}}>
-              Poste vacant
+              {tr("servers.freeSlot")}
             </div>
             <div style={{fontSize:10,color:C.muted,fontFamily:F.body,textAlign:"center"}}>
-              Cliquez pour embaucher
+              {tr("servers.clickHire")}
             </div>
           </div>
         ))}
@@ -517,12 +519,12 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                 justifyContent:"center",minHeight:160,gap:8,opacity:0.6}}>
                 <span style={{fontSize:32}}>🔒</span>
                 <div style={{fontSize:11,color:C.muted,fontFamily:F.body,textAlign:"center"}}>
-                  Poste verrouillé
+                  {tr("servers.lockedSlot")}
                 </div>
                 {r&&<span style={{fontSize:11,background:r.color+"18",color:r.color,
                   border:`1px solid ${r.color}33`,borderRadius:6,padding:"2px 8px",
                   fontFamily:F.body,fontWeight:600}}>
-                  {r.icon} Niveau {r.l} — {r.name}
+                  {tr("servers.levelUnlock",{icon:r.icon,level:r.l,name:r.name})}
                 </span>}
               </div>
             );
@@ -557,10 +559,10 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                   </div>
                   <div>
                     <div style={{fontSize:16,fontWeight:700,color:C.ink,fontFamily:F.title}}>
-                      🎓 Former {sv.name}
+                      {tr("servers.trainTitle",{name:sv.name})}
                     </div>
                     <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                      Niv.{sl.l} · {sv.totalXp} XP · Moral {sv.moral??100}/100
+                      {tr("servers.trainSubtitle",{level:sl.l,xp:sv.totalXp,moral:sv.moral??100})}
                       {sv.specialty?.name&&` · ${sv.specialty.icon||""} ${sv.specialty.name}`}
                     </div>
                   </div>
@@ -574,7 +576,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               {/* Solde */}
               <div style={{padding:"10px 22px",background:C.bg,borderBottom:`1px solid ${C.border}`,
                 display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Solde disponible :</span>
+                <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>{tr("servers.balance")}</span>
                 <span style={{fontSize:14,fontWeight:700,color:cash<100?C.red:C.green,fontFamily:F.title}}>
                   {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
                 </span>
@@ -650,11 +652,11 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                                   <span style={{fontSize:12,fontWeight:700,
                                     color:isDone?C.green:isNext?domain.color:C.muted,
                                     fontFamily:F.body}}>
-                                    Niveau {level.l} — {level.name}
+                                    {tr("servers.levelN",{n:level.l,name:level.name})}
                                   </span>
                                   {isDone&&<span style={{fontSize:9,background:C.green,color:"#fff",
                                     borderRadius:99,padding:"1px 7px",fontFamily:F.body,fontWeight:700}}>
-                                    Acquis
+                                    {tr("servers.acquired")}
                                   </span>}
                                 </div>
                                 <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginBottom:4}}>
@@ -693,7 +695,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                                     v={canAffordThis?"primary":"disabled"}
                                     disabled={!canAffordThis}
                                     onClick={()=>doTrain(sv,domain,level)}>
-                                    {canAffordThis?"Financer":"Fonds insuffisants"}
+                                    {canAffordThis?tr("servers.fund"):tr("servers.noFunds")}
                                   </Btn>
                                 </div>
                               )}
@@ -736,10 +738,10 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               position:"sticky",top:0,background:C.surface,zIndex:10}}>
               <div>
                 <div style={{fontSize:16,fontWeight:700,color:C.ink,fontFamily:F.title}}>
-                  👔 Candidats disponibles
+                  {tr("servers.candidates")}
                 </div>
                 <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:3}}>
-                  {candidatePool.slice(0,3).length} affiché{candidatePool.slice(0,3).length>1?"s":""} · {candidatePool.length} restant{candidatePool.length>1?"s":""} aujourd'hui · {servers.length}/{maxSlots} postes
+                  {tr("servers.candidatesInfo",{shown:candidatePool.slice(0,3).length,s:candidatePool.slice(0,3).length>1?"s":"",total:candidatePool.length,hired:servers.length,max:maxSlots})}
                 </div>
               </div>
               <button onClick={()=>setModal(false)}
@@ -772,8 +774,8 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               {candidatePool.length===0?(
                 <div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:F.body}}>
                   <div style={{fontSize:32,marginBottom:8}}>📅</div>
-                  <div style={{fontSize:13,fontWeight:600}}>Plus de candidats aujourd'hui</div>
-                  <div style={{fontSize:11,marginTop:4}}>Revenez demain pour de nouveaux profils</div>
+                  <div style={{fontSize:13,fontWeight:600}}>{tr("servers.noCandidates")}</div>
+                  <div style={{fontSize:11,marginTop:4}}>{tr("servers.noCandidatesMsg")}</div>
                 </div>
               ):candidatePool.slice(0,3).map(c=>{
                 const sl = srvLv(c.totalXp);
@@ -820,7 +822,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                         <div style={{fontSize:16,fontWeight:800,color:canAfford?C.green:C.red,fontFamily:F.title}}>
                           {c.hireCost}€
                         </div>
-                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>coût recrutement</div>
+                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tr("servers.hireCost")}</div>
                       </div>
                     </div>
 
@@ -854,7 +856,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                     <Btn full v={canAfford?"primary":"disabled"}
                       onClick={()=>canAfford&&hireCandidate(c)}
                       icon={canAfford?"👔":"🔒"}>
-                      {canAfford?`Embaucher — ${c.hireCost}€`:"Fonds insuffisants"}
+                      {canAfford?tr("servers.hireBtn",{cost:c.hireCost}):tr("servers.noFunds")}
                     </Btn>
                   </div>
                 );
@@ -878,7 +880,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
         const canAffordFire  = cash >= severance;
         const assignedTables = tables.filter(t => t.server === sv.name);
         return(
-          <Modal title="👋 Licencier un serveur" onClose={()=>{setModal(false);setFireId(null);}}>
+          <Modal title={tr("servers.fireTitle")} onClose={()=>{setModal(false);setFireId(null);}}>
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
 
               {/* Profil */}
@@ -921,7 +923,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               {assignedTables.length>0&&(
                 <div style={{background:C.amberP,border:`1px solid ${C.amber}33`,
                   borderRadius:8,padding:"8px 12px",fontSize:11,color:C.amber,fontFamily:F.body}}>
-                  ⚠ En charge de {assignedTables.length} table{assignedTables.length>1?"s":""} : {assignedTables.map(t=>t.name).join(", ")}
+                  {tr("servers.assignedTo",{count:assignedTables.length,s:assignedTables.length>1?"s":"",tables:assignedTables.map(t=>t.name).join(", ")})}
                 </div>
               )}
 
@@ -932,10 +934,10 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
                     <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>
-                      💸 Indemnité de licenciement
+                      {tr("servers.severance")}
                     </div>
                     <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                      1 mois · {salary}€/h × 24h
+                      {tr("servers.severanceDetail",{salary})}
                     </div>
                   </div>
                   <div style={{fontSize:18,fontWeight:800,
@@ -945,7 +947,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                 </div>
                 {!canAffordFire&&(
                   <div style={{marginTop:8,fontSize:10,color:C.red,fontFamily:F.body,fontWeight:600}}>
-                    ❌ Solde insuffisant — disponible : {cash.toFixed(2)}€ / requis : {severance}€
+                    {tr("servers.insufficientFire",{available:cash.toFixed(2),required:severance})}
                   </div>
                 )}
               </div>
@@ -953,17 +955,17 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               {/* Avertissement */}
               <div style={{fontSize:11,color:C.muted,fontFamily:F.body,
                 textAlign:"center",lineHeight:1.5}}>
-                Cette action est <strong>irréversible</strong>.<br/>
-                Tout le XP et les formations de {sv.name} seront perdus.
+                <span dangerouslySetInnerHTML={{__html:tr("servers.irreversible")}}/><br/>
+                {tr("servers.fireWarning",{name:sv.name})}
               </div>
 
               {/* Boutons */}
               <div style={{display:"flex",gap:10}}>
                 <Btn full v="ghost" onClick={()=>{setModal(false);setFireId(null);}}>
-                  Annuler
+                  {tr("app.cancel")}
                 </Btn>
                 <Btn full v={canAffordFire?"danger":"disabled"} onClick={doFire} icon="👋">
-                  {canAffordFire?`Licencier — ${severance}€`:"Fonds insuffisants"}
+                  {canAffordFire?tr("servers.fireConfirm",{cost:severance}):tr("servers.noFunds")}
                 </Btn>
               </div>
             </div>
