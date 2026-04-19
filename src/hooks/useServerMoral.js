@@ -17,6 +17,7 @@
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
+import { useLang } from "../i18n/index.jsx";
 
 /** Gain de moral par tick (5 min) quand le serveur est en pause */
 const MORAL_PAUSE_GAIN    = 3;
@@ -31,6 +32,7 @@ const MORAL_DRAIN_INTERVAL = 300_000;
  * }} params
  */
 export const useServerMoral = ({ setServers, addToast, pausedRef }) => {
+  const { t } = useLang();
   useEffect(() => {
     const iv = setInterval(() => {
       if (pausedRef?.current) return;
@@ -44,8 +46,8 @@ export const useServerMoral = ({ setServers, addToast, pausedRef }) => {
               setTimeout(() =>
                 addToast({
                   icon  : "😓",
-                  title : `${s.name} épuisé·e !`,
-                  msg   : "Moral critique — mettez-le/la en pause ou offrez une prime.",
+                  title : t("toast.burnout", {name:s.name}),
+                  msg   : t("toast.burnoutMsg"),
                   color : "#c0392b",
                   tab   : "servers",
                 }), 50
@@ -66,5 +68,5 @@ export const useServerMoral = ({ setServers, addToast, pausedRef }) => {
     }, MORAL_DRAIN_INTERVAL); // ← 300 000 ms = 5 min (PAS 50 ms)
 
     return () => clearInterval(iv);
-  }, [setServers, addToast]);
+  }, [setServers, addToast, t]);
 };

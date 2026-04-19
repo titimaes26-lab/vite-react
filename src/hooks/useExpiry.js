@@ -19,6 +19,7 @@
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
+import { useLang } from "../i18n/index.jsx";
 
 export const useExpiry = ({
   queueRef,
@@ -34,6 +35,7 @@ export const useExpiry = ({
   repDeltaLostClient,
   pausedRef,
 }) => {
+  const { t } = useLang();
   useEffect(() => {
     const iv = setInterval(() => {
       if (pausedRef?.current) return;
@@ -52,8 +54,8 @@ export const useExpiry = ({
         expired.forEach(c => {
           addToast({
             icon  : "😤",
-            title : "Groupe parti !",
-            msg   : `${c.name} n'a plus patience — rappelable 2 min · Rép. ${repDeltaLostClient}`,
+            title : t("toast.groupLeft", {name:c.name}),
+            msg   : t("toast.groupLeftDetail", {rep:repDeltaLostClient}),
             color : "#c4622d",
             tab   : "tables",
           });
@@ -80,8 +82,8 @@ export const useExpiry = ({
         doneTables.forEach(tb =>
           addToast({
             icon  : "✨",
-            title : "Table prête",
-            msg   : `${tb.name} est de nouveau disponible.`,
+            title : t("toast.tableReady"),
+            msg   : t("toast.tableReadyMsg", {name:tb.name}),
             color : "#2a5c3f",
             tab   : "tables",
           })
@@ -108,5 +110,5 @@ export const useExpiry = ({
     }, 500);
 
     return () => clearInterval(iv);
-  }, [queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient]);
+  }, [queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient, t]);
 };

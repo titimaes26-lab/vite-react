@@ -464,6 +464,16 @@ export const fr = {
     recalledMsg: "Humeur améliorée · patience +15s",
     levelUp: "Niveau {level} atteint !",
     objectiveComplete: "Défi complété — +{amount}€",
+    wave: "Vague de clients ! ({n} groupes)",
+    waveMsg: "Plusieurs groupes arrivent en même temps.",
+    arrive: "Un groupe arrive…",
+    arriveMsg: "La salle était calme, des clients passent la porte.",
+    groupLeftDetail: "n'a plus patience — rappelable 2 min · Rép. {rep}",
+    tableReady: "Table prête",
+    tableReadyMsg: "{name} est de nouveau disponible.",
+    salaryTitle: "Salaires — {amount}€",
+    burnout: "{name} épuisé·e !",
+    burnoutMsg: "Moral critique — mettez-le/la en pause ou offrez une prime.",
   },
 
   dialog: {

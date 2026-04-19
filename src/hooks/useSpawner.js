@@ -13,6 +13,7 @@
 
 import { useEffect, useRef } from "react";
 import { rMood, rName, rSize } from "../utils/randomUtils.js";
+import { useLang } from "../i18n/index.jsx";
 
 /* ── Constantes ─────────────────────────────────────── */
 const MAX_QUEUE        = 4;       // B — max groupes en file
@@ -62,6 +63,7 @@ export const useSpawner = ({
   phaseRef,
   pausedRef,
 }) => {
+  const { t } = useLang();
   const lastActiveRef = useRef(Date.now()); // F — timestamp dernière table non-vide
 
   useEffect(() => {
@@ -115,8 +117,8 @@ export const useSpawner = ({
       if (isWave && nb > 1) {
         addToast({
           icon  : "🌊",
-          title : `Vague de clients ! (${nb} groupes)`,
-          msg   : "Plusieurs groupes arrivent en même temps.",
+          title : t("toast.wave", {n:nb}),
+          msg   : t("toast.waveMsg"),
           color : "#3a5f8a",
           tab   : "tables",
         });
@@ -124,8 +126,8 @@ export const useSpawner = ({
       if (forceSpawn) {
         addToast({
           icon  : "🚶",
-          title : "Un groupe arrive…",
-          msg   : "La salle était calme, des clients passent la porte.",
+          title : t("toast.arrive"),
+          msg   : t("toast.arriveMsg"),
           color : "#8a7d6a",
           tab   : "tables",
         });
@@ -134,5 +136,5 @@ export const useSpawner = ({
 
     return () => clearInterval(iv);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setQueue]);
+  }, [setQueue, t]);
 };

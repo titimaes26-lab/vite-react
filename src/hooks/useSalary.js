@@ -17,6 +17,7 @@
 
 import { useEffect } from "react";
 import { CHEF_LVL, CHEF_XP_CAP } from "../constants/gameData";
+import { useLang } from "../i18n/index.jsx";
 
 /** Recalcule le niveau chef depuis l'XP */
 const _chefLv = (xp) => {
@@ -42,6 +43,7 @@ export const useSalary = ({
   addToast,
   pausedRef,
 }) => {
+  const { t } = useLang();
   useEffect(() => {
     const iv = setInterval(() => {
       if (pausedRef?.current) return;
@@ -79,7 +81,7 @@ export const useSalary = ({
         addTx("salaire", `Salaires (${lines.join(", ")})`, total);
         addToast({
           icon  : "💸",
-          title : `Salaires — ${total.toFixed(0)} €`,
+          title : t("toast.salaryTitle", {amount:total.toFixed(0)}),
           msg   : lines.join(" · "),
           color : "#1c3352",
           tab   : "stats",
@@ -88,5 +90,5 @@ export const useSalary = ({
     }, 60_000); // 1 heure de jeu = 60 s réelles
 
     return () => clearInterval(iv);
-  }, [serversRef, kitchenRef, setCash, addTx, addToast]);
+  }, [serversRef, kitchenRef, setCash, addTx, addToast, t]);
 };
