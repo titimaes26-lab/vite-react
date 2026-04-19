@@ -39,17 +39,17 @@ export const useExpiry = ({
   useEffect(() => {
     const iv = setInterval(() => {
       if (pausedRef?.current) return;
-      const t = Date.now();
+      const now = Date.now();
 
       /* ── 1. File d'attente expirée → waitlist ─────────── */
       const queue   = queueRef.current ?? [];
-      const expired = queue.filter(c => t >= c.expiresAt);
+      const expired = queue.filter(c => now >= c.expiresAt);
 
       if (expired.length > 0) {
-        setQueue(queue.filter(c => t < c.expiresAt));
+        setQueue(queue.filter(c => now < c.expiresAt));
         setWaitlist(w => [
           ...w,
-          ...expired.map(c => ({ ...c, leftAt: t, recallUntil: t + 120_000 })),
+          ...expired.map(c => ({ ...c, leftAt: now, recallUntil: now + 120_000 })),
         ]);
         expired.forEach(c => {
           addToast({
@@ -65,17 +65,17 @@ export const useExpiry = ({
 
       /* ── 2. Waitlist : groupes non rappelés → perdus ───── */
       const waitlist   = waitlistRef.current ?? [];
-      const reallyLost = waitlist.filter(c => t >= c.recallUntil);
+      const reallyLost = waitlist.filter(c => now >= c.recallUntil);
 
       if (reallyLost.length > 0) {
-        setWaitlist(waitlist.filter(c => t < c.recallUntil));
+        setWaitlist(waitlist.filter(c => now < c.recallUntil));
         reallyLost.forEach(() => addDayStat("lost"));
       }
 
       /* ── 3. Fin de nettoyage → tables libres ─────────── */
       const tables    = tablesRef.current ?? [];
       const doneTables = tables.filter(
-        tb => tb.status === "nettoyage" && tb.cleanUntil && t >= tb.cleanUntil
+        tb => tb.status === "nettoyage" && tb.cleanUntil && now >= tb.cleanUntil
       );
 
       if (doneTables.length > 0) {
@@ -91,7 +91,7 @@ export const useExpiry = ({
         setTables(prev =>
           prev.map(tb =>
             doneTables.find(d => d.id === tb.id)
-              ? { ...tb, status: "libre", server: null, cleanServer: null, cleanUntil: null, cleanDur: null, freedAt: t }
+              ? { ...tb, status: "libre", server: null, cleanServer: null, cleanUntil: null, cleanDur: null, freedAt: now }
               : tb
           )
         );
@@ -100,9 +100,9 @@ export const useExpiry = ({
       /* ── 4. Fin de service / nettoyage → serveurs actifs ── */
       setServers(prev =>
         prev.map(s => {
-          if (s.status === "service" && s.serviceUntil && t >= s.serviceUntil)
+          if (s.status === "service" && s.serviceUntil && now >= s.serviceUntil)
             return { ...s, status: "actif", serviceUntil: null };
-          if (s.status === "nettoyage" && s.cleanUntil && t >= s.cleanUntil)
+          if (s.status === "nettoyage" && s.cleanUntil && now >= s.cleanUntil)
             return { ...s, status: "actif", cleanUntil: null };
           return s;
         })
