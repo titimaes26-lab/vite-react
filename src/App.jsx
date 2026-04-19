@@ -255,6 +255,22 @@ export default function App(){
 
   /* ── Nouvelle journée (fermeture modale résumé) ─────── */
   const startNewDay=useCallback(()=>{
+    // Paiement des salaires accumulés pendant la journée
+    const { total, perPerson } = salaryAccruedRef.current;
+    if (total > 0) {
+      const lines = Object.entries(perPerson).map(([n, v]) => `${n} ${v.toFixed(0)}€`);
+      setCash(c => +Math.max(0, c - total).toFixed(2));
+      addTx("salaire", `Salaires — ${lines.join(", ")}`, total);
+      addToast({
+        icon  : "💸",
+        title : t("toast.salaryTitle", { amount: total.toFixed(0) }),
+        msg   : lines.join(" · "),
+        color : "#1c3352",
+        tab   : "stats",
+      });
+    }
+    salaryAccruedRef.current = { total: 0, perPerson: {} };
+
     const today=new Date().toLocaleDateString("fr-FR");
     lastDateRef.current=today;
     setDailyStats(p=>{
@@ -278,7 +294,7 @@ export default function App(){
     setChallengeLostToday(false);
     resetDayRef.current?.();
     setShowSummary(false);
-  },[]);
+  },[setCash, addTx, addToast, t]);
 
   /* ── Chargement depuis localStorage ───────────────── */
   useEffect(()=>{
@@ -493,6 +509,9 @@ export default function App(){
   const waitlistRef   = useRef(waitlist);
   const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
+  const serversRef    = useRef(servers);
+  const kitchenRef    = useRef(kitchen);
+  const salaryAccruedRef = useRef({ total: 0, perPerson: {} });
 
   useEffect(() => { stockRef.current      = stock;      }, [stock]);
   useEffect(() => { cashRef.current       = cash;       }, [cash]);
@@ -502,6 +521,16 @@ export default function App(){
   useEffect(() => { queueRef.current      = queue;      }, [queue]);
   useEffect(() => { waitlistRef.current   = waitlist;   }, [waitlist]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
+  useEffect(() => { serversRef.current    = servers;    }, [servers]);
+  useEffect(() => { kitchenRef.current    = kitchen;    }, [kitchen]);
+
+  const onSalaryAccrue = useCallback((amount, perPerson) => {
+    const acc = salaryAccruedRef.current;
+    acc.total += amount;
+    for (const [name, wages] of Object.entries(perPerson)) {
+      acc.perPerson[name] = (acc.perPerson[name] ?? 0) + wages;
+    }
+  }, []);
 
   /* ── Pause lors des dialogues ───────────────────────── */
   useEffect(() => {
@@ -558,7 +587,7 @@ export default function App(){
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef, pausedRef });
   useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, pausedRef });
-  useSalary     ({ setServers, setKitchen, setCash, setLoan, addTx, addToast, pausedRef });
+  useSalary     ({ serversRef, kitchenRef, onAccrue: onSalaryAccrue, pausedRef });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useEvents     ({
     stockRef, cashRef, complaintsRef, tablesRef,
@@ -1290,7 +1319,8 @@ export default function App(){
           servers={servers}
           menu={menu}
           transactions={transactions}
-          isRecord={summaryIsRecord}/>
+          isRecord={summaryIsRecord}
+          salaryData={salaryAccruedRef.current}/>
       )}
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>

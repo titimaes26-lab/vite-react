@@ -90,7 +90,7 @@ export function HelpModal({onClose}){
 /* ═══════════════════════════════════════════════════════
    DAILY SUMMARY MODAL — Résumé de fin de journée (A)
 ═══════════════════════════════════════════════════════ */
-export function DailySummaryModal({onClose,dailyStats,objStats,servers,menu,transactions,prevRecord,isRecord}){
+export function DailySummaryModal({onClose,dailyStats,objStats,servers,menu,transactions,prevRecord,isRecord,salaryData}){
   const { t: tl, lang } = useLang();
   const locale = lang==="en"?"en-US":"fr-FR";
   const today=dailyStats[dailyStats.length-1]||{served:0,lost:0,revenue:0,date:""};
@@ -119,6 +119,7 @@ export function DailySummaryModal({onClose,dailyStats,objStats,servers,menu,tran
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:10050,
       display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{background:C.surface,borderRadius:22,width:"100%",maxWidth:460,
+        maxHeight:"90vh",display:"flex",flexDirection:"column",
         boxShadow:"0 32px 80px rgba(0,0,0,0.35)",overflow:"hidden",
         animation:"popIn 0.4s ease"}}>
 
@@ -158,7 +159,7 @@ export function DailySummaryModal({onClose,dailyStats,objStats,servers,menu,tran
           ))}
         </div>
 
-        <div style={{padding:"20px 24px",display:"flex",flexDirection:"column",gap:14}}>
+        <div style={{padding:"20px 24px",display:"flex",flexDirection:"column",gap:14,overflowY:"auto",flex:1}}>
 
           {/* Taux de service */}
           <div>
@@ -193,6 +194,31 @@ export function DailySummaryModal({onClose,dailyStats,objStats,servers,menu,tran
               </div>
             )}
           </div>
+
+          {/* Détail salaires */}
+          {salaryData?.total>0&&(
+            <div style={{background:C.navyP,border:`1px solid ${C.navy}22`,
+              borderRadius:12,padding:"12px 16px"}}>
+              <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:8}}>
+                {"💸 "+tl("daily.salaries")}
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                {Object.entries(salaryData.perPerson).map(([name,wages])=>(
+                  <div key={name} style={{display:"flex",justifyContent:"space-between",
+                    fontSize:12,fontFamily:F.body}}>
+                    <span style={{color:C.ink}}>{name}</span>
+                    <span style={{fontWeight:700,color:C.navy}}>{wages.toFixed(0)} €</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{borderTop:`1px solid ${C.navy}22`,marginTop:8,paddingTop:8,
+                display:"flex",justifyContent:"space-between",
+                fontSize:12,fontFamily:F.body,fontWeight:700}}>
+                <span style={{color:C.muted}}>{tl("daily.totalSalaries")}</span>
+                <span style={{color:C.navy}}>{salaryData.total.toFixed(0)} €</span>
+              </div>
+            </div>
+          )}
 
           {/* Objectif demain */}
           <div style={{background:C.purpleP,border:`1px solid ${C.purple}22`,

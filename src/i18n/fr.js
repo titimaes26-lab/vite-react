@@ -509,6 +509,9 @@ export const fr = {
     reachRevenue: "Atteindre {amount}€ de CA total",
     revenueLeft: "{amount}€ restants",
     continue: "Continuer →",
+    salaries: "Salaires versés aujourd'hui",
+    totalSalaries: "Masse salariale",
+    hoursWorked: "{h}h travaillées",
   },
 
   help: {

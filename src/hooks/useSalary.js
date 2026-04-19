@@ -1,25 +1,17 @@
 /* ═══════════════════════════════════════════════════════
    src/hooks/useSalary.js
-   Débit toutes les heures de jeu (60 s réelles) de :
-     - Salaires des serveurs actifs
-     - Salaire du chef + commis débloqués
+   Tick toutes les heures de jeu (60 s réelles) — accumule
+   les salaires dans onAccrue sans débiter le cash.
 
-   Le remboursement du prêt bancaire est géré séparément
-   dans restaurant-manager.jsx (déduction quotidienne).
+   Le paiement réel se fait à la fin de la journée simulée
+   dans startNewDay() (App.jsx), en un seul virement.
 
-   Lit l'état depuis des refs (lecture synchrone) pour éviter
-   le piège React : accumuler dans `total` à l'intérieur de
-   setters différés revient à lire total=0 au moment du `if`.
-
-   Usage dans restaurant-manager.jsx :
-     useSalary({ serversRef, kitchenRef, setCash, addTx, addToast });
+   Lit l'état depuis des refs pour éviter les stale closures.
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
 import { CHEF_LVL, CHEF_XP_CAP } from "../constants/gameData";
-import { useLang } from "../i18n/index.jsx";
 
-/** Recalcule le niveau chef depuis l'XP */
 const _chefLv = (xp) => {
   let l = 0, r = xp;
   while (l < CHEF_XP_CAP.length && r >= CHEF_XP_CAP[l]) { r -= CHEF_XP_CAP[l]; l++; }
@@ -28,67 +20,54 @@ const _chefLv = (xp) => {
 
 /**
  * @param {{
- *   serversRef  : React.RefObject,
- *   kitchenRef  : React.RefObject,
- *   setCash     : Function,
- *   addTx       : Function,
- *   addToast    : Function,
+ *   serversRef : React.RefObject,
+ *   kitchenRef : React.RefObject,
+ *   onAccrue   : (total: number, perPerson: Record<string,number>) => void,
+ *   pausedRef  : React.RefObject,
  * }} params
  */
-export const useSalary = ({
-  serversRef,
-  kitchenRef,
-  setCash,
-  addTx,
-  addToast,
-  pausedRef,
-}) => {
-  const { t } = useLang();
+export const useSalary = ({ serversRef, kitchenRef, onAccrue, pausedRef }) => {
   useEffect(() => {
     const iv = setInterval(() => {
       if (pausedRef?.current) return;
-      /* ── Collecte synchrone depuis les refs ───────────── */
-      let total = 0;
-      const lines = [];
 
-      // Serveurs actifs
+      let total = 0;
+      const perPerson = {};
+
       const servers = serversRef.current ?? [];
       servers.filter(s => s.status === "actif").forEach(s => {
-        total += s.salary ?? 0;
-        lines.push(`${s.name.split(" ")[0]} ${(s.salary ?? 0).toFixed(0)}€`);
+        const w = s.salary ?? 0;
+        if (w <= 0) return;
+        total += w;
+        const key = s.name.split(" ")[0];
+        perPerson[key] = (perPerson[key] ?? 0) + w;
       });
 
-      // Chef + commis débloqués
       const kitchen = kitchenRef.current;
       if (kitchen) {
-        const chefWage = kitchen.chef.salary ?? 0;
-        total += chefWage;
-        lines.push(`${kitchen.chef.name.split(" ")[0]} ${chefWage.toFixed(0)}€`);
+        const cw = kitchen.chef.salary ?? 0;
+        if (cw > 0) {
+          total += cw;
+          const key = kitchen.chef.name.split(" ")[0];
+          perPerson[key] = (perPerson[key] ?? 0) + cw;
+        }
 
         const lvIdx = _chefLv(kitchen.chef.totalXp);
         const unlockedCommis = CHEF_LVL[Math.min(lvIdx, CHEF_LVL.length - 1)].commis;
-
         kitchen.commis.slice(0, unlockedCommis)
           .filter(c => c.status === "actif")
           .forEach(c => {
-            total += c.salary ?? 0;
-            lines.push(`${c.name.split(" ")[0]} ${(c.salary ?? 0).toFixed(0)}€`);
+            const mw = c.salary ?? 0;
+            if (mw <= 0) return;
+            total += mw;
+            const key = c.name.split(" ")[0];
+            perPerson[key] = (perPerson[key] ?? 0) + mw;
           });
       }
 
-      if (total > 0) {
-        setCash(c => +Math.max(0, c - total).toFixed(2));
-        addTx("salaire", `Salaires (${lines.join(", ")})`, total);
-        addToast({
-          icon  : "💸",
-          title : t("toast.salaryTitle", {amount:total.toFixed(0)}),
-          msg   : lines.join(" · "),
-          color : "#1c3352",
-          tab   : "stats",
-        });
-      }
+      if (total > 0) onAccrue(total, perPerson);
     }, 60_000); // 1 heure de jeu = 60 s réelles
 
     return () => clearInterval(iv);
-  }, [serversRef, kitchenRef, setCash, addTx, addToast, t]);
+  }, [serversRef, kitchenRef, onAccrue, pausedRef]);
 };

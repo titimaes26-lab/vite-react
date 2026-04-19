@@ -509,6 +509,9 @@ export const en = {
     reachRevenue: "Reach {amount}€ in total revenue",
     revenueLeft: "{amount}€ remaining",
     continue: "Continue →",
+    salaries: "Salaries paid today",
+    totalSalaries: "Total payroll",
+    hoursWorked: "{h}h worked",
   },
 
   help: {
