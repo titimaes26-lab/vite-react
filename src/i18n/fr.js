@@ -37,6 +37,7 @@ export const fr = {
     save: "Sauvegarder",
     close: "Fermer",
     confirm: "Confirmer",
+    tablesUnlocked: "{n} tables débloquées",
   },
 
   tabs: {
@@ -489,6 +490,12 @@ export const fr = {
     salaryTitle: "Salaires — {amount}€",
     burnout: "{name} épuisé·e !",
     burnoutMsg: "Moral critique — mettez-le/la en pause ou offrez une prime.",
+    deliveryArrived: "Livraison arrivée !",
+    spoiled: "Aliment périmé !",
+    spoiledMsg: "{name} — 50% du stock perdu",
+    spoiledDesc: "{name} périmé — 50% du stock perdu",
+    objectiveReached: "Objectif atteint !",
+    objectiveClaimed: "Objectif \"{title}\" réclamé !",
   },
 
   daily: {
@@ -507,6 +514,13 @@ export const fr = {
   help: {
     title: "Guide utilisateur",
     subtitle: "Toutes les fonctionnalités expliquées",
+  },
+
+  queue: {
+    nobody: "Personne",
+    groups: "{n} groupe{s}",
+    noClients: "Aucun client en attente",
+    ledgerTooltip: "Voir le grand livre",
   },
 
   dialog: {

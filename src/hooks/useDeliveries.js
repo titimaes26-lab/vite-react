@@ -8,6 +8,7 @@
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
+import { useLang } from "../i18n/index.jsx";
 
 /**
  * @param {{
@@ -17,6 +18,7 @@ import { useEffect } from "react";
  * }} params
  */
 export const useDeliveries = ({ setPendingDeliveries, setStock, addToast }) => {
+  const { t } = useLang();
   useEffect(() => {
     const iv = setInterval(() => {
       const now = Date.now();
@@ -37,7 +39,7 @@ export const useDeliveries = ({ setPendingDeliveries, setStock, addToast }) => {
           );
           addToast({
             icon  : "🚚",
-            title : "Livraison arrivée !",
+            title : t("toast.deliveryArrived"),
             msg   : d.labels,
             color : "#2a5c3f",
             tab   : "stock",
@@ -49,5 +51,5 @@ export const useDeliveries = ({ setPendingDeliveries, setStock, addToast }) => {
     }, 5_000);
 
     return () => clearInterval(iv);
-  }, [setPendingDeliveries, setStock, addToast]);
+  }, [setPendingDeliveries, setStock, addToast, t]);
 };

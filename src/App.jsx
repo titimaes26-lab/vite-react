@@ -75,6 +75,7 @@ import { Toasts } from "./components/system/Toasts";
 import { BankModal } from "./components/system/BankModal";
 import { HelpModal, DailySummaryModal } from "./components/system/HelpModal";
 import { IntroDialog } from "./components/IntroDialog";
+import { useLang } from "./i18n/index.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./views/TablesView";
@@ -112,6 +113,8 @@ const OBJECTIVES_DEF=[
 
 export default function App(){
   const bp=useBreakpoint();
+  const { t, lang } = useLang();
+  const locale = lang === "en" ? "en-US" : "fr-FR";
   const _today = new Date().toLocaleDateString("fr-FR");
 
   /* ── États principaux — initialisés avec les valeurs par défaut ── */
@@ -363,7 +366,7 @@ export default function App(){
         const up = delta > 0;
         setTimeout(()=>addToast({
           icon: after.icon,
-          title: up ? `Réputation en hausse !` : `Réputation en baisse !`,
+          title: up ? t("app.repUp") : t("app.repDown"),
           msg: `${after.label} (${Math.round(next)}/100)${reason?" · "+reason:""}`,
           color: after.color,
           tab: "stats",
@@ -629,8 +632,8 @@ export default function App(){
         const unlockedNames=newlyUnlocked.map(d=>d.name).join(", ");
         setTimeout(()=>addToast({
           icon:nd.icon,
-          title:`Niveau ${nd.l} — ${nd.name} !`,
-          msg:`🎉 ${nd.tables} tables débloquées${unlockedNames?` · 🍽 ${unlockedNames}`:""}`,
+          title:`${t("toast.levelUp",{level:nd.l})} — ${nd.name} !`,
+          msg:`🎉 ${t("app.tablesUnlocked",{n:nd.tables})}${unlockedNames?` · 🍽 ${unlockedNames}`:""}`,
           color:nd.color,
           tab:"tables",
         }),50);
@@ -654,7 +657,7 @@ export default function App(){
     addTx("revenu",`Récompense objectif : ${obj.title}`,obj.reward.cash);
     addRestoXp(obj.reward.xp);
     addToast({icon:obj.icon,title:`+${obj.reward.cash}€ · +${obj.reward.xp} XP`,
-      msg:`Objectif "${obj.title}" réclamé !`,color:C.green,tab:"objectives"});
+      msg:t("toast.objectiveClaimed",{title:obj.title}),color:C.green,tab:"objectives"});
   },[addTx,addRestoXp,addToast]);
 
 
@@ -668,8 +671,8 @@ export default function App(){
           <div style={{width:52,height:52,background:C.green,borderRadius:14,
             display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,
             animation:"pulse 1s ease-in-out infinite"}}>🍽</div>
-          <div style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>Chargement de la partie…</div>
-          <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Récupération de la sauvegarde</div>
+          <div style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>{t("app.loading")}</div>
+          <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>{t("app.saveLoading")}</div>
         </div>
       )}
       <style>{`
@@ -825,7 +828,7 @@ export default function App(){
                 letterSpacing:"-0.02em",lineHeight:1.2,
               }}>Le Grand Restaurant</div>
               <div style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap",marginTop:1,letterSpacing:"0.02em"}}>
-                {now.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}
+                {now.toLocaleDateString(locale,{weekday:"short",day:"numeric",month:"short"})}
               </div>
             </div>
           </div>
@@ -872,7 +875,7 @@ export default function App(){
                 {gameTime?.str??"08h00"}
               </div>
               <div style={{fontSize:8,color:C.muted,whiteSpace:"nowrap",marginTop:1}}>
-                {phase?.icon??""} {phase?.label??""}
+                {phase?.icon??""} {t("phase."+(phase?.id??""))}
               </div>
             </div>
             <button onClick={()=>setShowHelp(true)} title="Guide utilisateur" style={{
@@ -1169,10 +1172,10 @@ export default function App(){
             <div style={{padding:"18px 22px",borderBottom:`1px solid ${C.border}`,
               display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
               <div>
-                <div style={{fontSize:17,fontWeight:700,color:C.ink,fontFamily:F.title}}>💰 Grand livre</div>
+                <div style={{fontSize:17,fontWeight:700,color:C.ink,fontFamily:F.title}}>{t("app.ledger")}</div>
                 <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                  Solde actuel : <span style={{fontWeight:700,color:cash<200?C.red:C.green}}>
-                    {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+                  {t("app.balance")} <span style={{fontWeight:700,color:cash<200?C.red:C.green}}>
+                    {cash.toLocaleString(locale,{minimumFractionDigits:2})} €
                   </span>
                 </div>
               </div>
@@ -1187,15 +1190,15 @@ export default function App(){
               return(
                 <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
                   {[
-                    {label:"Recettes",val:totalIn,c:C.green,bg:C.greenP,icon:"📈"},
-                    {label:"Dépenses",val:totalOut,c:C.red,bg:C.redP,icon:"📉"},
-                    {label:"Résultat",val:totalIn-totalOut,c:totalIn-totalOut>=0?C.green:C.red,bg:totalIn-totalOut>=0?C.greenP:C.redP,icon:"⚖️"},
+                    {k:"revenue",val:totalIn,c:C.green,bg:C.greenP,icon:"📈"},
+                    {k:"expenses",val:totalOut,c:C.red,bg:C.redP,icon:"📉"},
+                    {k:"result",val:totalIn-totalOut,c:totalIn-totalOut>=0?C.green:C.red,bg:totalIn-totalOut>=0?C.greenP:C.redP,icon:"⚖️"},
                   ].map(s=>(
-                    <div key={s.label} style={{flex:1,background:s.bg,padding:"10px 14px",textAlign:"center",
+                    <div key={s.k} style={{flex:1,background:s.bg,padding:"10px 14px",textAlign:"center",
                       borderRight:`1px solid ${C.border}`}}>
-                      <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:2}}>{s.icon} {s.label}</div>
+                      <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:2}}>{s.icon} {t("app."+s.k)}</div>
                       <div style={{fontSize:14,fontWeight:700,color:s.c,fontFamily:F.title}}>
-                        {s.val>=0?"+":""}{s.val.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+                        {s.val>=0?"+":""}{s.val.toLocaleString(locale,{minimumFractionDigits:2})} €
                       </div>
                     </div>
                   ))}
@@ -1206,12 +1209,13 @@ export default function App(){
             <div style={{overflowY:"auto",flex:1,padding:"8px 0"}}>
               {transactions.length===0?(
                 <div style={{padding:24,textAlign:"center",color:C.muted,fontFamily:F.body,fontSize:13}}>
-                  Aucune transaction
+                  {t("app.noTransactions")}
                 </div>
               ):transactions.map(tx=>{
                 const isIn=tx.type==="revenu";
                 const typeColors={revenu:C.green,achat:C.terra,salaire:C.navy};
                 const typeIcons={revenu:"💶",achat:"🛒",salaire:"💸"};
+                const typeLabels={revenu:t("app.revenue"),achat:t("stats.expPurchase"),salaire:t("stats.expSalary"),remboursement:t("app.loanRepayment"),pret:t("app.loanMonthly")};
                 const c=typeColors[tx.type]||C.muted;
                 const hm=tx.gameTime??"—";
                 return(
@@ -1228,12 +1232,12 @@ export default function App(){
                         {tx.label}
                       </div>
                       <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                        {hm} · {tx.type}
+                        {hm} · {typeLabels[tx.type]||tx.type}
                       </div>
                     </div>
                     <div style={{fontSize:13,fontWeight:700,color:isIn?C.green:C.red,
                       fontFamily:F.title,flexShrink:0}}>
-                      {isIn?"+":"-"}{tx.amount.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+                      {isIn?"+":"-"}{tx.amount.toLocaleString(locale,{minimumFractionDigits:2})} €
                     </div>
                   </div>
                 );
@@ -1253,25 +1257,25 @@ export default function App(){
             boxShadow:"0 24px 60px rgba(0,0,0,0.3)",textAlign:"center"}}>
             <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
             <div style={{fontSize:18,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8}}>
-              Nouvelle partie ?
+              {t("app.newGame")}
             </div>
             <div style={{fontSize:13,color:C.muted,fontFamily:F.body,marginBottom:24,lineHeight:1.6}}>
-              Toute la progression sera effacée.<br/>
-              Cette action est <strong>irréversible</strong>.
+              {t("app.newGameWarning")}<br/>
+              {t("app.irreversible")}
             </div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
               <button onClick={()=>setShowResetModal(false)} style={{
                 padding:"10px 22px",borderRadius:9,border:`1.5px solid ${C.border}`,
                 background:C.bg,color:C.muted,cursor:"pointer",
                 fontSize:13,fontWeight:600,fontFamily:F.body}}>
-                Annuler
+                {t("app.cancel")}
               </button>
               <button onClick={doReset} style={{
                 padding:"10px 22px",borderRadius:9,border:"none",
                 background:C.red,color:"#fff",cursor:"pointer",
                 fontSize:13,fontWeight:700,fontFamily:F.body,
                 boxShadow:`0 4px 14px ${C.red}55`}}>
-                🗑 Recommencer
+                {t("app.restart")}
               </button>
             </div>
           </div>

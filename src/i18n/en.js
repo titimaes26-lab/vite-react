@@ -37,6 +37,7 @@ export const en = {
     save: "Save",
     close: "Close",
     confirm: "Confirm",
+    tablesUnlocked: "{n} tables unlocked",
   },
 
   tabs: {
@@ -489,6 +490,12 @@ export const en = {
     salaryTitle: "Salaries — {amount}€",
     burnout: "{name} exhausted!",
     burnoutMsg: "Critical morale — put them on break or offer a bonus.",
+    deliveryArrived: "Delivery arrived!",
+    spoiled: "Food expired!",
+    spoiledMsg: "{name} — 50% of stock lost",
+    spoiledDesc: "{name} expired — 50% of stock lost",
+    objectiveReached: "Objective reached!",
+    objectiveClaimed: "Objective \"{title}\" claimed!",
   },
 
   daily: {
@@ -507,6 +514,13 @@ export const en = {
   help: {
     title: "User Guide",
     subtitle: "All features explained",
+  },
+
+  queue: {
+    nobody: "Nobody",
+    groups: "{n} group{s}",
+    noClients: "No customers waiting",
+    ledgerTooltip: "View ledger",
   },
 
   dialog: {
