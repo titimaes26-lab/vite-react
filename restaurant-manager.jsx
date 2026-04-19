@@ -299,6 +299,8 @@ function AppContent(){
   const summaryShownRef=useRef(false);
   const pausedRef     = useRef(false);
   const pauseStartRef = useRef(null);
+  const [isGameOver,setIsGameOver]=useState(false);
+  const salaryAccruedRef=useRef({ total: 0, perPerson: {} });
 
   /* ── Réinitialisation complète (sans reload) ────────── */
   const doReset = useCallback(() => {
@@ -333,6 +335,8 @@ function AppContent(){
     setReputation(50);
     setWaitlist([]);
     setFormulas([]);
+    setIsGameOver(false);
+    salaryAccruedRef.current={ total: 0, perPerson: {} };
     setTab("tables");
     setShowResetModal(false);
     resetDayRef.current?.();
@@ -389,6 +393,17 @@ function AppContent(){
 
   const addTx=useCallback((type,label,amount)=>{
     setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:gameTimeRef.current},...p].slice(0,200));
+  },[]);
+
+  useEffect(()=>{
+    if(isLoaded && cash < 0) setIsGameOver(true);
+  },[isLoaded, cash]);
+
+  const onSalaryAccrue=useCallback((total, perPerson)=>{
+    salaryAccruedRef.current.total+=total;
+    Object.entries(perPerson).forEach(([k,v])=>{
+      salaryAccruedRef.current.perPerson[k]=(salaryAccruedRef.current.perPerson[k]??0)+v;
+    });
   },[]);
 
   const updateReputation = useCallback((delta, reason="")=>{
@@ -673,7 +688,13 @@ function AppContent(){
       return [...p,{day:nextDay,served:0,lost:0,revenue:0}].slice(-15);
     });
     setObjStats(s=>({...s,_hadLoss:false}));
-  },[]);
+    const sal=salaryAccruedRef.current;
+    if(sal.total>0){
+      setCash(c=>+(c-sal.total).toFixed(2));
+      addTx("dépense", tl("daily.salaries"), sal.total);
+    }
+    salaryAccruedRef.current={ total: 0, perPerson: {} };
+  },[addTx, tl]);
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef, pausedRef });
   useExpiry     ({ queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient: REP_DELTA.lostClient, pausedRef });
@@ -695,7 +716,7 @@ function AppContent(){
     }, 500);
     return () => clearInterval(iv);
   }, [setTables, setServers]);
-  useSalary     ({ serversRef, kitchenRef, setCash, addTx, addToast, pausedRef });
+  useSalary     ({ serversRef, kitchenRef, onAccrue: onSalaryAccrue, pausedRef });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useFreshness  ({ stockRef, kitchenRef, setStock, setComplaints, addToast });
   useEvents     ({
@@ -1359,6 +1380,29 @@ function AppContent(){
           menu={menu}
           transactions={transactions}
           isRecord={summaryIsRecord}/>
+      )}
+
+      {isGameOver&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",
+          zIndex:99998,display:"flex",flexDirection:"column",
+          alignItems:"center",justifyContent:"center",gap:24}}>
+          <div style={{fontSize:64,lineHeight:1}}>💸</div>
+          <div style={{fontSize:36,fontWeight:900,color:"#fff",fontFamily:F.title,
+            textAlign:"center",textShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
+            {tl("gameover.title")}
+          </div>
+          <div style={{fontSize:16,color:"rgba(255,255,255,0.75)",fontFamily:F.body,
+            textAlign:"center",maxWidth:320,lineHeight:1.6}}>
+            {tl("gameover.msg")}
+          </div>
+          <button onClick={doReset} style={{
+            padding:"14px 36px",borderRadius:12,border:"none",
+            background:C.red,color:"#fff",cursor:"pointer",
+            fontSize:18,fontWeight:700,fontFamily:F.title,
+            boxShadow:`0 6px 24px ${C.red}88`,marginTop:8}}>
+            {tl("app.restart")}
+          </button>
+        </div>
       )}
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
