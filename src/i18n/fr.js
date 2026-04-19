@@ -442,6 +442,21 @@ export const fr = {
     oneLoanAtATime: "Un seul prêt actif à la fois",
     loanOptions: "Options de prêts",
     repayInfo: "Remboursement automatique · une mensualité par jour",
+    initialAmount: "Montant initial",
+    owed: "Restant dû",
+    rate: "Taux",
+    repayEarlyBtn: "Rembourser en avance ({amount} €)",
+    noLoanMsg: "Aucun emprunt actif — vous pouvez contracter un prêt.",
+    availableLoans: "Nouveaux prêts disponibles",
+    loanDetails: "Taux {rate}% · {monthly}€/j · Total dû {total}€",
+    borrow: "Emprunter",
+    finePrint: "Les mensualités sont déduites automatiquement chaque jour (fin de journée). En cas d'insolvabilité, le remboursement est différé jusqu'à disponibilité des fonds.",
+    loanGranted: "Prêt accordé — +{amount} €",
+    loanGrantedMsg: "Remboursement : {monthly}€/j · Total : {total}€",
+    alreadyLoan: "Prêt en cours",
+    alreadyLoanMsg: "Remboursez d'abord votre emprunt actuel.",
+    insufficientMsg: "Il vous manque {amount}€",
+    activeLoanTitle: "Prêt en cours —",
   },
 
   toast: {
@@ -474,6 +489,24 @@ export const fr = {
     salaryTitle: "Salaires — {amount}€",
     burnout: "{name} épuisé·e !",
     burnoutMsg: "Moral critique — mettez-le/la en pause ou offrez une prime.",
+  },
+
+  daily: {
+    title: "Bilan de la journée",
+    record: "RECORD !",
+    serviceRate: "Taux de service",
+    bestServer: "Meilleur serveur",
+    topDish: "Plat n°1",
+    ordered: "commandé",
+    tomorrowGoal: "Objectif demain",
+    reachRevenue: "Atteindre {amount}€ de CA total",
+    revenueLeft: "{amount}€ restants",
+    continue: "Continuer →",
+  },
+
+  help: {
+    title: "Guide utilisateur",
+    subtitle: "Toutes les fonctionnalités expliquées",
   },
 
   dialog: {

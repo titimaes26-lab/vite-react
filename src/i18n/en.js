@@ -442,6 +442,21 @@ export const en = {
     oneLoanAtATime: "Only one active loan at a time",
     loanOptions: "Loan options",
     repayInfo: "Automatic repayment · one instalment per day",
+    initialAmount: "Initial amount",
+    owed: "Amount owed",
+    rate: "Rate",
+    repayEarlyBtn: "Repay early ({amount}€)",
+    noLoanMsg: "No active loan — you can take one out.",
+    availableLoans: "Available loans",
+    loanDetails: "Rate {rate}% · {monthly}€/d · Total {total}€",
+    borrow: "Borrow",
+    finePrint: "Instalments are automatically deducted each day (end of day). In case of insolvency, payment is deferred until funds are available.",
+    loanGranted: "Loan granted — +{amount}€",
+    loanGrantedMsg: "Repayment: {monthly}€/d · Total: {total}€",
+    alreadyLoan: "Loan in progress",
+    alreadyLoanMsg: "Repay your current loan first.",
+    insufficientMsg: "You are {amount}€ short",
+    activeLoanTitle: "Active loan —",
   },
 
   toast: {
@@ -474,6 +489,24 @@ export const en = {
     salaryTitle: "Salaries — {amount}€",
     burnout: "{name} exhausted!",
     burnoutMsg: "Critical morale — put them on break or offer a bonus.",
+  },
+
+  daily: {
+    title: "Day Summary",
+    record: "RECORD!",
+    serviceRate: "Service rate",
+    bestServer: "Best server",
+    topDish: "Top dish",
+    ordered: "ordered",
+    tomorrowGoal: "Tomorrow's goal",
+    reachRevenue: "Reach {amount}€ in total revenue",
+    revenueLeft: "{amount}€ remaining",
+    continue: "Continue →",
+  },
+
+  help: {
+    title: "User Guide",
+    subtitle: "All features explained",
   },
 
   dialog: {
