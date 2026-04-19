@@ -40,7 +40,7 @@ export const PHASES = [
     color: "#6b7280",
     startAbs: 480,   // 08:00
     endAbs:   690,   // 11:30
-    spawnRate: 0,
+    spawnRate: 0.5,
     prepBonus: 0.20,
     patienceMultiplier: 1.0,
     cleanBonus: 0,
@@ -68,7 +68,7 @@ export const PHASES = [
     color: "#3b82f6",
     startAbs: 870,   // 14:30
     endAbs:   1080,  // 18:00
-    spawnRate: 0.3,
+    spawnRate: 0.5,
     prepBonus: 0,
     patienceMultiplier: 1.2,
     cleanBonus: 0.5,
