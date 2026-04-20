@@ -369,7 +369,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
 
               <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
                 <Btn sm v="navy" onClick={()=>setChefModal("train")} icon="📚">{tr("kitchen.trainChef")}</Btn>
-                <Btn sm v="terra" onClick={()=>setChefModal("replace")} icon="🔄">{tr("kitchen.replace")}</Btn>
+                <Btn sm v="danger" onClick={()=>setChefModal("replace")}>{tr("servers.fire")}</Btn>
                 {brigMorale<60&&(
                   <Btn sm v={cash>=150?"amber":"disabled"} disabled={cash<150}
                     onClick={()=>{
