@@ -9,7 +9,7 @@ import { C, F, SUPPLIERS } from "../constants/gameData";
 import { Btn, Inp, Sel } from "../components/ui";
 import { quickAmounts } from "../utils/orderUtils";
 
-export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMode,setSupplierMode,pendingDeliveries,setPendingDeliveries,menu=[],restoLvN=0,bp={}}){
+export function StockView({stock,setStock,cash,setCash,addTx,addToast,kitchen,supplierMode,setSupplierMode,pendingDeliveries,setPendingDeliveries,menu=[],restoLvN=0,bp={}}){
   const storageMult=1+(kitchen?.upgrades?.stockage||0);
   // Ingrédients utilisés par au moins un plat débloqué
   const unlockedStockIds=new Set(
@@ -106,9 +106,25 @@ export function StockView({stock,setStock,cash,setCash,addTx,kitchen,supplierMod
     return[1,5,10];
   };
   const restockAll=()=>{
-    visibleStock.filter(s=>s.qty<=s.alert).forEach(s=>{
-      const added=+(s.alert*4-s.qty).toFixed(3);
-      if(added>0){const inst=deductCost(s,added);if(inst)setStock(p=>p.map(x=>x.id===s.id?{...x,qty:+(s.alert*4).toFixed(2),freshness:100}:x));}
+    const toOrder=visibleStock.filter(s=>s.qty<=s.alert);
+    if(!toOrder.length) return;
+    const itemCap=(s)=>(s.alert>0?s.alert*6:Math.max(s.qty*2,10))*storageMult;
+    const itemTarget=(s)=>Math.min(s.alert*2, itemCap(s));
+    const totalCost=toOrder.reduce((sum,s)=>{
+      const added=+(itemTarget(s)-s.qty).toFixed(3);
+      if(added<=0) return sum;
+      return sum++(+(s.price||0)*(1-sup.discount)*added).toFixed(2);
+    },0);
+    if(totalCost>cash){
+      addToast&&addToast({icon:"❌",title:"Fonds insuffisants",
+        msg:`Réapprovisionnement : ${totalCost.toFixed(2)}€ requis — solde : ${cash.toFixed(2)}€`,
+        color:C.red,tab:"stock"});
+      return;
+    }
+    toOrder.forEach(s=>{
+      const target=itemTarget(s);
+      const added=+(target-s.qty).toFixed(3);
+      if(added>0){const inst=deductCost(s,added);if(inst)setStock(p=>p.map(x=>x.id===s.id?{...x,qty:+target.toFixed(2),freshness:100}:x));}
     });
   };
 

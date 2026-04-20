@@ -28,8 +28,9 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
   const { t: tr, lang } = useLang();
 
   /* ── État chef / commis ────────────────────────────── */
-  const [chefModal,setChefModal]=useState(false);      // false | "train" | "replace"
+  const [chefModal,setChefModal]=useState(false);      // false | "train" | "confirmReplace" | "replace"
   const [commisHireSlot,setCommisHireSlot]=useState(null);
+  const [commisConfirmSlot,setCommisConfirmSlot]=useState(null);
 
   /* ── Valeurs dérivées cuisine (guard si kitchen absent) ── */
   const chf   = kitchen?.chef ?? {};
@@ -84,6 +85,8 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
       return{id:`cc-${today}-${i}`,name:firstNames[Math.floor(rng()*firstNames.length)]+" "+lastNames[Math.floor(rng()*lastNames.length)],totalXp:xpBase+Math.round(rng()*60),salary,hireCost:salary*8,lvl,speed:CHEF_LVL[lvl]?.speed||1.0,lvlName:CHEF_LVL[lvl]?.name||"Apprenti",lvlColor:CHEF_LVL[lvl]?.color||C.muted,lvlIcon:CHEF_LVL[lvl]?.icon||"👨‍🍳"};
     });
   };
+
+  const [staffFilter,setStaffFilter]=useState("cuisine"); // "cuisine" | "salle"
 
   const [modal,setModal]=useState(false);   // "hire" | "edit" | "fire" | "train" | false
   const [form,setForm]=useState({name:"",status:"actif",salary:"12"});
@@ -274,8 +277,29 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
   return(
     <div>
 
+      {/* ══ Toggle Cuisine / Salle ══ */}
+      <div style={{display:"flex",gap:6,marginBottom:16,background:C.bg,
+        border:`1px solid ${C.border}`,borderRadius:11,padding:4,width:"fit-content"}}>
+        {[{id:"cuisine",icon:"👨‍🍳",label:"Cuisine"},{id:"salle",icon:"👤",label:"Salle"}].map(f=>{
+          const active=staffFilter===f.id;
+          return(
+            <button key={f.id} onClick={()=>setStaffFilter(f.id)} style={{
+              display:"flex",alignItems:"center",gap:6,
+              padding:"6px 16px",borderRadius:8,
+              background:active?C.surface:"transparent",
+              border:active?`1px solid ${C.border}`:"1px solid transparent",
+              color:active?C.ink:C.muted,
+              fontSize:12,fontWeight:active?700:500,fontFamily:F.body,
+              cursor:"pointer",boxShadow:active?"0 1px 4px rgba(0,0,0,0.08)":"none",
+              transition:"all 0.15s"}}>
+              <span>{f.icon}</span>{f.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* ══ BRIGADE DE CUISINE ══ */}
-      {kitchen&&(
+      {kitchen&&staffFilter==="cuisine"&&(
         <>
           <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
             👨‍🍳 Brigade de cuisine
@@ -346,7 +370,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
 
               <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
                 <Btn sm v="navy" onClick={()=>setChefModal("train")} icon="📚">{tr("kitchen.trainChef")}</Btn>
-                <Btn sm v="terra" onClick={()=>setChefModal("replace")} icon="🔄">{tr("kitchen.replace")}</Btn>
+                <Btn sm v="danger" onClick={()=>setChefModal("confirmReplace")}>{tr("servers.fire")}</Btn>
                 {brigMorale<60&&(
                   <Btn sm v={cash>=150?"amber":"disabled"} disabled={cash<150}
                     onClick={()=>{
@@ -421,7 +445,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                     </div>
 
                     <div style={{display:"flex",gap:7}}>
-                      <Btn sm v="ghost" onClick={()=>setCommisHireSlot(idx)} icon="↺">{tr("kitchen.replace")}</Btn>
+                      <Btn sm v="danger" onClick={()=>setCommisConfirmSlot(idx)}>{tr("servers.fire")}</Btn>
                     </div>
                   </Card>
                 );
@@ -463,12 +487,10 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
             })}
           </div>
 
-          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
-            👤 Personnels en salle
-          </div>
         </>
       )}
 
+      {staffFilter==="salle"&&<>
       {/* ── Header barre ── */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
         marginBottom:16,flexWrap:"wrap",gap:10}}>
@@ -787,6 +809,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
           });
         })()}
       </div>
+      </>}
 
       {/* ── Modale Formation ── */}
       {modal==="train"&&(()=>{
@@ -1287,6 +1310,81 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
         </div>
       )}
 
+      {/* ══ MODAL : Confirmation licenciement chef ══ */}
+      {chefModal==="confirmReplace"&&(()=>{
+        const severance=(chf.salary||20)*72;
+        const canAffordFire=cash>=severance;
+        return(
+          <Modal title={tr("servers.fireTitle")} onClose={()=>setChefModal(false)}>
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+              {/* Profil chef */}
+              <div style={{display:"flex",gap:14,alignItems:"center",
+                background:C.bg,borderRadius:12,padding:"14px 16px"}}>
+                <div style={{width:50,height:50,background:clD.color+"1a",
+                  border:`2px solid ${clD.color}33`,borderRadius:12,
+                  display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>
+                  {clD.icon}
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:16,fontWeight:700,color:C.ink,fontFamily:F.title}}>{chf.name}</div>
+                  <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:3}}>
+                    {clD.name} · Niv.{cl.l} · {chf.salary}€/h
+                  </div>
+                </div>
+              </div>
+
+              {/* Indemnité */}
+              <div style={{background:canAffordFire?C.bg:C.redP,
+                border:`1.5px solid ${canAffordFire?C.border:C.red}44`,
+                borderRadius:10,padding:"12px 16px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>
+                      {tr("servers.severance")}
+                    </div>
+                    <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>
+                      {chf.salary||20}€/h × 72h (3 mois)
+                    </div>
+                  </div>
+                  <div style={{fontSize:18,fontWeight:800,
+                    color:canAffordFire?C.ink:C.red,fontFamily:F.title}}>
+                    {severance}€
+                  </div>
+                </div>
+                {!canAffordFire&&(
+                  <div style={{marginTop:8,fontSize:10,color:C.red,fontFamily:F.body,fontWeight:600}}>
+                    {tr("servers.insufficientFire",{available:cash.toFixed(2),required:severance})}
+                  </div>
+                )}
+              </div>
+
+              {/* Avertissement */}
+              <div style={{background:C.redP,border:`1px solid ${C.red}33`,
+                borderRadius:10,padding:"10px 14px",fontSize:11,color:C.red,fontFamily:F.body,lineHeight:1.6}}>
+                ⚠️ <strong>30% de l'XP</strong> sera transféré au nouveau chef.<br/>
+                Toutes les <strong>formations</strong> du chef actuel seront perdues.
+              </div>
+
+              {/* Boutons */}
+              <div style={{display:"flex",gap:10}}>
+                <Btn full v="ghost" onClick={()=>setChefModal(false)}>
+                  {tr("app.cancel")}
+                </Btn>
+                <Btn full v={canAffordFire?"danger":"disabled"} disabled={!canAffordFire}
+                  onClick={()=>{
+                    setCash(c=>+(c-severance).toFixed(2));
+                    addTx("dépense",`Indemnité licenciement — ${chf.name}`,severance);
+                    setChefModal("replace");
+                  }} icon="🔄">
+                  {canAffordFire?`Voir les candidats — ${severance}€`:tr("servers.noFunds")}
+                </Btn>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
+
       {/* ══ MODAL : Remplacer le chef ══ */}
       {chefModal==="replace"&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}
@@ -1335,6 +1433,80 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
           </div>
         </div>
       )}
+
+      {/* ══ MODAL : Confirmation licenciement commis ══ */}
+      {commisConfirmSlot!==null&&(()=>{
+        const cm=kitchen?.commis?.[commisConfirmSlot];
+        if(!cm) return null;
+        const cml=commisLv(cm.totalXp);
+        const cmlD=COMMIS_LVL[Math.min(cml.l,COMMIS_LVL.length-1)];
+        const severance=(cm.salary||8)*24;
+        const canAffordFire=cash>=severance;
+        return(
+          <Modal title={tr("servers.fireTitle")} onClose={()=>setCommisConfirmSlot(null)}>
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+              {/* Profil commis */}
+              <div style={{display:"flex",gap:14,alignItems:"center",
+                background:C.bg,borderRadius:12,padding:"14px 16px"}}>
+                <div style={{width:50,height:50,background:cmlD.color+"1a",
+                  border:`2px solid ${cmlD.color}33`,borderRadius:12,
+                  display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>
+                  {cmlD.icon}
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:16,fontWeight:700,color:C.ink,fontFamily:F.title}}>{cm.name}</div>
+                  <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:3}}>
+                    {cmlD.name} · Niv.{cml.l} · {cm.salary}€/h
+                    {cm.specialty&&` · ${cm.specialty.icon} ${cm.specialty.name}`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Indemnité */}
+              <div style={{background:canAffordFire?C.bg:C.redP,
+                border:`1.5px solid ${canAffordFire?C.border:C.red}44`,
+                borderRadius:10,padding:"12px 16px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>
+                      {tr("servers.severance")}
+                    </div>
+                    <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>
+                      {cm.salary||8}€/h × 24h (1 mois)
+                    </div>
+                  </div>
+                  <div style={{fontSize:18,fontWeight:800,
+                    color:canAffordFire?C.ink:C.red,fontFamily:F.title}}>
+                    {severance}€
+                  </div>
+                </div>
+                {!canAffordFire&&(
+                  <div style={{marginTop:8,fontSize:10,color:C.red,fontFamily:F.body,fontWeight:600}}>
+                    {tr("servers.insufficientFire",{available:cash.toFixed(2),required:severance})}
+                  </div>
+                )}
+              </div>
+
+              {/* Boutons */}
+              <div style={{display:"flex",gap:10}}>
+                <Btn full v="ghost" onClick={()=>setCommisConfirmSlot(null)}>
+                  {tr("app.cancel")}
+                </Btn>
+                <Btn full v={canAffordFire?"danger":"disabled"} disabled={!canAffordFire}
+                  onClick={()=>{
+                    setCash(c=>+(c-severance).toFixed(2));
+                    addTx("dépense",`Indemnité licenciement — ${cm.name}`,severance);
+                    setCommisConfirmSlot(null);
+                    setCommisHireSlot(commisConfirmSlot);
+                  }} icon="👋">
+                  {canAffordFire?tr("servers.fireConfirm",{cost:severance}):tr("servers.noFunds")}
+                </Btn>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
 
       {/* ══ MODAL : Embaucher un commis ══ */}
       {commisHireSlot!==null&&(
