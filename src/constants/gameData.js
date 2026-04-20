@@ -841,8 +841,8 @@ export const GAME_EVENTS = [
 /* ─── Onglets de navigation ──────────────────────────── */
 export const TABS = [
   { id: "tables",      label: "Tables",       icon: "⊞"  },
-  { id: "servers",     label: "Personnels",   icon: "👤"  },
   { id: "cuisine",     label: "Cuisine",      icon: "👨‍🍳" },
+  { id: "servers",     label: "Personnels",   icon: "👤"  },
   { id: "menu",        label: "Menu",         icon: "📋"  },
   { id: "stock",       label: "Stocks",       icon: "📦"  },
   { id: "objectives",  label: "Objectifs",    icon: "🎯"  },
