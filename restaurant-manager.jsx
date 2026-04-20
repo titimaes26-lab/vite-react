@@ -292,6 +292,7 @@ function AppContent(){
   const [showResetModal,setShowResetModal]=useState(false);
   const [showSummary,setShowSummary]=useState(false);
   const [summaryIsRecord,setSummaryIsRecord]=useState(false);
+  const [salarySummary,setSalarySummary]=useState(null);
   const prevRevenueRef=useRef(0);
   const resetDayRef=useRef(null);
   // Résumé de fin de journée : s'affiche après 10 min de jeu réel
@@ -671,6 +672,8 @@ function AppContent(){
     const isRecord=today&&today.revenue>prevRevenueRef.current&&today.revenue>0;
     setSummaryIsRecord(isRecord);
     setObjStats(s=>s._hadLoss?s:{...s,perfectDays:(s.perfectDays||0)+1});
+    const sal=salaryAccruedRef.current;
+    setSalarySummary(sal.total>0?{ total: sal.total, perPerson: { ...sal.perPerson } }:null);
     setShowSummary(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[isDayOver, isLoaded]);
@@ -1379,7 +1382,8 @@ function AppContent(){
           servers={servers}
           menu={menu}
           transactions={transactions}
-          isRecord={summaryIsRecord}/>
+          isRecord={summaryIsRecord}
+          salaryData={salarySummary}/>
       )}
 
       {isGameOver&&(

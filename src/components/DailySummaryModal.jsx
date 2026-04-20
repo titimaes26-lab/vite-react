@@ -3,8 +3,10 @@
    Résumé de fin de journée.
 ═══════════════════════════════════════════════════════ */
 import { C, F } from "../constants/gameData.js";
+import { useLang } from "../i18n/index.jsx";
 
-export function DailySummaryModal({ onClose, dailyStats, objStats, servers, transactions, isRecord }) {
+export function DailySummaryModal({ onClose, dailyStats, objStats, servers, transactions, isRecord, salaryData }) {
+  const { t: tl } = useLang();
   const today      = dailyStats[dailyStats.length - 1] || { served: 0, lost: 0, revenue: 0, date: "" };
   const totalClients = today.served + today.lost;
   const rate       = totalClients > 0 ? Math.round((today.served / totalClients) * 100) : 0;
@@ -29,6 +31,7 @@ export function DailySummaryModal({ onClose, dailyStats, objStats, servers, tran
       display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{background:C.surface,borderRadius:22,width:"100%",maxWidth:460,
         boxShadow:"0 32px 80px rgba(0,0,0,0.35)",overflow:"hidden",
+        maxHeight:"90vh",overflowY:"auto",
         animation:"popIn 0.4s ease"}}>
 
         <div style={{background:`linear-gradient(135deg,${C.green},${C.greenL})`,
@@ -111,6 +114,27 @@ export function DailySummaryModal({ onClose, dailyStats, objStats, servers, tran
               </div>
             </div>
           </div>
+
+          {salaryData && (
+            <div style={{background:C.navyP,border:`1px solid ${C.navy}22`,
+              borderRadius:12,padding:"12px 16px",display:"flex",flexDirection:"column",gap:6}}>
+              <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:2}}>
+                💸 {tl("daily.salaries")}
+              </div>
+              {Object.entries(salaryData.perPerson).map(([name,wages])=>(
+                <div key={name} style={{display:"flex",justifyContent:"space-between",
+                  fontSize:13,fontFamily:F.body}}>
+                  <span style={{color:C.ink}}>{name}</span>
+                  <span style={{fontWeight:700,color:C.navy}}>{wages.toFixed(0)} €</span>
+                </div>
+              ))}
+              <div style={{borderTop:`1px solid ${C.navy}22`,paddingTop:6,
+                display:"flex",justifyContent:"space-between",fontSize:13,fontFamily:F.body}}>
+                <span style={{fontWeight:700,color:C.ink}}>{tl("daily.totalSalaries")}</span>
+                <span style={{fontWeight:800,color:C.navy}}>{salaryData.total.toFixed(0)} €</span>
+              </div>
+            </div>
+          )}
 
           <button onClick={onClose} style={{
             padding:"12px",borderRadius:12,border:"none",
