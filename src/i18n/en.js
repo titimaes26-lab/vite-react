@@ -44,6 +44,7 @@ export const en = {
     tables: "Tables",
     servers: "Staff",
     kitchen: "Kitchen",
+    cuisine: "Kitchen",
     menu: "Menu",
     stock: "Stock",
     objectives: "Objectives",

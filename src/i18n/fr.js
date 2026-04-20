@@ -44,6 +44,7 @@ export const fr = {
     tables: "Tables",
     servers: "Serveurs",
     kitchen: "Cuisine",
+    cuisine: "Cuisine",
     menu: "Menu",
     stock: "Stock",
     objectives: "Objectifs",
