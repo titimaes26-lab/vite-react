@@ -681,6 +681,7 @@ function AppContent(){
   // Lancer une nouvelle journée (bouton dans DailySummaryModal)
   const startNewDay = useCallback(()=>{
     const now=Date.now();
+    const sal=salaryAccruedRef.current;
     try{localStorage.setItem("day_start",String(now));}catch(e){}
     setDayStartRealMs(now);
     resetDayRef.current?.();
@@ -688,10 +689,12 @@ function AppContent(){
     setShowSummary(false);
     setDailyStats(p=>{
       const nextDay=(p[p.length-1]?.day||0)+1;
-      return [...p,{day:nextDay,served:0,lost:0,revenue:0}].slice(-15);
+      const withSal=p.length>0
+        ?[...p.slice(0,-1),{...p[p.length-1],salary:+(sal.total).toFixed(2)}]
+        :p;
+      return [...withSal,{day:nextDay,served:0,lost:0,revenue:0,salary:0}].slice(-15);
     });
     setObjStats(s=>({...s,_hadLoss:false}));
-    const sal=salaryAccruedRef.current;
     if(sal.total>0){
       setCash(c=>+(c-sal.total).toFixed(2));
       addTx("dépense", tl("daily.salaries"), sal.total);

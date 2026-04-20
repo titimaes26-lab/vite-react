@@ -481,10 +481,10 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
           <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>{period+" "+tl("stats.days")}</span>
         </div>
         <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:420}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:600}}>
             <thead>
               <tr style={{background:C.bg}}>
-                {[tl("stats.day"),"✅ "+tl("stats.served"),"😤 "+tl("stats.lost"),tl("stats.rate"),"💶 "+tl("stats.revenue")].map(h=>(
+                {[tl("stats.day"),"✅ "+tl("stats.served"),"😤 "+tl("stats.lost"),tl("stats.rate"),"💶 "+tl("stats.revenue"),"💸 "+tl("stats.salaries"),"⚖️ "+tl("stats.net")].map(h=>(
                   <th key={h} style={{padding:"9px 14px",fontSize:10,fontWeight:700,color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`}}>{h}</th>
                 ))}
               </tr>
@@ -517,6 +517,18 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                       <span style={{fontSize:12,fontWeight:700,color:C.amber}}>
                         {d.revenue.toLocaleString(locale,{minimumFractionDigits:2})} €
                       </span>
+                    </td>
+                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
+                      <span style={{fontSize:12,fontWeight:700,color:C.navy}}>
+                        {(d.salary??0)>0?`−${(d.salary).toFixed(0)} €`:"—"}
+                      </span>
+                    </td>
+                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
+                      {(()=>{const net=+(d.revenue-(d.salary??0)).toFixed(2);return(
+                        <span style={{fontSize:12,fontWeight:800,color:net>=0?C.green:C.red}}>
+                          {net>=0?"+":""}{net.toLocaleString(locale,{minimumFractionDigits:2})} €
+                        </span>
+                      );})()}
                     </td>
                   </tr>
                 );

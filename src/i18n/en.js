@@ -401,6 +401,8 @@ export const en = {
     expLoan: "Loan repayment",
     expEquipment: "Equipment & costs",
     maxLevel: "✦ Max level",
+    salaries: "Salaries",
+    net: "Net",
   },
 
   complaints: {

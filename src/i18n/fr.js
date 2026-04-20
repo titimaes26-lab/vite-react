@@ -401,6 +401,8 @@ export const fr = {
     expLoan: "Remboursement prêt",
     expEquipment: "Équipements & frais",
     maxLevel: "✦ Niveau max",
+    salaries: "Salaires",
+    net: "Net",
   },
 
   complaints: {
