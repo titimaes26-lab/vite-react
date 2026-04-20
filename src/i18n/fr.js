@@ -42,7 +42,7 @@ export const fr = {
 
   tabs: {
     tables: "Tables",
-    servers: "Serveurs",
+    servers: "Personnels",
     kitchen: "Cuisine",
     cuisine: "Cuisine",
     menu: "Menu",
