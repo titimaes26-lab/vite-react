@@ -11,14 +11,14 @@ export function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
   const { t: tl, lang } = useLang();
   const locale = lang==="en"?"en-US":"fr-FR";
   const takeLoan=(opt)=>{
-    if(loan){addToast({icon:"🏦",title:tl("bank.alreadyLoan"),msg:tl("bank.alreadyLoanMsg"),color:C.red});return;}
+    if(loan){addToast({icon:"🏦",title:tl("bank.alreadyLoan"),msg:tl("bank.alreadyLoanMsg"),color:C.red,silent:true});return;}
     const totalDue=+(opt.amount*(1+opt.rate)).toFixed(2);
     setLoan({id:opt.id,label:opt.label,amount:opt.amount,remaining:totalDue,
       rate:opt.rate,takenAt:Date.now(),repayPerDay:opt.monthly});
     setCash(c=>+(c+opt.amount).toFixed(2));
     addTx("revenu",`Prêt bancaire — ${opt.label} (${opt.amount}€)`,opt.amount);
     addToast({icon:"🏦",title:tl("bank.loanGranted",{amount:opt.amount}),
-      msg:tl("bank.loanGrantedMsg",{monthly:opt.monthly,total:totalDue}),color:C.navy,tab:"stats"});
+      msg:tl("bank.loanGrantedMsg",{monthly:opt.monthly,total:totalDue}),color:C.navy,tab:"stats",silent:true});
     onClose();
   };
   const repayNow=()=>{
@@ -26,7 +26,7 @@ export function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
     if(cash<loan.remaining){addToast({icon:"❌",title:tl("toast.noFunds"),msg:tl("bank.insufficientMsg",{amount:(loan.remaining-cash).toFixed(2)}),color:C.red});return;}
     setCash(c=>+(c-loan.remaining).toFixed(2));
     addTx("remboursement",`Remboursement anticipé — ${loan.label}`,loan.remaining);
-    addToast({icon:"🎉",title:tl("app.loanPaid"),msg:tl("app.loanPaidDesc"),color:C.green,tab:"stats"});
+    addToast({icon:"🎉",title:tl("app.loanPaid"),msg:tl("app.loanPaidDesc"),color:C.green,tab:"stats",silent:true});
     setLoan(null);
     onClose();
   };

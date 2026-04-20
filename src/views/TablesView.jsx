@@ -257,7 +257,6 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,
                               setTables(p=>p.map(x=>x.id!==tLive.id?x:{...x,capacity:up.newCap,capLv:tLive.capLv+1}));
                               setCash(c=>+(c-up.cost).toFixed(2));
                               addTx("achat",tr("tables.tableExpand",{name:tLive.name,cap:up.newCap}),up.cost);
-                              addToast({icon:"🪑",title:tr("tables.expandTable"),msg:tr("tables.expandMsg",{name:tLive.name,cap:up.newCap}),color:C.navy,tab:"tables"});
                               if(onTableUpgrade)onTableUpgrade();
                             }}>
                             {tr("tables.expandBtn",{label:up.label,cost:up.cost})}
@@ -614,7 +613,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
   const placeClientAtTable = (g, table) => {
     const sv = activeSrv[0];
     if (!sv) {
-      addToast({icon:"⚠️",title:tr("tables.noServerAvailable"),msg:tr("tables.allBusy"),color:C.red,tab:"tables"});
+      addToast({icon:"⚠️",title:tr("tables.noServerAvailable"),msg:tr("tables.allBusy"),color:C.red,tab:"tables",silent:true});
       setSelectedClient(null);
       return;
     }
@@ -631,7 +630,6 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     };
     setQueue(q=>[newGroup,...q]);
     setWaitlist(w=>w.filter(x=>x.id!==g.id));
-    addToast({icon:"📞",title:tr("toast.recalled",{name:g.name}),msg:tr("toast.recalledMsg"),color:C.green,tab:"tables"});
   };
 
   const checkout = (tid) => {
@@ -699,7 +697,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     const formulaUsed = orderLines.find(o => o.isFormula);
     addToast({icon: formulaUsed?"🍽️":"🛎️",
       title: formulaUsed?tr("toast.formulaOrdered",{formula:formulaUsed.formulaName}):tr("toast.orderTaken"),
-      msg:tr("toast.orderTakenMsg",{server:srv.name,table:table.name}),color:C.navy,tab:"tables"});
+      msg:tr("toast.orderTakenMsg",{server:srv.name,table:table.name}),color:C.navy,tab:"tables",silent:true});
     setTimeout(()=>{
       setKitchen(k=>({...k,
         queue:[...k.queue,...foodTickets],

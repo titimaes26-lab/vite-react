@@ -238,6 +238,9 @@ function AppContent(){
   const [complaints,setComplaints]=useState(COMPLAINTS0);
   const [kitchen,setKitchen]=useState(KITCHEN0);
   const [toasts,setToasts]=useState([]);
+  const [toastHistory,setToastHistory]=useState([]);
+  const [toastUnread,setToastUnread]=useState(0);
+  const [showToastHistory,setShowToastHistory]=useState(false);
   const [restoXp,setRestoXp]=useState(0);
   const [cash,setCash]=useState(5000);
   const [transactions,setTransactions]=useState([
@@ -388,8 +391,12 @@ function AppContent(){
   const dismissToast=useCallback(id=>setToasts(p=>p.filter(x=>x.id!==id)),[]);
   const addToast=useCallback(t=>{
     const id=Date.now()+Math.random();
-    setToasts(p=>[...p.slice(-4),{...t,id}]);
-    setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),4000);
+    if(!t.silent){
+      setToasts(p=>[...p.slice(-4),{...t,id}]);
+      setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),4000);
+    }
+    setToastHistory(p=>[{...t,id,at:Date.now()},...p].slice(0,100));
+    setToastUnread(n=>n+1);
   },[]);
 
   const addTx=useCallback((type,label,amount)=>{
@@ -420,6 +427,7 @@ function AppContent(){
           msg: `${after.label} (${Math.round(next)}/100)${reason?" · "+reason:""}`,
           color: after.color,
           tab: "stats",
+          silent:true,
         }),50);
       }
       repRef.current = next;
@@ -662,7 +670,7 @@ function AppContent(){
       addTx("remboursement", `Mensualité prêt (${ln.id})`, repay);
       if (newRemaining <= 0) {
         setLoan(null);
-        addToast({ icon:"🎉", title:"Prêt remboursé !", msg:"Votre emprunt est entièrement soldé.", color:C.green, tab:"stats" });
+        addToast({ icon:"🎉", title:"Prêt remboursé !", msg:"Votre emprunt est entièrement soldé.", color:C.green, tab:"stats", silent:true });
       } else {
         setLoan({ ...ln, remaining: newRemaining });
       }
@@ -778,6 +786,7 @@ function AppContent(){
           msg:`🎉 ${nd.tables} tables débloquées${unlockedNames?` · 🍽 ${unlockedNames}`:""}`,
           color:nd.color,
           tab:"tables",
+          silent:true,
         }),50);
         setObjStats(s=>({...s,restoLevel:after.l}));
       }
@@ -796,7 +805,7 @@ function AppContent(){
     addTx("revenu",`Récompense objectif : ${obj.title}`,obj.reward.cash);
     addRestoXp(obj.reward.xp);
     addToast({icon:obj.icon,title:`+${obj.reward.cash}€ · +${obj.reward.xp} XP`,
-      msg:`Objectif "${obj.title}" réclamé !`,color:C.green,tab:"objectives"});
+      msg:`Objectif "${obj.title}" réclamé !`,color:C.green,tab:"objectives",silent:true});
   },[addTx,addRestoXp,addToast]);
 
   /* ── Dérivés (calculés à chaque render) ─────────────── */
@@ -1024,6 +1033,27 @@ function AppContent(){
               <div style={{fontSize:8,color:C.muted,whiteSpace:"nowrap",marginTop:1}}>
                 {phase?.label} · {activeTables.filter(t=>t.status==="occupée"||t.status==="mange").length}/{activeTables.length} tables
               </div>
+            </div>
+            {/* Historique notifications */}
+            <div style={{position:"relative",flexShrink:0}}>
+              <button onClick={()=>{setShowToastHistory(true);setToastUnread(0);}} title="Historique des notifications" style={{
+                width:30,height:30,borderRadius:"50%",
+                border:`1.5px solid ${C.amber}44`,
+                background:C.amberP,cursor:"pointer",fontSize:15,
+                color:C.amber,display:"flex",alignItems:"center",justifyContent:"center",
+                boxShadow:`0 2px 7px ${C.amber}20`,
+              }}>🔔</button>
+              {toastUnread>0&&(
+                <div style={{position:"absolute",top:-4,right:-4,
+                  minWidth:16,height:16,borderRadius:"50%",
+                  background:C.red,color:"#fff",
+                  fontSize:9,fontWeight:800,fontFamily:F.body,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  padding:"0 3px",border:`1.5px solid ${C.surface}`,
+                  pointerEvents:"none"}}>
+                  {toastUnread>99?"99+":toastUnread}
+                </div>
+              )}
             </div>
             <button onClick={()=>setShowHelp(true)} title="Guide utilisateur" style={{
               width:30,height:30,borderRadius:"50%",
@@ -1413,6 +1443,76 @@ function AppContent(){
       )}
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
+
+      {/* ══ Historique des notifications ══ */}
+      {showToastHistory&&(
+        <div onClick={()=>setShowToastHistory(false)}
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:2000,
+            display:"flex",alignItems:"flex-start",justifyContent:"flex-end",padding:16}}>
+          <div onClick={e=>e.stopPropagation()}
+            style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:18,
+              width:"100%",maxWidth:400,maxHeight:"80vh",display:"flex",flexDirection:"column",
+              boxShadow:"0 20px 60px rgba(0,0,0,0.2)",marginTop:8}}>
+
+            {/* Header */}
+            <div style={{padding:"14px 18px",borderBottom:`1px solid ${C.border}`,
+              display:"flex",justifyContent:"space-between",alignItems:"center",
+              position:"sticky",top:0,background:C.surface,borderRadius:"18px 18px 0 0",zIndex:1}}>
+              <div style={{fontSize:14,fontWeight:700,color:C.ink,fontFamily:F.title,display:"flex",alignItems:"center",gap:8}}>
+                🔔 Notifications
+                <span style={{fontSize:10,color:C.muted,fontFamily:F.body,fontWeight:500}}>
+                  {toastHistory.length} au total
+                </span>
+              </div>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                {toastHistory.length>0&&(
+                  <button onClick={()=>setToastHistory([])} style={{
+                    fontSize:10,color:C.muted,background:"none",border:`1px solid ${C.border}`,
+                    borderRadius:6,padding:"3px 8px",cursor:"pointer",fontFamily:F.body}}>
+                    Effacer
+                  </button>
+                )}
+                <button onClick={()=>setShowToastHistory(false)} style={{
+                  background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,
+                  width:28,height:28,cursor:"pointer",fontSize:14,color:C.muted,
+                  display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+              </div>
+            </div>
+
+            {/* Liste */}
+            <div style={{overflowY:"auto",flex:1,padding:"8px 0"}}>
+              {toastHistory.length===0?(
+                <div style={{textAlign:"center",padding:"40px 20px",color:C.muted,fontFamily:F.body,fontSize:12}}>
+                  Aucune notification
+                </div>
+              ):toastHistory.map(t=>(
+                <div key={t.id} style={{
+                  padding:"10px 18px",borderBottom:`1px solid ${C.border}22`,
+                  display:"flex",gap:10,alignItems:"flex-start"}}>
+                  <div style={{width:32,height:32,borderRadius:9,flexShrink:0,
+                    background:(t.color||C.green)+"18",border:`1px solid ${(t.color||C.green)}33`,
+                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>
+                    {t.icon||"🔔"}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body,
+                      whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                      {t.title}
+                    </div>
+                    {t.msg&&<div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2,
+                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {t.msg}
+                    </div>}
+                  </div>
+                  <div style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0,whiteSpace:"nowrap"}}>
+                    {new Date(t.at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dialogues tutoriels — affichés une seule fois chacun */}
       {levelUpData && <LevelUpModal levelData={levelUpData} onClose={()=>setLevelUpData(null)}/>}

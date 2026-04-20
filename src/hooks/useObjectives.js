@@ -43,17 +43,7 @@ export const useObjectives = ({
 
     setPendingClaim(p => [...p, ...newPending]);
 
-    newPending.forEach(id => {
-      const obj = OBJECTIVES_DEF.find(o => o.id === id);
-      if (obj)
-        addToast({
-          icon  : "🎯",
-          title : t("toast.objectiveReached"),
-          msg   : obj.title,
-          color : "#b87d10",
-          tab   : "objectives",
-        });
-    });
+    newPending.forEach(_id => {});
   // pendingClaim est en dépendance pour éviter les doublons
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objStats]);

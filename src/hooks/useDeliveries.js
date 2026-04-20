@@ -43,6 +43,7 @@ export const useDeliveries = ({ setPendingDeliveries, setStock, addToast }) => {
             msg   : d.labels,
             color : "#2a5c3f",
             tab   : "stock",
+            silent:true,
           });
         });
 
