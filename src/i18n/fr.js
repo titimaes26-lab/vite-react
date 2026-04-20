@@ -403,6 +403,7 @@ export const fr = {
     maxLevel: "✦ Niveau max",
     salaries: "Salaires",
     net: "Net",
+    estimated: "Estimé",
   },
 
   complaints: {

@@ -403,6 +403,7 @@ export const en = {
     maxLevel: "✦ Max level",
     salaries: "Salaries",
     net: "Net",
+    estimated: "Estimated",
   },
 
   complaints: {

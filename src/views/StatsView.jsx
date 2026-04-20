@@ -484,7 +484,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
           <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:600}}>
             <thead>
               <tr style={{background:C.bg}}>
-                {[tl("stats.day"),"✅ "+tl("stats.served"),"😤 "+tl("stats.lost"),tl("stats.rate"),"💶 "+tl("stats.revenue"),"💸 "+tl("stats.salaries"),"⚖️ "+tl("stats.net")].map(h=>(
+                {[tl("stats.day"),"✅ "+tl("stats.served"),"😤 "+tl("stats.lost"),tl("stats.rate"),"💶 "+tl("stats.revenue"),"💸 "+tl("stats.salaries")+" ("+tl("stats.estimated")+")","⚖️ "+tl("stats.net")+" ("+tl("stats.estimated")+")"].map(h=>(
                   <th key={h} style={{padding:"9px 14px",fontSize:10,fontWeight:700,color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`}}>{h}</th>
                 ))}
               </tr>
