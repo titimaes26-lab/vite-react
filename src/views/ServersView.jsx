@@ -25,7 +25,66 @@ const _candidateSpecRate = (lv) => lv<5?0.10:lv<10?0.25:lv<20?0.40:0.60;
 
 
 export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast,candidatePool=[],setCandidatePool,candidateDate="",setCandidateDate,kitchen,setKitchen,commisPool=[],setCommisPool=()=>{},commisPoolDate="",setCommisPoolDate=()=>{},bp={}}){
-  const { t: tr } = useLang();
+  const { t: tr, lang } = useLang();
+
+  /* ── État chef / commis ────────────────────────────── */
+  const [chefModal,setChefModal]=useState(false);      // false | "train" | "replace"
+  const [commisHireSlot,setCommisHireSlot]=useState(null);
+
+  /* ── Valeurs dérivées cuisine (guard si kitchen absent) ── */
+  const chf   = kitchen?.chef ?? {};
+  const cl    = chefLv(chf.totalXp ?? 0);
+  const clD   = CHEF_LVL[Math.min(cl.l, CHEF_LVL.length-1)];
+  const unlockedCommis = clD?.commis ?? 0;
+  const maxCommisSlots = Math.max(...CHEF_LVL.map(l=>l.commis));
+  const brigMorale     = kitchen?.morale ?? 100;
+  const brigMoraleColor= brigMorale>=70?C.green:brigMorale>=40?C.amber:C.red;
+  const brigMoraleIcon = brigMorale>=70?"😊":brigMorale>=40?"😐":brigMorale<20?"💀":"😓";
+  const upg = {fourneau:0,four:0,stockage:0,plonge:0,salamandre:0,dressage:0,sousvide:0,brigade:0,...(kitchen?.upgrades||{})};
+  const extraSlots = ["fourneau","dressage","brigade"].reduce((tot,id)=>{
+    const item=KITCHEN_UPGRADES.find(u=>u.id===id);
+    return tot+(item?item.levels.slice(0,upg[id]).reduce((s,l)=>s+(l.bonus.slots||0),0):0);
+  },0);
+  const brigadeSlot = (kitchen?.chefTrainings?.brigade && kitchen?.chefTrainings?.brigadeUntil > Date.now())?1:0;
+  const maxConcurrent = 4 + unlockedCommis + extraSlots + brigadeSlot;
+  const slotsLeft     = maxConcurrent - (kitchen?.cooking?.length ?? 0);
+
+  /* ── Générateurs de candidats ──────────────────────── */
+  const buildCommisPool = (dateStr)=>{
+    let seed=dateStr.split("").reduce((a,c)=>a+c.charCodeAt(0),0)+31;
+    const rng=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+    const names1=["Ambre","Baptiste","Chloé","Dylan","Emma","Florian","Gaëlle","Hugo","Inès","Jules","Léa","Maxime","Nina","Oscar","Pauline","Robin","Sara","Théo"];
+    const names2=["Martin","Dupont","Renard","Moreau","Simon","Laurent","Petit","Bernard","Thomas"];
+    return Array.from({length:6},(_,i)=>{
+      const spec=rng()<0.6?COMMIS_SPECIALTIES[Math.floor(rng()*COMMIS_SPECIALTIES.length)]:null;
+      const xp=Math.round(rng()*150);
+      const salary=Math.round(rng()*5+8);
+      return{id:`cp-${dateStr}-${i}`,name:names1[Math.floor(rng()*names1.length)]+" "+names2[Math.floor(rng()*names2.length)],totalXp:xp,salary,hireCost:salary*3,specialty:spec};
+    });
+  };
+
+  useEffect(()=>{
+    if(commisHireSlot===null) return;
+    const today=new Date().toLocaleDateString("fr-FR");
+    if(commisPoolDate===today&&commisPool.length>0) return;
+    setCommisPool(buildCommisPool(today));
+    setCommisPoolDate(today);
+  },[commisHireSlot]);
+
+  const generateChefCandidates = ()=>{
+    const today=new Date().toLocaleDateString("fr-FR");
+    let seed=today.split("").reduce((a,c)=>a+c.charCodeAt(0),0)+77;
+    const rng=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+    const firstNames=["Antoine","Bernard","Claire","Didier","Elena","François","Gisèle","Henri","Isabelle","Jacques"];
+    const lastNames=["Bourdin","Cauchet","Delarue","Ferrière","Gauthier","Homme","Joly","Kerner","Lafosse"];
+    return Array.from({length:3},(_,i)=>{
+      const lvl=Math.min(5,Math.floor(rng()*4));
+      const xpBase=[0,120,380,830,1530,2230][lvl];
+      const salary=Math.round(20+lvl*6+rng()*8);
+      return{id:`cc-${today}-${i}`,name:firstNames[Math.floor(rng()*firstNames.length)]+" "+lastNames[Math.floor(rng()*lastNames.length)],totalXp:xpBase+Math.round(rng()*60),salary,hireCost:salary*8,lvl,speed:CHEF_LVL[lvl]?.speed||1.0,lvlName:CHEF_LVL[lvl]?.name||"Apprenti",lvlColor:CHEF_LVL[lvl]?.color||C.muted,lvlIcon:CHEF_LVL[lvl]?.icon||"👨‍🍳"};
+    });
+  };
+
   const [modal,setModal]=useState(false);   // "hire" | "edit" | "fire" | "train" | false
   const [form,setForm]=useState({name:"",status:"actif",salary:"12"});
   const [editId,setEditId]=useState(null);
