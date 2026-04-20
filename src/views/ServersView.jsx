@@ -369,7 +369,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
 
               <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
                 <Btn sm v="navy" onClick={()=>setChefModal("train")} icon="📚">{tr("kitchen.trainChef")}</Btn>
-                <Btn sm v="danger" onClick={()=>setChefModal("replace")}>{tr("servers.fire")}</Btn>
+                <Btn sm v="danger" onClick={()=>setChefModal("confirmReplace")}>{tr("servers.fire")}</Btn>
                 {brigMorale<60&&(
                   <Btn sm v={cash>=150?"amber":"disabled"} disabled={cash<150}
                     onClick={()=>{
@@ -1307,6 +1307,64 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
             </div>
           </div>
         </div>
+      )}
+
+      {/* ══ MODAL : Confirmation licenciement chef ══ */}
+      {chefModal==="confirmReplace"&&(
+        <Modal title={tr("servers.fireTitle")} onClose={()=>setChefModal(false)}>
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+            {/* Profil chef */}
+            <div style={{display:"flex",gap:14,alignItems:"center",
+              background:C.bg,borderRadius:12,padding:"14px 16px"}}>
+              <div style={{width:50,height:50,background:clD.color+"1a",
+                border:`2px solid ${clD.color}33`,borderRadius:12,
+                display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>
+                {clD.icon}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:16,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+                  {chf.name}
+                </div>
+                <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:3}}>
+                  {clD.name} · Niv.{cl.l} · {chf.salary}€/h
+                </div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {[
+                {icon:"📈",label:"XP total",val:`${chf.totalXp??0} XP`},
+                {icon:"🔥",label:"Feux",    val:`${slotsLeft}/${maxConcurrent}`},
+              ].map(stat=>(
+                <div key={stat.label} style={{background:C.bg,borderRadius:8,
+                  padding:"8px",textAlign:"center"}}>
+                  <div style={{fontSize:14}}>{stat.icon}</div>
+                  <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>{stat.val}</div>
+                  <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Avertissement */}
+            <div style={{background:C.redP,border:`1px solid ${C.red}33`,
+              borderRadius:10,padding:"10px 14px",fontSize:11,color:C.red,fontFamily:F.body,lineHeight:1.6}}>
+              ⚠️ <strong>30% de l'XP</strong> sera transféré au nouveau chef.<br/>
+              Toutes les <strong>formations</strong> du chef actuel seront perdues.
+            </div>
+
+            {/* Boutons */}
+            <div style={{display:"flex",gap:10}}>
+              <Btn full v="ghost" onClick={()=>setChefModal(false)}>
+                {tr("app.cancel")}
+              </Btn>
+              <Btn full v="danger" onClick={()=>setChefModal("replace")} icon="🔄">
+                Voir les candidats
+              </Btn>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* ══ MODAL : Remplacer le chef ══ */}
