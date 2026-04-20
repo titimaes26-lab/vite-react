@@ -494,6 +494,10 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                 const total=d.served+d.lost;
                 const rate=total>0?Math.round((d.served/total)*100):0;
                 const rc=rate>=80?C.green:rate>=50?C.amber:C.red;
+                const estSalary=+(totalSalaryPerHour*18).toFixed(0);
+                const actualSalary=d.salary??0;
+                const net=+(d.revenue-actualSalary).toFixed(2);
+                const estNet=+(d.revenue-estSalary).toFixed(2);
                 return(
                   <tr key={d.day??i} style={{background:i===0?C.greenP:i%2===0?C.card:C.bg}}>
                     <td style={{padding:"9px 14px",fontSize:12,fontWeight:i===0?700:500,color:C.ink,borderBottom:`1px solid ${C.border}11`}}>
@@ -519,16 +523,28 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                       </span>
                     </td>
                     <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
-                      <span style={{fontSize:12,fontWeight:700,color:C.navy}}>
-                        {(d.salary??0)>0?`−${(d.salary).toFixed(0)} €`:"—"}
-                      </span>
+                      <div style={{display:"flex",flexDirection:"column",gap:1}}>
+                        <span style={{fontSize:12,fontWeight:700,color:C.navy}}>
+                          {actualSalary>0?`−${actualSalary.toFixed(0)} €`:"—"}
+                        </span>
+                        {estSalary>0&&(
+                          <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
+                            {"(−"+estSalary+" €)"}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
-                      {(()=>{const net=+(d.revenue-(d.salary??0)).toFixed(2);return(
+                      <div style={{display:"flex",flexDirection:"column",gap:1}}>
                         <span style={{fontSize:12,fontWeight:800,color:net>=0?C.green:C.red}}>
                           {net>=0?"+":""}{net.toLocaleString(locale,{minimumFractionDigits:2})} €
                         </span>
-                      );})()}
+                        {estSalary>0&&(
+                          <span style={{fontSize:10,color:estNet>=0?C.green:C.red,fontFamily:F.body}}>
+                            {"("+(estNet>=0?"+":"")+estNet.toLocaleString(locale,{minimumFractionDigits:2})+" €)"}
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
