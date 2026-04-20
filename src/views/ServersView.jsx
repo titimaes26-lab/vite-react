@@ -281,122 +281,186 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
             👨‍🍳 Brigade de cuisine
           </div>
 
-          {/* ── Chef + Commis — barre compacte ── */}
-          <div style={{background:`linear-gradient(135deg,${clD.bg},${C.surface})`,
-            border:`1.5px solid ${clD.color}33`,borderRadius:14,
-            padding:bp.isMobile?"9px 12px":"10px 14px",
-            marginBottom:16}}>
-            <div style={{display:"flex",alignItems:"center",gap:bp.isMobile?8:12,flexWrap:"wrap"}}>
-              <div style={{width:44,height:44,background:clD.color+"22",border:`2px solid ${clD.color}44`,
-                borderRadius:11,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>
-                {clD.icon}
-              </div>
-              <div style={{minWidth:0,flex:1}}>
-                <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                  <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,whiteSpace:"nowrap"}}>{chf.name}</span>
-                  <Badge color={clD.color} bg={clD.bg} sm>{clD.name} N{cl.l}</Badge>
-                  <span style={{fontSize:10,color:clD.color,fontWeight:600,fontFamily:F.body,whiteSpace:"nowrap"}}>
-                    ⚡×{clD.speed} · {slotsLeft}/{maxConcurrent} feux · 🍽{kitchen.totalDishes}
-                  </span>
-                </div>
-                <div style={{marginTop:4,display:"flex",alignItems:"center",gap:6}}>
-                  <div style={{flex:1,minWidth:80}}>
-                    <XpBar xp={cl.r} needed={cl.n} color={clD.color} h={5}/>
+          <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"repeat(auto-fill,minmax(270px,1fr))",gap:bp.isMobile?10:13,marginBottom:16}}>
+
+            {/* ── Carte Chef ── */}
+            <Card accent={clD.color+"44"}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+                <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                  <div style={{width:44,height:44,background:clD.color+"1a",
+                    border:`2px solid ${clD.color}33`,borderRadius:12,
+                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,
+                    position:"relative"}}>
+                    {clD.icon}
+                    <div style={{position:"absolute",bottom:-5,right:-5,
+                      width:18,height:18,borderRadius:"50%",fontSize:10,
+                      background:C.surface,border:`1.5px solid ${brigMoraleColor}`,
+                      display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      {brigMoraleIcon}
+                    </div>
                   </div>
-                  <span style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>{cl.r}/{cl.n} XP</span>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:600,color:C.ink,fontFamily:F.title}}>{chf.name}</div>
+                    <div style={{display:"flex",gap:5,marginTop:4,flexWrap:"wrap"}}>
+                      <Badge color={clD.color} sm>{clD.name} N{cl.l}</Badge>
+                      <Badge color={C.amber} bg={C.amberP} sm>⚡×{clD.speed}</Badge>
+                    </div>
+                  </div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>
+                    {slotsLeft}/{maxConcurrent}<span style={{fontSize:10,color:C.muted}}> 🔥</span>
+                  </div>
+                  <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>🍽 {kitchen.totalDishes}</div>
                 </div>
               </div>
-              <div style={{display:"flex",gap:5,flexShrink:0}}>
-                <button onClick={()=>setChefModal("train")} style={{
-                  fontSize:10,fontWeight:700,fontFamily:F.body,cursor:"pointer",
-                  padding:"5px 10px",borderRadius:7,border:`1.5px solid ${C.navy}44`,
-                  background:C.navyP,color:C.navy}}>📚 {tr("kitchen.trainChef")}</button>
-                <button onClick={()=>setChefModal("replace")} style={{
-                  fontSize:10,fontWeight:700,fontFamily:F.body,cursor:"pointer",
-                  padding:"5px 10px",borderRadius:7,border:`1.5px solid ${C.red}33`,
-                  background:C.redP,color:C.red}}>🔄 {tr("kitchen.replace")}</button>
-              </div>
-            </div>
 
-            {/* Morale brigade */}
-            <div style={{marginTop:9,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-              <span style={{fontSize:12}}>{brigMoraleIcon}</span>
-              <span style={{fontSize:10,fontWeight:700,color:brigMoraleColor,fontFamily:F.body,minWidth:58}}>
-                {tr("kitchen.moral")} {brigMorale}%
-              </span>
-              <div style={{flex:1,minWidth:80,height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${brigMorale}%`,background:brigMoraleColor,borderRadius:99,transition:"width 0.5s"}}/>
+              {/* Barre XP chef */}
+              <div style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",
+                  fontSize:10,color:C.muted,marginBottom:4,fontFamily:F.body}}>
+                  <span>XP · Niv.{cl.l}</span>
+                  <span style={{color:clD.color,fontWeight:600}}>{cl.r}/{cl.n}</span>
+                </div>
+                <XpBar xp={cl.r} needed={cl.n} color={clD.color}/>
               </div>
-              {brigMorale<60&&(
-                <button onClick={()=>{
-                  const cost=150;
-                  if(cash<cost)return;
-                  setCash(c=>+(c-cost).toFixed(2));
-                  addTx("dépense","Prime brigade",cost);
-                  setKitchen(k=>({...k,morale:Math.min(100,(k.morale??100)+30)}));
-                  addToast({icon:"🎉",title:tr("kitchen.incentive"),msg:tr("kitchen.incentiveDesc"),color:C.green,tab:"servers"});
-                }} style={{
-                  fontSize:10,fontWeight:700,fontFamily:F.body,cursor:cash>=150?"pointer":"not-allowed",
-                  padding:"3px 9px",borderRadius:6,border:`1.5px solid ${C.amber}44`,
-                  background:C.amberP,color:cash>=150?C.amber:C.muted,opacity:cash>=150?1:0.5}}>
-                  💸 Prime 150€
-                </button>
-              )}
-              {brigMorale>=70&&<span style={{fontSize:9,color:C.green,fontFamily:F.body,fontWeight:600}}>{tr("kitchen.speedBoost")}</span>}
-              {brigMorale<30&&<span style={{fontSize:9,color:C.red,fontFamily:F.body,fontWeight:600}}>{tr("kitchen.speedPenalty")}</span>}
-            </div>
 
-            {/* Slots commis */}
-            <div style={{marginTop:9,display:"flex",gap:5,flexWrap:"wrap"}}>
-              {Array.from({length:maxCommisSlots},(_,idx)=>{
-                const cm=kitchen.commis[idx];
-                const locked=idx>=unlockedCommis;
-                if(cm){
-                  const cml=commisLv(cm.totalXp);
-                  const cmlD=COMMIS_LVL[Math.min(cml.l,COMMIS_LVL.length-1)];
-                  return(
-                    <div key={cm.id} style={{background:cmlD.color+"12",border:`1px solid ${cmlD.color+"33"}`,
-                      borderRadius:8,padding:"5px 9px",display:"flex",gap:5,alignItems:"center"}}>
-                      <span style={{fontSize:14}}>{cmlD.icon}</span>
-                      <div>
-                        <div style={{fontSize:10,fontWeight:600,color:C.ink,fontFamily:F.body,whiteSpace:"nowrap"}}>{cm.name}</div>
-                        <div style={{fontSize:9,color:C.muted,fontFamily:F.body,display:"flex",gap:4,alignItems:"center"}}>
-                          <span>{cmlD.name}</span>
-                          {cm.specialty&&<span style={{background:cm.specialty.cat==="Desserts"?C.purpleP:cm.specialty.cat==="Plats"?C.terraP:cm.specialty.cat==="Entrées"?C.greenP:C.navyP,
-                            color:cm.specialty.cat==="Desserts"?C.purple:cm.specialty.cat==="Plats"?C.terra:cm.specialty.cat==="Entrées"?C.green:C.navy,
-                            borderRadius:4,padding:"0 4px",fontSize:8,fontWeight:700}}>
-                            {cm.specialty.icon} {cm.specialty.name}
-                          </span>}
+              {/* Moral brigade */}
+              <div style={{marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",
+                  fontSize:10,marginBottom:4,fontFamily:F.body}}>
+                  <span style={{color:C.muted}}>{tr("kitchen.moral")} {brigMoraleIcon}</span>
+                  <span style={{fontWeight:700,color:brigMoraleColor}}>{brigMorale}/100</span>
+                </div>
+                <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${brigMorale}%`,background:brigMoraleColor,
+                    borderRadius:99,transition:"width 0.5s ease"}}/>
+                </div>
+                {brigMorale>=70&&<span style={{fontSize:9,color:C.green,fontFamily:F.body,fontWeight:600,marginTop:3,display:"block"}}>{tr("kitchen.speedBoost")}</span>}
+                {brigMorale<30&&<span style={{fontSize:9,color:C.red,fontFamily:F.body,fontWeight:600,marginTop:3,display:"block"}}>{tr("kitchen.speedPenalty")}</span>}
+              </div>
+
+              <div style={{fontSize:11,color:C.muted,marginBottom:12,fontFamily:F.body}}>
+                💶 {chf.salary}€/h
+              </div>
+
+              <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                <Btn sm v="navy" onClick={()=>setChefModal("train")} icon="📚">{tr("kitchen.trainChef")}</Btn>
+                <Btn sm v="terra" onClick={()=>setChefModal("replace")} icon="🔄">{tr("kitchen.replace")}</Btn>
+                {brigMorale<60&&(
+                  <Btn sm v={cash>=150?"amber":"disabled"} disabled={cash<150}
+                    onClick={()=>{
+                      const cost=150;
+                      if(cash<cost)return;
+                      setCash(c=>+(c-cost).toFixed(2));
+                      addTx("dépense","Prime brigade",cost);
+                      setKitchen(k=>({...k,morale:Math.min(100,(k.morale??100)+30)}));
+                      addToast({icon:"🎉",title:tr("kitchen.incentive"),msg:tr("kitchen.incentiveDesc"),color:C.green,tab:"servers"});
+                    }}>
+                    💸 Prime 150€
+                  </Btn>
+                )}
+              </div>
+            </Card>
+
+            {/* ── Cartes Commis ── */}
+            {Array.from({length:maxCommisSlots},(_,idx)=>{
+              const cm=kitchen.commis[idx];
+              const locked=idx>=unlockedCommis;
+              if(cm){
+                const cml=commisLv(cm.totalXp);
+                const cmlD=COMMIS_LVL[Math.min(cml.l,COMMIS_LVL.length-1)];
+                const specColor=cm.specialty?.cat==="Desserts"?C.purple:cm.specialty?.cat==="Plats"?C.terra:cm.specialty?.cat==="Entrées"?C.green:C.navy;
+                const specBg=cm.specialty?.cat==="Desserts"?C.purpleP:cm.specialty?.cat==="Plats"?C.terraP:cm.specialty?.cat==="Entrées"?C.greenP:C.navyP;
+                return(
+                  <Card key={cm.id} accent={cmlD.color+"44"}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+                      <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                        <div style={{width:44,height:44,background:cmlD.color+"1a",
+                          border:`2px solid ${cmlD.color}33`,borderRadius:12,
+                          display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>
+                          {cmlD.icon}
+                        </div>
+                        <div>
+                          <div style={{fontSize:14,fontWeight:600,color:C.ink,fontFamily:F.title}}>{cm.name}</div>
+                          <div style={{display:"flex",gap:5,marginTop:4,flexWrap:"wrap"}}>
+                            <Badge color={cmlD.color} sm>{cmlD.name}</Badge>
+                          </div>
                         </div>
                       </div>
-                      <button onClick={(e)=>{e.stopPropagation();setCommisHireSlot(idx);}} style={{
-                        fontSize:9,padding:"2px 6px",borderRadius:5,cursor:"pointer",border:`1px solid ${C.border}`,
-                        background:C.bg,color:C.muted,fontFamily:F.body}}>↺</button>
+                      <div style={{textAlign:"right",flexShrink:0}}>
+                        <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>💶 {cm.salary}€/h</div>
+                      </div>
                     </div>
-                  );
-                }
-                if(!locked){
-                  return(
-                    <button key={`hire-${idx}`} onClick={()=>setCommisHireSlot(idx)} style={{
-                      fontSize:10,fontWeight:700,fontFamily:F.body,cursor:"pointer",
-                      padding:"5px 10px",borderRadius:8,border:`1.5px dashed ${C.green}`,
-                      background:C.greenP,color:C.green}}>{tr("kitchen.addCommis")} {idx+1}</button>
-                  );
-                }
-                const unlockLvlIdx=CHEF_LVL.findIndex(l=>l.commis>idx);
-                const unlockName=unlockLvlIdx>=0?CHEF_LVL[unlockLvlIdx].name:"?";
+
+                    {cm.specialty?(
+                      <div style={{background:specBg,border:`1px solid ${specColor}33`,
+                        borderRadius:8,padding:"6px 10px",marginBottom:10,
+                        display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{fontSize:16}}>{cm.specialty.icon}</span>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:11,fontWeight:700,color:specColor,fontFamily:F.body}}>{cm.specialty.name}</div>
+                          {cm.specialty.desc&&<div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{cm.specialty.desc}</div>}
+                        </div>
+                      </div>
+                    ):(
+                      <div style={{background:C.bg,border:`1px dashed ${C.border}`,
+                        borderRadius:8,padding:"6px 10px",marginBottom:10,
+                        fontSize:10,color:C.muted,fontFamily:F.body}}>
+                        Pas de spécialité
+                      </div>
+                    )}
+
+                    <div style={{marginBottom:10}}>
+                      <div style={{display:"flex",justifyContent:"space-between",
+                        fontSize:10,color:C.muted,marginBottom:4,fontFamily:F.body}}>
+                        <span>XP · Niv.{cml.l}</span>
+                        <span style={{color:cmlD.color,fontWeight:600}}>{cml.r}/{cml.n}</span>
+                      </div>
+                      <XpBar xp={cml.r} needed={cml.n} color={cmlD.color}/>
+                    </div>
+
+                    <div style={{display:"flex",gap:7}}>
+                      <Btn sm v="ghost" onClick={()=>setCommisHireSlot(idx)} icon="↺">{tr("kitchen.replace")}</Btn>
+                    </div>
+                  </Card>
+                );
+              }
+              if(!locked){
                 return(
-                  <div key={`locked-${idx}`} style={{background:C.bg,border:`1px solid ${C.border}`,
-                    borderRadius:8,padding:"5px 9px",opacity:0.45,display:"flex",gap:5,alignItems:"center"}}>
-                    <span style={{fontSize:14}}>🔒</span>
-                    <div>
-                      <div style={{fontSize:10,fontWeight:600,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>{tr("kitchen.commis")} {idx+1}</div>
-                      <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{unlockName}</div>
+                  <div key={`hire-${idx}`} onClick={()=>setCommisHireSlot(idx)}
+                    className="hovcard"
+                    style={{background:C.bg,border:`1.5px dashed ${C.green}55`,
+                      borderRadius:14,padding:"18px 16px",
+                      display:"flex",flexDirection:"column",alignItems:"center",
+                      justifyContent:"center",minHeight:160,gap:10,cursor:"pointer",
+                      transition:"all 0.2s"}}>
+                    <div style={{width:44,height:44,background:C.greenP,border:`2px dashed ${C.green}66`,
+                      borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>
+                      ➕
                     </div>
+                    <div style={{fontSize:12,color:C.green,fontWeight:600,fontFamily:F.body}}>{tr("kitchen.addCommis")} {idx+1}</div>
+                    <div style={{fontSize:10,color:C.muted,fontFamily:F.body,textAlign:"center"}}>{tr("servers.clickHire")}</div>
                   </div>
                 );
-              })}
-            </div>
+              }
+              const unlockLvlIdx=CHEF_LVL.findIndex(l=>l.commis>idx);
+              const unlockName=unlockLvlIdx>=0?CHEF_LVL[unlockLvlIdx].name:"?";
+              return(
+                <div key={`locked-${idx}`} style={{background:C.bg,border:`1.5px dashed ${C.border}`,
+                  borderRadius:14,padding:"18px 16px",
+                  display:"flex",flexDirection:"column",alignItems:"center",
+                  justifyContent:"center",minHeight:160,gap:8,opacity:0.6}}>
+                  <span style={{fontSize:32}}>🔒</span>
+                  <div style={{fontSize:11,color:C.muted,fontFamily:F.body,textAlign:"center"}}>{tr("kitchen.commis")} {idx+1}</div>
+                  <span style={{fontSize:11,background:C.bg,color:C.muted,
+                    border:`1px solid ${C.border}`,borderRadius:6,padding:"2px 8px",
+                    fontFamily:F.body,fontWeight:600}}>
+                    {unlockName}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
           <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
