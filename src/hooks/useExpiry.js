@@ -58,6 +58,7 @@ export const useExpiry = ({
             msg   : t("toast.groupLeftDetail", {rep:repDeltaLostClient}),
             color : "#c4622d",
             tab   : "tables",
+            silent: true,
           });
           if (updateReputation) updateReputation(repDeltaLostClient, "client impatient");
         });
