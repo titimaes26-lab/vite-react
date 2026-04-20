@@ -654,7 +654,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     setCash(c=>+(c+total).toFixed(2));
     addTx("revenu",`Encaissement ${t.name} — ${t.group.size}cov`,total);
     addDayStat("revenue", total);
-    addDayStat("served", 1);
+    addDayStat("served", t.group.size ?? 1);
     addDayStat("rating", r);
     if (srvObj) {
       const xp = srvXpFromCheckout(r, t.group.size);

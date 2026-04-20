@@ -69,7 +69,7 @@ export const useExpiry = ({
 
       if (reallyLost.length > 0) {
         setWaitlist(waitlist.filter(c => now < c.recallUntil));
-        reallyLost.forEach(() => addDayStat("lost"));
+        reallyLost.forEach(c => addDayStat("lost", c.size ?? 1));
       }
 
       /* ── 3. Fin de nettoyage → tables libres ─────────── */
