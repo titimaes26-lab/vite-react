@@ -4,12 +4,14 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect, useRef } from "react";
+import { useLang } from "../i18n/index.jsx";
 import { C, F, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
          KITCHEN_UPGRADES, COMMIS_SPECIALTIES, CHEF_TRAININGS } from "../constants/gameData.js";
 import { Btn, XpBar, Badge } from "../components/ui/index.js";
 import { chefLv, commisLv, dishCookTimeWithUpgrades, CHEF_MAX_XP, COMMIS_MAX_XP } from "../utils/levelUtils.js";
 
 export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,restoLvN=0,commisPool=[],setCommisPool=()=>{},commisPoolDate="",setCommisPoolDate=()=>{},bp={}}){
+  const { t: tl, lang } = useLang();
   const chf=kitchen.chef;
   const cl=chefLv(chf.totalXp);
   const clD=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
@@ -128,13 +130,13 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
   useEffect(()=>{
     if(cl.l>prevChefLvRef.current){
       const d=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
-      addToast({icon:"👨‍🍳",title:`Chef niveau ${cl.l} !`,
+      addToast({icon:"👨‍🍳",title:tl("kitchen.chefLvl",{l:cl.l}),
         msg:`${chf.name} → ${d.name}`,color:C.purple,tab:"cuisine"});
       // Check if a new commis slot was unlocked
       const prevCommis=CHEF_LVL[Math.min(prevChefLvRef.current,CHEF_LVL.length-1)].commis;
       if(d.commis>prevCommis){
-        addToast({icon:"👥",title:"Nouveau slot commis débloqué !",
-          msg:`Vous pouvez maintenant embaucher un ${d.commis}e commis.`,
+        addToast({icon:"👥",title:tl("kitchen.newSlot"),
+          msg:tl("kitchen.newSlotMsg",{n:d.commis}),
           color:C.green,tab:"cuisine"});
       }
     }
@@ -150,8 +152,8 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
       const{newStock,missing}=consumeStock([dish],s);
       if(missing.length>0){
         blocked=true;
-        missing.forEach(m=>addToast({icon:"⚠️",title:"Stock insuffisant !",
-          msg:`${m.dish} : manque ${m.ing} (${m.have.toFixed(2)}/${m.need.toFixed(2)})`,
+        missing.forEach(m=>addToast({icon:"⚠️",title:tl("kitchen.noStock"),
+          msg:tl("kitchen.noStockMsg",{item:m.ing}),
           color:C.red,tab:"stock"}));
         return s;
       }
@@ -163,7 +165,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
       queue:k.queue.filter(d=>d.id!==dish.id),
       cooking:[...k.cooking,{...dish,startedAt:Date.now(),timerMax:ct}],
     }));
-    addToast({icon:"🔥",title:"Cuisson démarrée",
+    addToast({icon:"🔥",title:tl("kitchen.cookStarted"),
       msg:`${dish.name}${dish.tableName?" · "+dish.tableName:""}`,color:C.terra,tab:"cuisine"});
   };
 
@@ -205,8 +207,8 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
     // Le serveur est occupé 20s le temps d'apporter les plats
     if (setServers) setServers(p=>p.map(s=>s.id!==freeSrvForServing.id?s:
       {...s,status:"service",serviceUntil:Date.now()+20000}));
-    addToast({icon:"🍽",title:"Plats servis !",
-      msg:`${tableName} · ${freeSrvForServing.name} apporte les plats`,color:C.green,tab:"tables"});
+    addToast({icon:"🍽",title:tl("kitchen.served"),
+      msg:tableName+" · "+tl("kitchen.servedMsg",{name:freeSrvForServing.name}),color:C.green,tab:"tables"});
   };
 
   // Group done dishes by table
@@ -367,7 +369,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
               <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,whiteSpace:"nowrap"}}>{chf.name}</span>
               <Badge color={clD.color} bg={clD.bg} sm>{clD.name} N{cl.l}</Badge>
               <span style={{fontSize:10,color:clD.color,fontWeight:600,fontFamily:F.body,whiteSpace:"nowrap"}}>
-                ⚡×{clD.speed} · {slotsLeft}/{maxConcurrent} feux · 🍽{kitchen.totalDishes}
+                ⚡×{clD.speed} · {slotsLeft}/{maxConcurrent} {tl("kitchen.feux")} · 🍽{kitchen.totalDishes}
               </span>
             </div>
             <div style={{marginTop:4,display:"flex",alignItems:"center",gap:6}}>
@@ -382,11 +384,11 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
             <button onClick={()=>setChefModal("train")} style={{
               fontSize:10,fontWeight:700,fontFamily:F.body,cursor:"pointer",
               padding:"5px 10px",borderRadius:7,border:`1.5px solid ${C.navy}44`,
-              background:C.navyP,color:C.navy}}>📚 Former</button>
+              background:C.navyP,color:C.navy}}>📚 {tl("kitchen.trainChef")}</button>
             <button onClick={()=>setChefModal("replace")} style={{
               fontSize:10,fontWeight:700,fontFamily:F.body,cursor:"pointer",
               padding:"5px 10px",borderRadius:7,border:`1.5px solid ${C.red}33`,
-              background:C.redP,color:C.red}}>🔄 Remplacer</button>
+              background:C.redP,color:C.red}}>🔄 {tl("kitchen.replace")}</button>
           </div>
         </div>
 
@@ -394,7 +396,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
         <div style={{marginTop:9,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <span style={{fontSize:12}}>{moraleIcon}</span>
           <span style={{fontSize:10,fontWeight:700,color:moraleColor,fontFamily:F.body,minWidth:58}}>
-            Moral {morale}%
+            {tl("kitchen.moral")} {morale}%
           </span>
           <div style={{flex:1,minWidth:80,height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
             <div style={{height:"100%",width:`${morale}%`,background:moraleColor,borderRadius:99,transition:"width 0.5s"}}/>
@@ -406,7 +408,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
               setCash(c=>+(c-cost).toFixed(2));
               addTx("dépense","Prime brigade",cost);
               setKitchen(k=>({...k,morale:Math.min(100,(k.morale??100)+30)}));
-              addToast({icon:"🎉",title:"Brigade motivée !",msg:"Moral +30% · −150€",color:C.green,tab:"cuisine"});
+              addToast({icon:"🎉",title:tl("kitchen.incentive"),msg:tl("kitchen.incentiveDesc"),color:C.green,tab:"cuisine"});
             }} style={{
               fontSize:10,fontWeight:700,fontFamily:F.body,cursor:cash>=150?"pointer":"not-allowed",
               padding:"3px 9px",borderRadius:6,border:`1.5px solid ${C.amber}44`,
@@ -414,8 +416,8 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
               💸 Prime 150€
             </button>
           )}
-          {morale>=70&&<span style={{fontSize:9,color:C.green,fontFamily:F.body,fontWeight:600}}>⚡+10% vitesse</span>}
-          {morale<30&&<span style={{fontSize:9,color:C.red,fontFamily:F.body,fontWeight:600}}>⚠️−15% vitesse</span>}
+          {morale>=70&&<span style={{fontSize:9,color:C.green,fontFamily:F.body,fontWeight:600}}>{tl("kitchen.speedBoost")}</span>}
+          {morale<30&&<span style={{fontSize:9,color:C.red,fontFamily:F.body,fontWeight:600}}>{tl("kitchen.speedPenalty")}</span>}
         </div>
 
         {/* Commis inline — slots déterminés par le niveau chef */}
@@ -453,7 +455,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                 <button key={`hire-${idx}`} onClick={()=>setCommisHireSlot(idx)} style={{
                   fontSize:10,fontWeight:700,fontFamily:F.body,cursor:"pointer",
                   padding:"5px 10px",borderRadius:8,border:`1.5px dashed ${C.green}`,
-                  background:C.greenP,color:C.green}}>+ Commis {idx+1}</button>
+                  background:C.greenP,color:C.green}}>{tl("kitchen.addCommis")} {idx+1}</button>
               );
             }
             const unlockLvlIdx=CHEF_LVL.findIndex(l=>l.commis>idx);
@@ -465,7 +467,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                 display:"flex",gap:5,alignItems:"center"}}>
                 <span style={{fontSize:14}}>🔒</span>
                 <div>
-                  <div style={{fontSize:10,fontWeight:600,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>Commis {idx+1}</div>
+                  <div style={{fontSize:10,fontWeight:600,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>{tl("kitchen.commis")} {idx+1}</div>
                   <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{unlockName}</div>
                 </div>
               </div>
@@ -491,7 +493,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                 <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0}}>
                   <span style={{fontSize:13}}>🎫</span>
                   <span style={{fontSize:12,fontWeight:700,color:C.amber,fontFamily:F.title,whiteSpace:"nowrap"}}>
-                    Commandes ({kitchen.queue.length})
+                    {tl("kitchen.orders")} ({kitchen.queue.length})
                   </span>
                   {late>0&&(
                     <span style={{fontSize:9,background:C.redP,color:C.red,border:`1px solid ${C.red}33`,
@@ -502,7 +504,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                   )}
                 </div>
                 {kitchen.queue.length>0&&slotsLeft>0&&(
-                  <Btn sm v="terra" onClick={startAll}>▶ Tout</Btn>
+                  <Btn sm v="terra" onClick={startAll}>▶ {tl("kitchen.all")}</Btn>
                 )}
               </div>
             );
@@ -512,7 +514,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
             {kitchen.queue.length===0&&(
               <div style={{background:C.card,border:`1px dashed ${C.border}`,borderRadius:9,
                 padding:14,textAlign:"center",color:C.muted,fontSize:11,fontStyle:"italic",fontFamily:F.body}}>
-                🍽 Les commandes arriveront ici
+                {tl("kitchen.noOrders")}
               </div>
             )}
             {Object.values(queueByTable).map((tblQ,tIdx,arr)=>{
@@ -586,13 +588,13 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <span style={{fontSize:13}}>🔥</span>
               <span style={{fontSize:12,fontWeight:700,color:C.terra,fontFamily:F.title,whiteSpace:"nowrap"}}>
-                Piano ({kitchen.cooking.length}/{maxConcurrent})
+                {tl("kitchen.piano")} ({kitchen.cooking.length}/{maxConcurrent})
               </span>
             </div>
             <span style={{fontSize:9,background:slotsLeft>0?C.greenP:C.redP,
               color:slotsLeft>0?C.green:C.red,border:`1px solid ${slotsLeft>0?C.green:C.red}33`,
               borderRadius:20,padding:"2px 7px",fontFamily:F.body,fontWeight:700,whiteSpace:"nowrap"}}>
-              {slotsLeft>0?`${slotsLeft} libres`:"Complet"}
+              {slotsLeft>0?tl("kitchen.slotsAvailable",{n:slotsLeft}):tl("kitchen.full")}
             </span>
           </div>
 
@@ -616,7 +618,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                     ✦ PIANO
                   </span>
                   <span style={{fontSize:9,color:C.terra,fontFamily:F.body,fontWeight:700}}>
-                    {kitchen.totalDishes} plats
+                    {kitchen.totalDishes} {tl("kitchen.dishes")}
                   </span>
                 </div>
                 <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" style={{display:"block"}}>
@@ -689,7 +691,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                         {/* Feu label */}
                         <text x={cx} y={cy+r+10} textAnchor="middle" fontSize="7"
                           fill={dish?"#8a7a6a":"#3a3028"} fontFamily="sans-serif">
-                          Feu {i+1}
+                          {tl("kitchen.burner")} {i+1}
                         </text>
                         {/* Dish name */}
                         {dish&&<text x={cx} y={cy-3} textAnchor="middle" fontSize="7"
@@ -715,13 +717,13 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
           <div style={{fontSize:12,fontWeight:700,color:C.green,fontFamily:F.title,marginBottom:8,
             display:"flex",alignItems:"center",gap:6}}>
             <span>✅</span>
-            <span style={{whiteSpace:"nowrap"}}>Prêts ({kitchen.done.length})</span>
+            <span style={{whiteSpace:"nowrap"}}>{tl("kitchen.readyDishes")} ({kitchen.done.length})</span>
           </div>
 
           {Object.keys(doneByTable).length===0&&(
             <div style={{background:C.card,border:`1px dashed ${C.border}`,borderRadius:9,
               padding:14,textAlign:"center",color:C.muted,fontSize:11,fontStyle:"italic",fontFamily:F.body}}>
-              🍽 Les plats terminés apparaîtront ici
+              {tl("kitchen.noReadyDishes")}
             </div>
           )}
 
@@ -739,7 +741,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                     display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div>
                       <div style={{fontSize:11,fontWeight:700,color:C.ink,fontFamily:F.body,whiteSpace:"nowrap"}}>{tbl.tableName}</div>
-                      <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tbl.dishes.length} plat{tbl.dishes.length>1?"s":""}</div>
+                      <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tbl.dishes.length} {tl("kitchen.dishes")}</div>
                     </div>
                     {ready?(
                       <div style={{display:"flex",flexDirection:"column",gap:3,alignItems:"flex-end"}}>
@@ -748,14 +750,14 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                           ✦ PRÊT
                         </span>
                         {freeSrvForServing?(
-                          <Btn v="primary" sm onClick={()=>serveTable(tbl.tableId,tbl.tableName)} icon="🍽">
-                            Servir
+                          <Btn v="primary" sm onClick={()=>serveTable(tbl.tableId,tbl.tableName)}>
+                            {tl("kitchen.serve")}
                           </Btn>
                         ):(
                           <div style={{fontSize:9,color:C.muted,fontFamily:F.body,
                             background:C.border,borderRadius:6,padding:"4px 8px",
                             opacity:0.7,whiteSpace:"nowrap"}}>
-                            🚫 Pas de serveur
+                            {tl("kitchen.noServer")}
                           </div>
                         )}
                       </div>
@@ -782,7 +784,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
       <div>
         <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,
           marginBottom:10,display:"flex",alignItems:"center",gap:7}}>
-          🔧 Améliorations
+          🔧 {tl("kitchen.upgrades")}
         </div>
         <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(auto-fill,minmax(200px,1fr))",gap:bp.isMobile?8:10}}>
           {KITCHEN_UPGRADES.map(upItem=>{
@@ -814,7 +816,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                   </div>
                   <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>{upItem.desc}</div>
                   <div style={{marginTop:7,fontSize:10,fontWeight:700,color:C.terra,fontFamily:F.body}}>
-                    🔒 Disponible au niveau {upItem.minRestoLevel}
+                    {tl("kitchen.lockedUpgrade",{n:upItem.minRestoLevel})}
                   </div>
                 </div>
               );
@@ -874,7 +876,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
           <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:380,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
             onClick={e=>e.stopPropagation()}>
             <div style={{fontSize:14,fontWeight:800,color:C.ink,fontFamily:F.title,marginBottom:16,display:"flex",justifyContent:"space-between"}}>
-              📚 Formation chef — {chf.name}
+              📚 {tl("kitchen.trainChef")} — {chf.name}
               <button onClick={()=>setChefModal(false)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:C.muted}}>✕</button>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -889,7 +891,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                       <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>{tr.desc}</div>
                       {tr.id==="brigade"&&done&&kitchen.chefTrainings.brigadeUntil&&(
                         <div style={{fontSize:9,color:C.amber,fontFamily:F.body}}>
-                          ⏱ Expire : {new Date(kitchen.chefTrainings.brigadeUntil).toLocaleString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                          ⏱ {tl("kitchen.expires")} {new Date(kitchen.chefTrainings.brigadeUntil).toLocaleString(lang==="en"?"en-US":"fr-FR",{hour:"2-digit",minute:"2-digit"})}
                         </div>
                       )}
                     </div>
@@ -907,7 +909,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                             chef:{...k.chef,totalXp:Math.min(CHEF_MAX_XP,k.chef.totalXp+tr.xp)},
                             chefTrainings:t};
                         });
-                        addToast({icon:tr.icon,title:`${tr.name} acquise !`,msg:`${tr.desc} · −${tr.cost}€`,color:C.navy,tab:"cuisine"});
+                        addToast({icon:tr.icon,title:tr.name+" — "+tl("kitchen.acquired")+"!",msg:`${tr.desc} · −${tr.cost}€`,color:C.navy,tab:"cuisine"});
                         if(tr.id!=="brigade") setChefModal(false);
                       }} style={{
                         fontSize:11,fontWeight:700,fontFamily:F.body,
@@ -934,11 +936,11 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
           <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:420,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
             onClick={e=>e.stopPropagation()}>
             <div style={{fontSize:14,fontWeight:800,color:C.ink,fontFamily:F.title,marginBottom:4,display:"flex",justifyContent:"space-between"}}>
-              🔄 Remplacer {chf.name}
+              🔄 {tl("kitchen.replace")} {chf.name}
               <button onClick={()=>setChefModal(false)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:C.muted}}>✕</button>
             </div>
             <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:14}}>
-              Le nouveau chef hérite de 30 % de l'XP actuel.
+              {tl("kitchen.replaceNote")}
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {generateChefCandidates().map(cand=>{
@@ -965,7 +967,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                         chefTrainings:{},
                         morale:Math.min(100,(k.morale??100)+10),
                       }));
-                      addToast({icon:"👨‍🍳",title:`${cand.name} recruté !`,msg:`−${cand.hireCost}€ · +${transferXp} XP transmis`,color:C.purple,tab:"cuisine"});
+                      addToast({icon:"👨‍🍳",title:tl("kitchen.recruited",{name:cand.name}),msg:`−${cand.hireCost}€ · +${transferXp} XP transmis`,color:C.purple,tab:"cuisine"});
                       setChefModal(false);
                     }} style={{
                       fontSize:11,fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap",
@@ -991,11 +993,11 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
           <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:400,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
             onClick={e=>e.stopPropagation()}>
             <div style={{fontSize:14,fontWeight:800,color:C.ink,fontFamily:F.title,marginBottom:4,display:"flex",justifyContent:"space-between"}}>
-              👨‍🍳 Embaucher un commis
+              👨‍🍳 {tl("kitchen.hireCommis")}
               <button onClick={()=>setCommisHireSlot(null)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:C.muted}}>✕</button>
             </div>
-            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:14}}>Pool rafraîchi chaque jour.</div>
-            {commisPool.length===0&&<div style={{color:C.muted,fontSize:11,fontFamily:F.body,textAlign:"center",padding:20}}>Aucun candidat disponible aujourd'hui.</div>}
+            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:14}}>{tl("kitchen.poolRefresh")}</div>
+            {commisPool.length===0&&<div style={{color:C.muted,fontSize:11,fontFamily:F.body,textAlign:"center",padding:20}}>{tl("kitchen.noCandidates")}</div>}
             <div style={{display:"flex",flexDirection:"column",gap:9}}>
               {commisPool.map(cand=>{
                 const canAfford=cash>=cand.hireCost;
@@ -1029,7 +1031,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                         return{...k,commis:newCommis};
                       });
                       setCommisPool(p=>p.filter(x=>x.id!==cand.id));
-                      addToast({icon:"🔪",title:`${cand.name} recruté !`,msg:`−${cand.hireCost}€${cand.specialty?" · "+cand.specialty.icon+" "+cand.specialty.name:""}`,color:C.green,tab:"cuisine"});
+                      addToast({icon:"🔪",title:tl("kitchen.recruited",{name:cand.name}),msg:`−${cand.hireCost}€${cand.specialty?" · "+cand.specialty.icon+" "+cand.specialty.name:""}`,color:C.green,tab:"cuisine"});
                       setCommisHireSlot(null);
                     }} style={{
                       fontSize:11,fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap",

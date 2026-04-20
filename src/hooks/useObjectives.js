@@ -11,6 +11,7 @@
 
 import { useEffect } from "react";
 import { OBJECTIVES_DEF } from "../constants/gameData.js";
+import { useLang } from "../i18n/index.jsx";
 
 /**
  * @param {{
@@ -28,6 +29,7 @@ export const useObjectives = ({
   setPendingClaim,
   addToast,
 }) => {
+  const { t } = useLang();
   useEffect(() => {
     const newPending = OBJECTIVES_DEF
       .filter(o =>
@@ -46,7 +48,7 @@ export const useObjectives = ({
       if (obj)
         addToast({
           icon  : "🎯",
-          title : "Objectif atteint !",
+          title : t("toast.objectiveReached"),
           msg   : obj.title,
           color : "#b87d10",
           tab   : "objectives",

@@ -75,6 +75,7 @@ import { Toasts } from "./components/system/Toasts";
 import { BankModal } from "./components/system/BankModal";
 import { HelpModal, DailySummaryModal } from "./components/system/HelpModal";
 import { IntroDialog } from "./components/IntroDialog";
+import { useLang } from "./i18n/index.jsx";
 
 // ── Vues ───────────────────────────────────────────────
 import { TablesView }     from "./views/TablesView";
@@ -112,6 +113,8 @@ const OBJECTIVES_DEF=[
 
 export default function App(){
   const bp=useBreakpoint();
+  const { t, lang } = useLang();
+  const locale = lang === "en" ? "en-US" : "fr-FR";
   const _today = new Date().toLocaleDateString("fr-FR");
 
   /* ── États principaux — initialisés avec les valeurs par défaut ── */
@@ -134,6 +137,7 @@ export default function App(){
   const [toasts,setToasts]=useState([]);
   const [restoXp,setRestoXp]=useState(0);
   const [cash,setCash]=useState(5000);
+  const [isGameOver,setIsGameOver]=useState(false);
   const [transactions,setTransactions]=useState([
     {id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now(),gameTime:"08h00"}
   ]);
@@ -248,10 +252,27 @@ export default function App(){
     setActiveTheme("none");
     setTab("tables");
     setShowResetModal(false);
+    setIsGameOver(false);
   },[]);
 
   /* ── Nouvelle journée (fermeture modale résumé) ─────── */
   const startNewDay=useCallback(()=>{
+    // Paiement des salaires accumulés pendant la journée
+    const { total, perPerson } = salaryAccruedRef.current;
+    if (total > 0) {
+      const lines = Object.entries(perPerson).map(([n, v]) => `${n} ${v.toFixed(0)}€`);
+      setCash(c => +(c - total).toFixed(2));
+      addTx("salaire", `Salaires — ${lines.join(", ")}`, total);
+      addToast({
+        icon  : "💸",
+        title : t("toast.salaryTitle", { amount: total.toFixed(0) }),
+        msg   : lines.join(" · "),
+        color : "#1c3352",
+        tab   : "stats",
+      });
+    }
+    salaryAccruedRef.current = { total: 0, perPerson: {} };
+
     const today=new Date().toLocaleDateString("fr-FR");
     lastDateRef.current=today;
     setDailyStats(p=>{
@@ -275,7 +296,7 @@ export default function App(){
     setChallengeLostToday(false);
     resetDayRef.current?.();
     setShowSummary(false);
-  },[]);
+  },[setCash, addTx, addToast, t]);
 
   /* ── Chargement depuis localStorage ───────────────── */
   useEffect(()=>{
@@ -363,7 +384,7 @@ export default function App(){
         const up = delta > 0;
         setTimeout(()=>addToast({
           icon: after.icon,
-          title: up ? `Réputation en hausse !` : `Réputation en baisse !`,
+          title: up ? t("app.repUp") : t("app.repDown"),
           msg: `${after.label} (${Math.round(next)}/100)${reason?" · "+reason:""}`,
           color: after.color,
           tab: "stats",
@@ -490,6 +511,9 @@ export default function App(){
   const waitlistRef   = useRef(waitlist);
   const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
+  const serversRef    = useRef(servers);
+  const kitchenRef    = useRef(kitchen);
+  const salaryAccruedRef = useRef({ total: 0, perPerson: {} });
 
   useEffect(() => { stockRef.current      = stock;      }, [stock]);
   useEffect(() => { cashRef.current       = cash;       }, [cash]);
@@ -499,6 +523,20 @@ export default function App(){
   useEffect(() => { queueRef.current      = queue;      }, [queue]);
   useEffect(() => { waitlistRef.current   = waitlist;   }, [waitlist]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
+  useEffect(() => { serversRef.current    = servers;    }, [servers]);
+  useEffect(() => { kitchenRef.current    = kitchen;    }, [kitchen]);
+
+  useEffect(() => {
+    if (isLoaded && cash < 0) setIsGameOver(true);
+  }, [isLoaded, cash]);
+
+  const onSalaryAccrue = useCallback((amount, perPerson) => {
+    const acc = salaryAccruedRef.current;
+    acc.total += amount;
+    for (const [name, wages] of Object.entries(perPerson)) {
+      acc.perPerson[name] = (acc.perPerson[name] ?? 0) + wages;
+    }
+  }, []);
 
   /* ── Pause lors des dialogues ───────────────────────── */
   useEffect(() => {
@@ -555,7 +593,7 @@ export default function App(){
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef, pausedRef });
   useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, pausedRef });
-  useSalary     ({ setServers, setKitchen, setCash, setLoan, addTx, addToast, pausedRef });
+  useSalary     ({ serversRef, kitchenRef, onAccrue: onSalaryAccrue, pausedRef });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useEvents     ({
     stockRef, cashRef, complaintsRef, tablesRef,
@@ -629,8 +667,8 @@ export default function App(){
         const unlockedNames=newlyUnlocked.map(d=>d.name).join(", ");
         setTimeout(()=>addToast({
           icon:nd.icon,
-          title:`Niveau ${nd.l} — ${nd.name} !`,
-          msg:`🎉 ${nd.tables} tables débloquées${unlockedNames?` · 🍽 ${unlockedNames}`:""}`,
+          title:`${t("toast.levelUp",{level:nd.l})} — ${nd.name} !`,
+          msg:`🎉 ${t("app.tablesUnlocked",{n:nd.tables})}${unlockedNames?` · 🍽 ${unlockedNames}`:""}`,
           color:nd.color,
           tab:"tables",
         }),50);
@@ -654,7 +692,7 @@ export default function App(){
     addTx("revenu",`Récompense objectif : ${obj.title}`,obj.reward.cash);
     addRestoXp(obj.reward.xp);
     addToast({icon:obj.icon,title:`+${obj.reward.cash}€ · +${obj.reward.xp} XP`,
-      msg:`Objectif "${obj.title}" réclamé !`,color:C.green,tab:"objectives"});
+      msg:t("toast.objectiveClaimed",{title:obj.title}),color:C.green,tab:"objectives"});
   },[addTx,addRestoXp,addToast]);
 
 
@@ -668,8 +706,8 @@ export default function App(){
           <div style={{width:52,height:52,background:C.green,borderRadius:14,
             display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,
             animation:"pulse 1s ease-in-out infinite"}}>🍽</div>
-          <div style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>Chargement de la partie…</div>
-          <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Récupération de la sauvegarde</div>
+          <div style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>{t("app.loading")}</div>
+          <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>{t("app.saveLoading")}</div>
         </div>
       )}
       <style>{`
@@ -825,7 +863,7 @@ export default function App(){
                 letterSpacing:"-0.02em",lineHeight:1.2,
               }}>Le Grand Restaurant</div>
               <div style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap",marginTop:1,letterSpacing:"0.02em"}}>
-                {now.toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}
+                {now.toLocaleDateString(locale,{weekday:"short",day:"numeric",month:"short"})}
               </div>
             </div>
           </div>
@@ -872,7 +910,7 @@ export default function App(){
                 {gameTime?.str??"08h00"}
               </div>
               <div style={{fontSize:8,color:C.muted,whiteSpace:"nowrap",marginTop:1}}>
-                {phase?.icon??""} {phase?.label??""}
+                {phase?.icon??""} {t("phase."+(phase?.id??""))}
               </div>
             </div>
             <button onClick={()=>setShowHelp(true)} title="Guide utilisateur" style={{
@@ -1169,10 +1207,10 @@ export default function App(){
             <div style={{padding:"18px 22px",borderBottom:`1px solid ${C.border}`,
               display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
               <div>
-                <div style={{fontSize:17,fontWeight:700,color:C.ink,fontFamily:F.title}}>💰 Grand livre</div>
+                <div style={{fontSize:17,fontWeight:700,color:C.ink,fontFamily:F.title}}>{t("app.ledger")}</div>
                 <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                  Solde actuel : <span style={{fontWeight:700,color:cash<200?C.red:C.green}}>
-                    {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+                  {t("app.balance")} <span style={{fontWeight:700,color:cash<200?C.red:C.green}}>
+                    {cash.toLocaleString(locale,{minimumFractionDigits:2})} €
                   </span>
                 </div>
               </div>
@@ -1187,15 +1225,15 @@ export default function App(){
               return(
                 <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
                   {[
-                    {label:"Recettes",val:totalIn,c:C.green,bg:C.greenP,icon:"📈"},
-                    {label:"Dépenses",val:totalOut,c:C.red,bg:C.redP,icon:"📉"},
-                    {label:"Résultat",val:totalIn-totalOut,c:totalIn-totalOut>=0?C.green:C.red,bg:totalIn-totalOut>=0?C.greenP:C.redP,icon:"⚖️"},
+                    {k:"revenue",val:totalIn,c:C.green,bg:C.greenP,icon:"📈"},
+                    {k:"expenses",val:totalOut,c:C.red,bg:C.redP,icon:"📉"},
+                    {k:"result",val:totalIn-totalOut,c:totalIn-totalOut>=0?C.green:C.red,bg:totalIn-totalOut>=0?C.greenP:C.redP,icon:"⚖️"},
                   ].map(s=>(
-                    <div key={s.label} style={{flex:1,background:s.bg,padding:"10px 14px",textAlign:"center",
+                    <div key={s.k} style={{flex:1,background:s.bg,padding:"10px 14px",textAlign:"center",
                       borderRight:`1px solid ${C.border}`}}>
-                      <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:2}}>{s.icon} {s.label}</div>
+                      <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:2}}>{s.icon} {t("app."+s.k)}</div>
                       <div style={{fontSize:14,fontWeight:700,color:s.c,fontFamily:F.title}}>
-                        {s.val>=0?"+":""}{s.val.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+                        {s.val>=0?"+":""}{s.val.toLocaleString(locale,{minimumFractionDigits:2})} €
                       </div>
                     </div>
                   ))}
@@ -1206,12 +1244,13 @@ export default function App(){
             <div style={{overflowY:"auto",flex:1,padding:"8px 0"}}>
               {transactions.length===0?(
                 <div style={{padding:24,textAlign:"center",color:C.muted,fontFamily:F.body,fontSize:13}}>
-                  Aucune transaction
+                  {t("app.noTransactions")}
                 </div>
               ):transactions.map(tx=>{
                 const isIn=tx.type==="revenu";
                 const typeColors={revenu:C.green,achat:C.terra,salaire:C.navy};
                 const typeIcons={revenu:"💶",achat:"🛒",salaire:"💸"};
+                const typeLabels={revenu:t("app.revenue"),achat:t("stats.expPurchase"),salaire:t("stats.expSalary"),remboursement:t("app.loanRepayment"),pret:t("app.loanMonthly")};
                 const c=typeColors[tx.type]||C.muted;
                 const hm=tx.gameTime??"—";
                 return(
@@ -1228,12 +1267,12 @@ export default function App(){
                         {tx.label}
                       </div>
                       <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                        {hm} · {tx.type}
+                        {hm} · {typeLabels[tx.type]||tx.type}
                       </div>
                     </div>
                     <div style={{fontSize:13,fontWeight:700,color:isIn?C.green:C.red,
                       fontFamily:F.title,flexShrink:0}}>
-                      {isIn?"+":"-"}{tx.amount.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+                      {isIn?"+":"-"}{tx.amount.toLocaleString(locale,{minimumFractionDigits:2})} €
                     </div>
                   </div>
                 );
@@ -1253,25 +1292,25 @@ export default function App(){
             boxShadow:"0 24px 60px rgba(0,0,0,0.3)",textAlign:"center"}}>
             <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
             <div style={{fontSize:18,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8}}>
-              Nouvelle partie ?
+              {t("app.newGame")}
             </div>
             <div style={{fontSize:13,color:C.muted,fontFamily:F.body,marginBottom:24,lineHeight:1.6}}>
-              Toute la progression sera effacée.<br/>
-              Cette action est <strong>irréversible</strong>.
+              {t("app.newGameWarning")}<br/>
+              {t("app.irreversible")}
             </div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
               <button onClick={()=>setShowResetModal(false)} style={{
                 padding:"10px 22px",borderRadius:9,border:`1.5px solid ${C.border}`,
                 background:C.bg,color:C.muted,cursor:"pointer",
                 fontSize:13,fontWeight:600,fontFamily:F.body}}>
-                Annuler
+                {t("app.cancel")}
               </button>
               <button onClick={doReset} style={{
                 padding:"10px 22px",borderRadius:9,border:"none",
                 background:C.red,color:"#fff",cursor:"pointer",
                 fontSize:13,fontWeight:700,fontFamily:F.body,
                 boxShadow:`0 4px 14px ${C.red}55`}}>
-                🗑 Recommencer
+                {t("app.restart")}
               </button>
             </div>
           </div>
@@ -1286,7 +1325,36 @@ export default function App(){
           servers={servers}
           menu={menu}
           transactions={transactions}
-          isRecord={summaryIsRecord}/>
+          isRecord={summaryIsRecord}
+          salaryData={salaryAccruedRef.current}/>
+      )}
+
+      {/* Game over — trésorerie négative */}
+      {isGameOver && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",
+          zIndex:99998,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:C.surface,borderRadius:22,width:"100%",maxWidth:420,
+            textAlign:"center",padding:"48px 32px",
+            boxShadow:"0 32px 80px rgba(0,0,0,0.5)",animation:"popIn 0.4s ease"}}>
+            <div style={{fontSize:64,marginBottom:16}}>💸</div>
+            <div style={{fontSize:30,fontWeight:800,color:C.red,fontFamily:F.title,marginBottom:10}}>
+              {t("gameover.title")}
+            </div>
+            <div style={{fontSize:14,color:C.muted,fontFamily:F.body,marginBottom:36,lineHeight:1.7}}>
+              {t("gameover.msg")}
+            </div>
+            <div style={{fontSize:13,fontWeight:700,color:C.red,fontFamily:F.title,marginBottom:28}}>
+              {cash.toLocaleString(locale,{minimumFractionDigits:2})} €
+            </div>
+            <button onClick={doReset} style={{
+              padding:"14px 40px",borderRadius:12,border:"none",
+              background:C.red,color:"#fff",cursor:"pointer",
+              fontSize:15,fontWeight:700,fontFamily:F.body,
+              boxShadow:`0 4px 20px ${C.red}55`}}>
+              {t("app.restart")}
+            </button>
+          </div>
+        </div>
       )}
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>

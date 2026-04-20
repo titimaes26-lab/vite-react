@@ -8,9 +8,10 @@
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect } from "react";
 import { C, F } from "../constants/gameData.js";
+import { useLang } from "../i18n/index.jsx";
 
 /* ─── Config des personnages ─────────────────────────── */
-const SPEAKERS = {
+const SPEAKERS_FR = {
   elodie: {
     name: "Élodie",
     title: "Assistante de gestion",
@@ -25,6 +26,10 @@ const SPEAKERS = {
     color: "#b85520",
     bubble: { left: "43%", top: "3%", width: "54%", height: "44%" },
   },
+};
+const SPEAKERS_EN = {
+  elodie: { ...SPEAKERS_FR.elodie, title: "Management Assistant" },
+  gustave: { ...SPEAKERS_FR.gustave, title: "Head Chef" },
 };
 
 /* ═══════════════════════════════════════════════════════
@@ -518,9 +523,478 @@ const KITCHEN_DIALOG = [
 ];
 
 /* ═══════════════════════════════════════════════════════
+   ENGLISH DIALOG DATA
+═══════════════════════════════════════════════════════ */
+const INTRO_DIALOG_EN = [
+  {
+    speaker: "elodie",
+    text: "Hello! I'm Élodie, your management assistant. I've analyzed the numbers for this place… Let's say 'potential' is a polite word for 'imminent financial disaster.'",
+    short: "I'm Élodie. This place has 'potential'… aka imminent financial disaster.",
+  },
+  {
+    speaker: "elodie",
+    text: "My role is to ensure we don't go bankrupt before the end of the week. Yours is to make the strategic decisions. And his…",
+    short: "Me: avoid bankruptcy. You: strategic decisions. And him…",
+    note: "Gustave bursts in!",
+  },
+  {
+    speaker: "gustave",
+    text: "Outrageous! There isn't a single grain of Guérande salt in this kitchen! How am I supposed to work under these conditions?",
+    short: "Outrageous! Not one grain of Guérande salt here! How can I work like this?!",
+  },
+  {
+    speaker: "elodie",
+    text: "Gustave, meet our new owner. You know, the person who actually has money to buy your salt.",
+    short: "Gustave, meet the Boss. The one with money to buy your salt.",
+  },
+  {
+    speaker: "gustave",
+    text: "The Boss! Delighted! I'm Gustave, the true beating heart of this establishment. The local legend of pepper sauce!",
+    short: "The Boss! I'm Gustave, the heart of this establishment. The legend of pepper sauce!",
+  },
+  {
+    speaker: "elodie",
+    text: "And the local legend of unpaid butter bills…",
+  },
+  {
+    speaker: "gustave",
+    text: "Details! My plan is simple: we create the most divine menu in the region, and glory will be ours!",
+    short: "Details! The plan: the most divine menu in the region. Glory awaits!",
+  },
+  {
+    speaker: "elodie",
+    text: "My plan is more realistic: two tables, the stove fixed, and dishes with a positive margin. That's where you come in, Boss.",
+    short: "My plan: two tables, stove fixed, profitable dishes. That's where you come in.",
+  },
+  {
+    speaker: "gustave",
+    text: "Come on, Boss! Don't listen to her, she talks like a spreadsheet. Build me a proper kitchen, and I promise you miracles!",
+    short: "Come on! She talks in spreadsheets. Build a real kitchen and I promise miracles!",
+    note: "Both turn toward you…",
+  },
+  {
+    speaker: "elodie",
+    text: "Glory or profit… It's up to you to choose where to begin.",
+    isLast: true,
+  },
+];
+
+const TABLES_DIALOG_EN = [
+  {
+    speaker: "elodie",
+    section: "The Art of Hospitality",
+    text: "Boss, open the Tables tab. This is where theory meets reality. Customers arrive in groups every 30 seconds — with a 65% chance of walking through the door.",
+    short: "Open Tables. Customers arrive every 30s — 65% chance of walking in.",
+  },
+  {
+    speaker: "gustave",
+    text: "And when they come in, it's for pure bliss! But see that patience bar? If it turns red and hits zero, they leave… and my genius is wasted on ingrates who couldn't wait!",
+    short: "See that patience bar? If it hits zero, they leave — and my genius is wasted!",
+  },
+  {
+    speaker: "elodie",
+    text: "More importantly, they leave without paying. To avoid this drama: click on a table to open its detail panel. That's your control tower.",
+    short: "They leave without paying! Click on a table to open its detail panel.",
+  },
+  {
+    speaker: "elodie",
+    section: "The Service Cycle",
+    text: "The process runs like clockwork. The server takes the order, then as soon as you serve the plates, the table switches to 🍴 Dining mode.",
+    short: "Server takes order, you serve, table switches to 🍴 Dining.",
+  },
+  {
+    speaker: "gustave",
+    text: "The sacred moment! The silence of tasting… broken only by the sound of cutlery.",
+    short: "The sacred moment! The silence of tasting…",
+  },
+  {
+    speaker: "elodie",
+    text: "Then comes my favourite part: collecting the bill. But don't rest yet! A server must clean the table before a new group can sit down.",
+    short: "Then the payout! But a server must clean the table before the next group.",
+  },
+  {
+    speaker: "gustave",
+    section: "Space Optimisation",
+    text: "Boss, I have visions of royal banquets! Two chairs is for shy dates. We need room for greatness!",
+    short: "Two chairs is for shy dates. We need room for greatness!",
+  },
+  {
+    speaker: "elodie",
+    text: "For once, he's not wrong. On each free table, a button lets you increase capacity. More seats = larger groups = more revenue.",
+    short: "On each table, a button increases capacity. More seats = more customers = more revenue.",
+  },
+  {
+    speaker: "elodie",
+    text: "Keep an eye on space: arriving groups will never exceed your maximum capacity. Only two-seat tables? You'll miss the large parties that bring in the most money.",
+    short: "Groups never exceed your capacity. Only two-seaters? You'll miss the big, high-spending parties.",
+  },
+  {
+    speaker: "gustave",
+    text: "Come on, Boss! Push the walls, fill the place, and let me dazzle them!",
+    isLast: true,
+  },
+];
+
+const SERVERS_DIALOG_EN = [
+  {
+    speaker: "elodie",
+    section: "Staff & Burnout",
+    text: "Let's talk human resources. For now, we have 2 servers — the bare minimum to avoid looking like a cafeteria. More slots will unlock as the restaurant levels up.",
+    short: "2 servers for now. More slots unlock as the restaurant levels up.",
+  },
+  {
+    speaker: "gustave",
+    text: "My dishes are poetry, Boss! We need worthy messengers to carry them. But look at them… they seem tired.",
+    short: "My dishes are poetry. We need worthy messengers. But look at them… they seem tired.",
+  },
+  {
+    speaker: "elodie",
+    text: "That's normal, Gustave. An active server loses 1 morale point every 5 minutes. Below 10, it's 💀 Burnout: useless and unavailable. Only servers with solid morale are auto-assigned.",
+    short: "Morale −1pt/5min. Below 10: 💀 Burnout — unusable. Only solid-morale servers are auto-assigned.",
+  },
+  {
+    speaker: "gustave",
+    text: "Outrageous! You can't serve lobster with a miserable face! Let them take breaks to recover morale. An artist needs rest!",
+    short: "You can't serve lobster with a miserable face! Breaks for morale. An artist needs rest!",
+  },
+  {
+    speaker: "elodie",
+    text: "And the owner needs savings. Servers are paid every real-world hour, but only when active. On break or resting, they cost nothing. Time to be an efficient manager.",
+    short: "Wages only when active. On break, they cost nothing. Manage smartly!",
+  },
+  {
+    speaker: "gustave",
+    section: "Training & Growth",
+    text: "What if we turned them into true masters? Sommelier skills, VIP Prestige, Speed so they run as fast as my inspiration!",
+    short: "What if we trained them? Sommelier, VIP, Speed — as fast as my inspiration!",
+  },
+  {
+    speaker: "elodie",
+    text: "Hospitality and Wellbeing training are just as crucial. They improve specialities and raise maximum morale. The better-trained they are, the less they break down.",
+    short: "Hospitality and Wellbeing improve specialities and max morale. Better trained = fewer burnouts.",
+  },
+  {
+    speaker: "gustave",
+    text: "Experience, Boss! Every time a bill is collected, they earn XP. And the higher their level, the more generous customers are with tips.",
+    short: "Every payout: +XP. Higher level = more generous tips!",
+  },
+  {
+    speaker: "elodie",
+    text: "In summary: manage their fatigue, invest in their training, and watch your wage bill. Your move, Boss.",
+    short: "Manage fatigue, train them, watch the wage bill. Your move, Boss!",
+    isLast: true,
+  },
+];
+
+const BANK_DIALOG_EN = [
+  {
+    speaker: "gustave",
+    section: "Financial Leverage",
+    text: "Élodie, I want to think big for the new terrace, but my savings are a bit… timid. Any options to boost the budget?",
+    short: "I want to think big, but my savings are timid. Options to boost the budget?",
+  },
+  {
+    speaker: "elodie",
+    text: "That's called financial leverage, Gustave. I have 3 bank loan options ready: the Small loan (€1,500) for minor expenses, the Standard (€4,000) for serious projects, and the Large loan (€9,000) if you really want to renovate from floor to ceiling.",
+    short: "3 loans available: Small (€1,500), Standard (€4,000), Large (€9,000). Choose based on your ambitions!",
+  },
+  {
+    speaker: "gustave",
+    text: "€9,000! That's a lot of pizzas. And how do I pay it back? I don't want a bailiff in the kitchen.",
+    short: "€9,000! And how do I repay it? No bailiffs in the kitchen!",
+  },
+  {
+    speaker: "elodie",
+    text: "It's painless. Repayment is automatic via daily instalments: one instalment deducted at the end of each day. Golden rule: only one active loan at a time. To take another, you'll need to make an early repayment first.",
+    short: "Auto-repayment — one instalment per day. Only one active loan at a time.",
+  },
+  {
+    speaker: "gustave",
+    text: "Alright, I'll think about it. And what about costs? What do wages look like tonight?",
+  },
+  {
+    speaker: "elodie",
+    text: "No panic, it's handled. Wages are automatically deducted every real-world hour. I only pay active staff. That sous-chef you haven't unlocked yet? Not a single cent.",
+    short: "Wages auto-deducted each hour, only for active staff. Not unlocked? Zero cost.",
+  },
+  {
+    speaker: "gustave",
+    text: "Thank goodness! I was afraid of paying people who just watch the flies on the wall.",
+  },
+  {
+    speaker: "elodie",
+    text: "Not here. If the staff works, money goes out. If you send everyone home, the meter stops. It's just-in-time, Gustave — exactly like your cooking!",
+    short: "Staff active = money out. At rest, the meter stops. Just-in-time, like your cooking!",
+    isLast: true,
+  },
+];
+
+const STATS_DIALOG_EN = [
+  {
+    speaker: "gustave",
+    section: "The Numbers Verdict",
+    text: "So, Élodie, tell me the truth. We had a packed house, but is the till keeping up?",
+    short: "Tell me the truth, Élodie. Is the till keeping up?",
+  },
+  {
+    speaker: "elodie",
+    text: "Look at the Statistics tab. I've displayed 3 interactive charts. In blue, your Revenue is climbing, in green, your Served Customers are following… and in gold, your Reputation is taking off.",
+    short: "Statistics tab: 3 charts. Revenue in blue, Customers in green, Reputation in gold.",
+  },
+  {
+    speaker: "gustave",
+    text: "It's a bit cramped on screen, isn't it? I can't see much.",
+  },
+  {
+    speaker: "elodie",
+    text: "That's because you're in wide view. Use the 5-day Selector. If you want to analyse tonight's rush in detail, switch to 3-day Zoom. More readable, right?",
+    short: "Too wide? Use the 5-day Selector or 3-day Zoom for better readability.",
+  },
+  {
+    speaker: "gustave",
+    text: "Ah yes, much clearer. And the day's verdict?",
+  },
+  {
+    speaker: "elodie",
+    text: "Here's your Income Statement: revenue collected on one side, expenses on the other… and the Net Result in bold. The average basket is up: your customers are spending a bit more than usual — good sign!",
+    short: "Revenue vs expenses, Net Result in bold. Average basket up: good sign!",
+  },
+  {
+    speaker: "gustave",
+    text: "Wait, what's that big colourful circle next to it?",
+  },
+  {
+    speaker: "elodie",
+    text: "That's your Revenue Breakdown chart: it shows where your income comes from by category. Also check the Active Wage Bill — it shows the daily cost breakdown in €/day for the chef, sous-chefs, and servers.",
+    short: "The pie chart shows revenue by category. Also check the Wage Bill — €/day breakdown by role.",
+  },
+  {
+    speaker: "gustave",
+    text: "Look at the Daily Table at the bottom — did we lose any customers?",
+  },
+  {
+    speaker: "elodie",
+    text: "Today's row is highlighted so you don't miss it. We have a 95% service rate (the bar is nicely green), but we lost 3 customers due to wait times. Compared to recent days, we're still in our best average.",
+    short: "95% service rate ✅, but 3 customers lost to waiting. Still in our best average.",
+  },
+  {
+    speaker: "gustave",
+    text: "95%? That's almost perfect. Right, close all that — tomorrow we aim for 100%!",
+    isLast: true,
+  },
+];
+
+const OBJECTIVES_DIALOG_EN = [
+  {
+    speaker: "gustave",
+    section: "Trophy Hunting",
+    text: "Tell me, Élodie, I feel like I've done a titan's work today. Don't we have something to mark the occasion?",
+    short: "I've done a titan's work today! Don't we have something to mark the occasion?",
+  },
+  {
+    speaker: "elodie",
+    text: "Look at the Objectives tab, Gustave. See that little red badge blinking? It doesn't mean the oven is on fire — it means you have rewards waiting.",
+    short: "Objectives tab: that blinking red badge? Rewards are waiting for you!",
+  },
+  {
+    speaker: "gustave",
+    text: "Ah! I love when things shine. What's on the rewards menu?",
+  },
+  {
+    speaker: "elodie",
+    text: "You have your Daily Challenges. There are 3 each day, drawn at random. You've already completed 'Flawless Service' and 'Pasta Master'. The milestones on the progress bar have turned gold.",
+    short: "3 daily challenges drawn at random. You've already completed two: milestones are gold on the bar!",
+  },
+  {
+    speaker: "gustave",
+    text: "Magnificent! And what does that earn me, concretely? Will my bank manager like me more?",
+  },
+  {
+    speaker: "elodie",
+    text: "Absolutely. Each completed objective gives you cold hard cash, but also restaurant XP to level up. But it doesn't just fall into your pocket.",
+    short: "Each objective = cash + restaurant XP. But it doesn't just fall into your pocket!",
+  },
+  {
+    speaker: "gustave",
+    text: "Oh? Is there a catch?",
+  },
+  {
+    speaker: "elodie",
+    text: "No catch, just a click. You need to click Collect to cash in your earnings. Otherwise, it's like leaving a tip on the table: it ends up disappearing at the next challenge renewal.",
+    short: "Click Collect to cash in. Otherwise your earnings disappear at the next renewal!",
+  },
+  {
+    speaker: "gustave",
+    text: "No way am I leaving a cent behind! And the third challenge? The one that isn't gold yet?",
+    short: "Not leaving a cent! And the third challenge, not yet gold?",
+  },
+  {
+    speaker: "elodie",
+    text: "If you manage your stock well, the red badge will alert you as soon as the reward is ready. Keep an eye on it and collect before the challenge expires.",
+    short: "The red badge alerts you when the reward is ready. Collect before the challenge expires!",
+  },
+  {
+    speaker: "gustave",
+    text: "Right, let's do it. Hit that Collect button for me — I want to hear the sound of coins!",
+    isLast: true,
+  },
+];
+
+const STOCK_DIALOG_EN = [
+  {
+    speaker: "gustave",
+    section: "The 7pm Rush",
+    text: "Élodie, I have a dreadful feeling. I think we're emptying the fridge faster than we're filling it. Where do we stand?",
+    short: "I think we're emptying the fridge faster than we fill it. Where do we stand?",
+  },
+  {
+    speaker: "elodie",
+    text: "Breathe, Gustave. I'm switching the screen to 📊 Graph View. See those horizontal bars: sorted by urgency. The shorter the bar, the closer we are to culinary disaster.",
+    short: "Graph View 📊: bars sorted by urgency. Shorter bar = more critical!",
+  },
+  {
+    speaker: "gustave",
+    text: "What's that big glowing block with the crystal ball?",
+  },
+  {
+    speaker: "elodie",
+    text: "That's the 🔮 block. It calculates how many meals we can still make with what's left. For cherry tomatoes, we're in ⛔ Red: fewer than 3 meals possible. Basically, we're bone dry.",
+    short: "The 🔮 block shows remaining meals. Cherry tomatoes: ⛔ Red — fewer than 3 meals. Bone dry!",
+  },
+  {
+    speaker: "gustave",
+    text: "Panic stations! And the rest?",
+  },
+  {
+    speaker: "elodie",
+    text: "Basil is at ⚠ Orange — 7 or 8 dishes possible. Mozzarella is at ✓ Green — we could feed a regiment. More than 10 meals guaranteed.",
+    short: "Basil ⚠ Orange (7-8 dishes), mozzarella ✓ Green (10+ dishes). Order the red items urgently!",
+  },
+  {
+    speaker: "gustave",
+    text: "No, leave it — the graph scares me but it's clear. We need to order. Now!",
+  },
+  {
+    speaker: "elodie",
+    text: "I've got my finger on the 🛒 Order button. The system will target the most critical ingredients. Are we playing it safe or going for survival?",
+    short: "The 🛒 Order button targets critical ingredients. Safe play or emergency mode?",
+  },
+  {
+    speaker: "gustave",
+    text: "Meaning?",
+  },
+  {
+    speaker: "elodie",
+    text: "Either 🚚 Local Supplier: −20% off the bill, but 2-minute wait. Or ⚡ Premium Wholesaler: full price, but immediate delivery.",
+    short: "🚚 Local: −20% but 2min wait. ⚡ Premium: full price, immediate delivery.",
+  },
+  {
+    speaker: "gustave",
+    text: "2 minutes? In a kitchen, that's an eternity! But for a 20% saving, I'll keep the customer busy with an amuse-bouche. Let's go local!",
+    short: "2 min is an eternity! But for 20% savings, we wait. Let's go local!",
+  },
+  {
+    speaker: "elodie",
+    text: "Confirmed. While we wait, I'm switching stock back to ☰ List View — more compact. For everything else, we're fine. Sort by Category to navigate easily.",
+    short: "Confirmed. Switching to ☰ List View — more compact. Sort by Category to navigate.",
+    isLast: true,
+  },
+];
+
+const MENU_DIALOG_EN = [
+  {
+    speaker: "elodie",
+    section: "The Menu Alchemy",
+    text: "Boss, it's time to structure our offer. We have three levers: the 📋 Menu for individual dishes, 🍽 Combos for strategic bundles, and 🎨 Themes to set the overall ambiance of our kitchen.",
+  },
+  {
+    speaker: "gustave",
+    text: "And above all, freedom! I just doubled the price of my Lobster Thermidor. Art has no price, does it?",
+  },
+  {
+    speaker: "elodie",
+    text: "Art has a price the customer is willing to pay, Gustave. Boss, you can adjust prices on each item card. Note that new prices only apply to future orders. We don't change the bill for a customer who's already eating!",
+    short: "Adjust prices on each card. New prices apply to future orders only.",
+  },
+  {
+    speaker: "gustave",
+    text: "Look, I also clicked this little ⏸ button. My French Onion Soup was boring me this morning, so I paused it. Gone! Vanished!",
+    short: "I clicked ⏸ on the Onion Soup this morning. Gone! Vanished!",
+  },
+  {
+    speaker: "elodie",
+    text: "Exactly. The ⏸ button deactivates the dish: it stays in our archives, but customers won't order it anymore. Handy for managing stock… or the Chef's whims.",
+    short: "⏸ deactivates the dish: archived, no longer ordered. Handy for stock… or the Chef's whims.",
+  },
+  {
+    speaker: "gustave",
+    text: "And look at this magnificent 🔥 Badge! The consecration! My Filet Mignon is the star of the neighbourhood!",
+  },
+  {
+    speaker: "elodie",
+    text: "That badge rewards the composite score. To earn it, the Boss must balance: 40% gross margin (the money left in the till), 40% popularity (customer enjoyment), 20% availability (having the ingredients in stock).",
+    short: "🔥 Badge = composite score: 40% margin, 40% popularity, 20% stock availability.",
+  },
+  {
+    speaker: "gustave",
+    text: "Margin, stock… You talk like a grocer! Boss, chase the fire! Chase the 🔥! It's what will make us kings!",
+    short: "You talk like a grocer! Boss, chase the 🔥 — it will make us kings!",
+  },
+  {
+    speaker: "elodie",
+    text: "And it's the margin that will pay for the gas for your stoves. Priorities are yours, Boss.",
+    short: "The margin pays for the gas for your stoves. Priorities are yours, Boss.",
+    isLast: true,
+  },
+];
+
+const KITCHEN_DIALOG_EN = [
+  {
+    speaker: "gustave",
+    section: "Sacred Fire… and Rigour",
+    text: "Look at this beauty, Boss! It's just waiting for my talent. To start the magic, simply click on a dish or 'Start All' to fire up every burner at once!",
+    short: "It's waiting for my talent! Click a dish or 'Start All' to fire up every burner!",
+  },
+  {
+    speaker: "elodie",
+    text: "It's mainly a question of space optimisation. An empty burner is a burner costing us money. Fill the free hobs, but don't let your ego run wild, Gustave.",
+    short: "An empty burner costs money. Fill the free hobs, without excessive ego.",
+  },
+  {
+    speaker: "gustave",
+    text: "Run wild? Never! As soon as the little ✅ READY appears on every dish of the same order, it's showtime! Click 🍽 Serve and the dining room lights up with flavour!",
+    short: "When ✅ READY shows on all dishes of an order, click 🍽 Serve and the dining room lights up!",
+  },
+  {
+    speaker: "elodie",
+    text: "And most importantly, the customer enters the dining phase, which finally brings us closer to collecting the bill. That's the crucial step.",
+    short: "The customer enters dining phase — we're closer to collecting the bill. Crucial step!",
+  },
+  {
+    speaker: "gustave",
+    text: "It's also the step of my personal glory! Every dish sent earns me +12 XP. I become more legendary every day!",
+    short: "My glory! Every dish sent: +12 XP. I become more legendary every day!",
+  },
+  {
+    speaker: "elodie",
+    text: "Don't forget your sous-chefs, Gustave. They're not in it for the glory, but they're learning at your side. They earn 40% of your experience. When they grow, the establishment grows.",
+    short: "Sous-chefs earn 40% of your XP. Their progress is yours!",
+  },
+  {
+    speaker: "gustave",
+    text: "40%? That's generous! Right, Boss, enough theory! The burners are cold, the customers are hungry, and my talent is itching with impatience… Shall we fire up the first order?",
+    short: "40%? Generous! Enough theory — burners are cold and my talent is itching! Let's go?",
+    isLast: true,
+  },
+];
+
+/* ═══════════════════════════════════════════════════════
    COMPOSANT GÉNÉRIQUE — DialogScene
 ═══════════════════════════════════════════════════════ */
-function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
+function DialogScene({ dialogData, ctaLabel = "OK", onDone }) {
+  const { lang, t } = useLang();
+  const SPEAKERS = lang === "en" ? SPEAKERS_EN : SPEAKERS_FR;
+
   const [step,     setStep]     = useState(0);
   const [visible,  setVisible]  = useState(false);
   const [textAnim, setTextAnim] = useState(true);
@@ -534,14 +1008,14 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 80);
-    return () => clearTimeout(t);
+    const tm = setTimeout(() => setVisible(true), 80);
+    return () => clearTimeout(tm);
   }, []);
 
   useEffect(() => {
     setTextAnim(false);
-    const t = setTimeout(() => setTextAnim(true), 60);
-    return () => clearTimeout(t);
+    const tm = setTimeout(() => setTextAnim(true), 60);
+    return () => clearTimeout(tm);
   }, [step]);
 
   const line   = dialogData[step];
@@ -594,7 +1068,7 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
           fontSize: 11, cursor: "pointer", fontFamily: F.body, zIndex: 1,
         }}
       >
-        Passer ›
+        {t("dialog.skip")}
       </button>
 
       <div
@@ -709,7 +1183,7 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
             fontFamily: F.body,
             animation: "tapPulse 2s ease-in-out infinite",
           }}>
-            {!isLast && "Toucher pour continuer ▶"}
+            {!isLast && t("dialog.tapContinue")}
           </div>
         </div>
 
@@ -757,7 +1231,7 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
                 fontSize: 10, color: "rgba(255,255,255,0.35)",
                 fontFamily: F.body,
               }}>
-                {nextSp.name} répond…
+                {t("dialog.nextSpeaker", { name: nextSp.name })}
               </div>
             )}
 
@@ -777,7 +1251,7 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
                 letterSpacing: "0.01em",
               }}
             >
-              {isLast ? `✅ ${ctaLabel}` : "Suivant →"}
+              {isLast ? `✅ ${ctaLabel}` : t("dialog.next")}
             </button>
           </div>
         </div>
@@ -798,92 +1272,63 @@ function DialogScene({ dialogData, ctaLabel = "Compris !", onDone }) {
 }
 
 /* ─── Exports ────────────────────────────────────────── */
+function useDialogCta(key) {
+  const { lang, t } = useLang();
+  return t(key + "Tutorial.cta") !== key + "Tutorial.cta"
+    ? t(key + "Tutorial.cta")
+    : t("intro.cta");
+}
+
 export function IntroDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={INTRO_DIALOG}
-      ctaLabel="Commencer !"
-      onDone={onDone}
-    />
-  );
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? INTRO_DIALOG_EN : INTRO_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("intro.cta")} onDone={onDone} />;
 }
 
 export function TablesDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={TABLES_DIALOG}
-      ctaLabel="À table !"
-      onDone={onDone}
-    />
-  );
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? TABLES_DIALOG_EN : TABLES_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("tablesTutorial.cta")} onDone={onDone} />;
 }
 
 export function ServersDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={SERVERS_DIALOG}
-      ctaLabel="Gérer l'équipe !"
-      onDone={onDone}
-    />
-  );
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? SERVERS_DIALOG_EN : SERVERS_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("serversTutorial.cta")} onDone={onDone} />;
 }
 
 export function BankDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={BANK_DIALOG}
-      ctaLabel="On gère le budget !"
-      onDone={onDone}
-    />
-  );
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? BANK_DIALOG_EN : BANK_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("bankTutorial.cta")} onDone={onDone} />;
 }
 
 export function StatsDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={STATS_DIALOG}
-      ctaLabel="On vise le 100% !"
-      onDone={onDone}
-    />
-  );
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? STATS_DIALOG_EN : STATS_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("statsTutorial.cta")} onDone={onDone} />;
 }
 
 export function ObjectivesDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={OBJECTIVES_DIALOG}
-      ctaLabel="On réclame nos pièces !"
-      onDone={onDone}
-    />
-  );
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? OBJECTIVES_DIALOG_EN : OBJECTIVES_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("objectivesTutorial.cta")} onDone={onDone} />;
 }
 
 export function StockDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={STOCK_DIALOG}
-      ctaLabel="On gère le frigo !"
-      onDone={onDone}
-    />
-  );
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? STOCK_DIALOG_EN : STOCK_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("stockTutorial.cta")} onDone={onDone} />;
 }
 
 export function MenuDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={MENU_DIALOG}
-      ctaLabel="On compose la carte !"
-      onDone={onDone}
-    />
-  );
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? MENU_DIALOG_EN : MENU_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("menuTutorial.cta")} onDone={onDone} />;
 }
 
 export function KitchenDialog({ onDone }) {
-  return (
-    <DialogScene
-      dialogData={KITCHEN_DIALOG}
-      ctaLabel="On allume les feux !"
-      onDone={onDone}
-    />
-  );
+  const { lang, t } = useLang();
+  const dialogData = lang === "en" ? KITCHEN_DIALOG_EN : KITCHEN_DIALOG;
+  return <DialogScene dialogData={dialogData} ctaLabel={t("kitchenTutorial.cta")} onDone={onDone} />;
 }

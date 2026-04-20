@@ -20,6 +20,7 @@
 
 import { useEffect } from "react";
 import { FRESHNESS_DECAY } from "../constants/gameData.js";
+import { useLang } from "../i18n/index.jsx";
 
 export const useFreshness = ({
   stockRef,
@@ -28,6 +29,7 @@ export const useFreshness = ({
   setComplaints,
   addToast,
 }) => {
+  const { t } = useLang();
   useEffect(() => {
     const iv = setInterval(() => {
       const current = stockRef.current;
@@ -61,8 +63,8 @@ export const useFreshness = ({
       newlySpoiled.forEach(item => {
         addToast({
           icon:  "🗑",
-          title: "Aliment périmé !",
-          msg:   `${item.name} — 50% du stock perdu`,
+          title: t("toast.spoiled"),
+          msg:   t("toast.spoiledMsg", { name: item.name }),
           color: "#c0392b",
           tab:   "stock",
         });
@@ -72,7 +74,7 @@ export const useFreshness = ({
           table:  "-",
           server: "-",
           type:   "Hygiène",
-          desc:   `${item.name} périmé — 50% des stocks perdus`,
+          desc:   t("toast.spoiledDesc", { name: item.name }),
           status: "nouveau",
           prio:   "haute",
         }, ...p]);
@@ -82,5 +84,5 @@ export const useFreshness = ({
     return () => clearInterval(iv);
   // stockRef et kitchenRef sont des refs — stables, pas besoin dans deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setStock, setComplaints, addToast]);
+  }, [setStock, setComplaints, addToast, t]);
 };

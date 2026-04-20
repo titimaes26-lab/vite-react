@@ -671,7 +671,7 @@ export const GAME_EVENTS = [
       const alerts = stock.filter(s => s.qty <= s.alert).length;
       if (alerts >= 3) {
         const fine = 300;
-        setCash(c => Math.max(0, c - fine));
+        setCash(c => +(c - fine).toFixed(2));
         addTx("dépense", "Amende inspection sanitaire (infractions stock)", fine);
         setComplaints(p => [{
           id: Date.now(), date: new Date().toLocaleDateString("fr-FR"),

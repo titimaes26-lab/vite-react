@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { LangProvider, useLang } from "./src/i18n/index.jsx";
+import { LanguageSelect } from "./src/components/LanguageSelect.jsx";
 
 // ── Services ───────────────────────────────────────────
 import { saveGame, loadGame, SAVE_KEY } from "./src/services/persistence.js";
@@ -82,7 +84,16 @@ import { ComplaintsView } from "./src/views/ComplaintsView.jsx";
 import { StatsView }      from "./src/views/StatsView.jsx";
 import { ObjectivesView } from "./src/views/ObjectivesView.jsx";
 
-export default function App(){
+export default function App() {
+  return (
+    <LangProvider>
+      <AppContent />
+    </LangProvider>
+  );
+}
+
+function AppContent(){
+  const { lang, t: tl } = useLang();
   const bp=useBreakpoint();
   const _today = new Date().toLocaleDateString("fr-FR");
 
@@ -281,6 +292,7 @@ export default function App(){
   const [showResetModal,setShowResetModal]=useState(false);
   const [showSummary,setShowSummary]=useState(false);
   const [summaryIsRecord,setSummaryIsRecord]=useState(false);
+  const [salarySummary,setSalarySummary]=useState(null);
   const prevRevenueRef=useRef(0);
   const resetDayRef=useRef(null);
   // Résumé de fin de journée : s'affiche après 10 min de jeu réel
@@ -288,6 +300,8 @@ export default function App(){
   const summaryShownRef=useRef(false);
   const pausedRef     = useRef(false);
   const pauseStartRef = useRef(null);
+  const [isGameOver,setIsGameOver]=useState(false);
+  const salaryAccruedRef=useRef({ total: 0, perPerson: {} });
 
   /* ── Réinitialisation complète (sans reload) ────────── */
   const doReset = useCallback(() => {
@@ -322,6 +336,8 @@ export default function App(){
     setReputation(50);
     setWaitlist([]);
     setFormulas([]);
+    setIsGameOver(false);
+    salaryAccruedRef.current={ total: 0, perPerson: {} };
     setTab("tables");
     setShowResetModal(false);
     resetDayRef.current?.();
@@ -378,6 +394,17 @@ export default function App(){
 
   const addTx=useCallback((type,label,amount)=>{
     setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:gameTimeRef.current},...p].slice(0,200));
+  },[]);
+
+  useEffect(()=>{
+    if(isLoaded && cash < 0) setIsGameOver(true);
+  },[isLoaded, cash]);
+
+  const onSalaryAccrue=useCallback((total, perPerson)=>{
+    salaryAccruedRef.current.total+=total;
+    Object.entries(perPerson).forEach(([k,v])=>{
+      salaryAccruedRef.current.perPerson[k]=(salaryAccruedRef.current.perPerson[k]??0)+v;
+    });
   },[]);
 
   const updateReputation = useCallback((delta, reason="")=>{
@@ -645,6 +672,8 @@ export default function App(){
     const isRecord=today&&today.revenue>prevRevenueRef.current&&today.revenue>0;
     setSummaryIsRecord(isRecord);
     setObjStats(s=>s._hadLoss?s:{...s,perfectDays:(s.perfectDays||0)+1});
+    const sal=salaryAccruedRef.current;
+    setSalarySummary(sal.total>0?{ total: sal.total, perPerson: { ...sal.perPerson } }:null);
     setShowSummary(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[isDayOver, isLoaded]);
@@ -652,6 +681,7 @@ export default function App(){
   // Lancer une nouvelle journée (bouton dans DailySummaryModal)
   const startNewDay = useCallback(()=>{
     const now=Date.now();
+    const sal=salaryAccruedRef.current;
     try{localStorage.setItem("day_start",String(now));}catch(e){}
     setDayStartRealMs(now);
     resetDayRef.current?.();
@@ -659,10 +689,18 @@ export default function App(){
     setShowSummary(false);
     setDailyStats(p=>{
       const nextDay=(p[p.length-1]?.day||0)+1;
-      return [...p,{day:nextDay,served:0,lost:0,revenue:0}].slice(-15);
+      const withSal=p.length>0
+        ?[...p.slice(0,-1),{...p[p.length-1],salary:+(sal.total).toFixed(2)}]
+        :p;
+      return [...withSal,{day:nextDay,served:0,lost:0,revenue:0,salary:0}].slice(-15);
     });
     setObjStats(s=>({...s,_hadLoss:false}));
-  },[]);
+    if(sal.total>0){
+      setCash(c=>+(c-sal.total).toFixed(2));
+      addTx("dépense", tl("daily.salaries"), sal.total);
+    }
+    salaryAccruedRef.current={ total: 0, perPerson: {} };
+  },[addTx, tl]);
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef, pausedRef });
   useExpiry     ({ queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient: REP_DELTA.lostClient, pausedRef });
@@ -684,7 +722,7 @@ export default function App(){
     }, 500);
     return () => clearInterval(iv);
   }, [setTables, setServers]);
-  useSalary     ({ serversRef, kitchenRef, setCash, addTx, addToast, pausedRef });
+  useSalary     ({ serversRef, kitchenRef, onAccrue: onSalaryAccrue, pausedRef });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useFreshness  ({ stockRef, kitchenRef, setStock, setComplaints, addToast });
   useEvents     ({
@@ -768,6 +806,8 @@ export default function App(){
   const repTier    = getRepTier(reputation);
 
 
+  if (!lang) return <LanguageSelect />;
+
   return(
     <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:F.body}}>
       {/* Écran de chargement */}
@@ -777,8 +817,8 @@ export default function App(){
           <div style={{width:52,height:52,background:C.green,borderRadius:14,
             display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,
             animation:"pulse 1s ease-in-out infinite"}}>🍽</div>
-          <div style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>Chargement de la partie…</div>
-          <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Récupération de la sauvegarde</div>
+          <div style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>{tl("app.loading")}</div>
+          <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>{tl("app.saveLoading")}</div>
         </div>
       )}
       <style>{`
@@ -1062,7 +1102,7 @@ export default function App(){
               fontFamily:F.body,display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",
               boxShadow:loan?`0 2px 10px ${C.amber}66`:`0 2px 10px ${C.navy}44`,
               animation:loan?"bankPulse 2s ease-in-out infinite":"none"}}>
-              🏦 Banque
+              🏦 {tl("bank.title")}
             </button>
           </div>
 
@@ -1104,7 +1144,7 @@ export default function App(){
               position:"relative",
             }}>
               <span style={{fontSize:15,lineHeight:1}}>{t.icon}</span>
-              <span>{t.label}</span>
+              <span>{tl("tabs."+t.id)||t.label}</span>
               {badge>0&&(
                 <span className="badge-alert" style={{
                   background:C.red,color:"#fff",
@@ -1171,7 +1211,7 @@ export default function App(){
                 fontSize:9,fontWeight:active?700:400,fontFamily:F.body,
                 color:active?C.green:C.muted,
                 whiteSpace:"nowrap",letterSpacing:"0.01em",lineHeight:1,
-              }}>{t.label}</span>
+              }}>{tl("tabs."+t.id)||t.label}</span>
               {badge>0&&(
                 <span style={{
                   position:"absolute",top:4,right:"calc(50% - 18px)",
@@ -1228,9 +1268,9 @@ export default function App(){
             <div style={{padding:"18px 22px",borderBottom:`1px solid ${C.border}`,
               display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
               <div>
-                <div style={{fontSize:17,fontWeight:700,color:C.ink,fontFamily:F.title}}>💰 Grand livre</div>
+                <div style={{fontSize:17,fontWeight:700,color:C.ink,fontFamily:F.title}}>{tl("app.ledger")}</div>
                 <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                  Solde actuel : <span style={{fontWeight:700,color:cash<200?C.red:C.green}}>
+                  {tl("app.balance")} <span style={{fontWeight:700,color:cash<200?C.red:C.green}}>
                     {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
                   </span>
                 </div>
@@ -1246,9 +1286,9 @@ export default function App(){
               return(
                 <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
                   {[
-                    {label:"Recettes",val:totalIn,c:C.green,bg:C.greenP,icon:"📈"},
-                    {label:"Dépenses",val:totalOut,c:C.red,bg:C.redP,icon:"📉"},
-                    {label:"Résultat",val:totalIn-totalOut,c:totalIn-totalOut>=0?C.green:C.red,bg:totalIn-totalOut>=0?C.greenP:C.redP,icon:"⚖️"},
+                    {label:tl("app.revenue"),val:totalIn,c:C.green,bg:C.greenP,icon:"📈"},
+                    {label:tl("app.expenses"),val:totalOut,c:C.red,bg:C.redP,icon:"📉"},
+                    {label:tl("app.result"),val:totalIn-totalOut,c:totalIn-totalOut>=0?C.green:C.red,bg:totalIn-totalOut>=0?C.greenP:C.redP,icon:"⚖️"},
                   ].map(s=>(
                     <div key={s.label} style={{flex:1,background:s.bg,padding:"10px 14px",textAlign:"center",
                       borderRight:`1px solid ${C.border}`}}>
@@ -1265,7 +1305,7 @@ export default function App(){
             <div style={{overflowY:"auto",flex:1,padding:"8px 0"}}>
               {transactions.length===0?(
                 <div style={{padding:24,textAlign:"center",color:C.muted,fontFamily:F.body,fontSize:13}}>
-                  Aucune transaction
+                  {tl("app.noTransactions")}
                 </div>
               ):transactions.map(tx=>{
                 const isIn=tx.type==="revenu";
@@ -1312,25 +1352,25 @@ export default function App(){
             boxShadow:"0 24px 60px rgba(0,0,0,0.3)",textAlign:"center"}}>
             <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
             <div style={{fontSize:18,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8}}>
-              Nouvelle partie ?
+              {tl("app.newGame")}
             </div>
             <div style={{fontSize:13,color:C.muted,fontFamily:F.body,marginBottom:24,lineHeight:1.6}}>
-              Toute la progression sera effacée.<br/>
-              Cette action est <strong>irréversible</strong>.
+              {tl("app.newGameWarning")}<br/>
+              {tl("app.irreversible")}
             </div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
               <button onClick={()=>setShowResetModal(false)} style={{
                 padding:"10px 22px",borderRadius:9,border:`1.5px solid ${C.border}`,
                 background:C.bg,color:C.muted,cursor:"pointer",
                 fontSize:13,fontWeight:600,fontFamily:F.body}}>
-                Annuler
+                {tl("app.cancel")}
               </button>
               <button onClick={doReset} style={{
                 padding:"10px 22px",borderRadius:9,border:"none",
                 background:C.red,color:"#fff",cursor:"pointer",
                 fontSize:13,fontWeight:700,fontFamily:F.body,
                 boxShadow:`0 4px 14px ${C.red}55`}}>
-                🗑 Recommencer
+                {tl("app.restart")}
               </button>
             </div>
           </div>
@@ -1345,7 +1385,31 @@ export default function App(){
           servers={servers}
           menu={menu}
           transactions={transactions}
-          isRecord={summaryIsRecord}/>
+          isRecord={summaryIsRecord}
+          salaryData={salarySummary}/>
+      )}
+
+      {isGameOver&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",
+          zIndex:99998,display:"flex",flexDirection:"column",
+          alignItems:"center",justifyContent:"center",gap:24}}>
+          <div style={{fontSize:64,lineHeight:1}}>💸</div>
+          <div style={{fontSize:36,fontWeight:900,color:"#fff",fontFamily:F.title,
+            textAlign:"center",textShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
+            {tl("gameover.title")}
+          </div>
+          <div style={{fontSize:16,color:"rgba(255,255,255,0.75)",fontFamily:F.body,
+            textAlign:"center",maxWidth:320,lineHeight:1.6}}>
+            {tl("gameover.msg")}
+          </div>
+          <button onClick={doReset} style={{
+            padding:"14px 36px",borderRadius:12,border:"none",
+            background:C.red,color:"#fff",cursor:"pointer",
+            fontSize:18,fontWeight:700,fontFamily:F.title,
+            boxShadow:`0 6px 24px ${C.red}88`,marginTop:8}}>
+            {tl("app.restart")}
+          </button>
+        </div>
       )}
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
