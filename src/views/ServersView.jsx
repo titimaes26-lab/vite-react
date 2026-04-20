@@ -444,7 +444,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                     </div>
 
                     <div style={{display:"flex",gap:7}}>
-                      <Btn sm v="danger" onClick={()=>setCommisHireSlot(idx)}>{tr("kitchen.replace")}</Btn>
+                      <Btn sm v="danger" onClick={()=>setCommisHireSlot(idx)}>{tr("servers.fire")}</Btn>
                     </div>
                   </Card>
                 );
