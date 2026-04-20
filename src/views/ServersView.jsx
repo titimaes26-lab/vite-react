@@ -3,12 +3,13 @@
    Extrait du monolithe restaurant-manager.jsx
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
-import { useState } from "react";
-import { C, F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL, STAFF_QUALITY_REQ } from "../constants/gameData.js";
+import { useState, useEffect } from "react";
+import { C, F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL, STAFF_QUALITY_REQ,
+         CHEF_LVL, COMMIS_LVL, CHEF_TRAININGS, KITCHEN_UPGRADES, COMMIS_SPECIALTIES } from "../constants/gameData.js";
 import { SRV_SPECIALTIES, TRAINING_CATALOG, pickSpecialty, getMaxMoral } from "../constants/serverConstants.js";
 import { Badge, Card, Btn, Modal, Lbl, Inp, Sel, XpBar } from "../components/ui/index.js";
 import { useLang } from "../i18n/index.jsx";
-import { srvLv, srvTierCap, TIER_UNLOCK_LV, SRV_MAX_XP } from "../utils/levelUtils.js";
+import { srvLv, srvTierCap, TIER_UNLOCK_LV, SRV_MAX_XP, chefLv, commisLv, CHEF_MAX_XP, COMMIS_MAX_XP } from "../utils/levelUtils.js";
 import { rName } from "../utils/randomUtils.js";
 /* ─── Helpers locaux ────────────────────────────────── */
 const moralIcon   = (m) => m>=70?"😊":m>=40?"😐":m>=20?"😓":"💀";
@@ -23,7 +24,7 @@ const _candidateSpecRate = (lv) => lv<5?0.10:lv<10?0.25:lv<20?0.40:0.60;
 
 
 
-export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast,candidatePool=[],setCandidatePool,candidateDate="",setCandidateDate,bp={}}){
+export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast,candidatePool=[],setCandidatePool,candidateDate="",setCandidateDate,kitchen,setKitchen,commisPool=[],setCommisPool=()=>{},commisPoolDate="",setCommisPoolDate=()=>{},bp={}}){
   const { t: tr } = useLang();
   const [modal,setModal]=useState(false);   // "hire" | "edit" | "fire" | "train" | false
   const [form,setForm]=useState({name:"",status:"actif",salary:"12"});
