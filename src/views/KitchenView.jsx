@@ -127,13 +127,12 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
     if(cl.l>prevChefLvRef.current){
       const d=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
       addToast({icon:"👨‍🍳",title:tl("kitchen.chefLvl",{l:cl.l}),
-        msg:`${chf.name} → ${d.name}`,color:C.purple,tab:"cuisine"});
-      // Check if a new commis slot was unlocked
+        msg:`${chf.name} → ${d.name}`,color:C.purple,tab:"cuisine",silent:true});
       const prevCommis=CHEF_LVL[Math.min(prevChefLvRef.current,CHEF_LVL.length-1)].commis;
       if(d.commis>prevCommis){
         addToast({icon:"👥",title:tl("kitchen.newSlot"),
           msg:tl("kitchen.newSlotMsg",{n:d.commis}),
-          color:C.green,tab:"cuisine"});
+          color:C.green,tab:"cuisine",silent:true});
       }
     }
     prevChefLvRef.current=cl.l;
@@ -161,8 +160,6 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
       queue:k.queue.filter(d=>d.id!==dish.id),
       cooking:[...k.cooking,{...dish,startedAt:Date.now(),timerMax:ct}],
     }));
-    addToast({icon:"🔥",title:tl("kitchen.cookStarted"),
-      msg:`${dish.name}${dish.tableName?" · "+dish.tableName:""}`,color:C.terra,tab:"cuisine"});
   };
 
   // Start all dishes filling free slots
@@ -203,8 +200,6 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
     // Le serveur est occupé 20s le temps d'apporter les plats
     if (setServers) setServers(p=>p.map(s=>s.id!==freeSrvForServing.id?s:
       {...s,status:"service",serviceUntil:Date.now()+20000}));
-    addToast({icon:"🍽",title:tl("kitchen.served"),
-      msg:tableName+" · "+tl("kitchen.servedMsg",{name:freeSrvForServing.name}),color:C.green,tab:"tables"});
   };
 
   // Group done dishes by table
@@ -676,7 +671,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                         setCash(p=>+(p-nextLv.cost).toFixed(2));
                         addTx("dépense",`Amélioration cuisine : ${upItem.name} N${curLv+1}`,nextLv.cost);
                         addToast({icon:upItem.icon,title:`${upItem.name} N${curLv+1}`,
-                          msg:nextLv.label,color:C.amber,tab:"cuisine"});
+                          msg:nextLv.label,color:C.amber,tab:"cuisine",silent:true});
                       }}>
                       💰 {nextLv.cost}€
                     </Btn>

@@ -67,6 +67,7 @@ export const useFreshness = ({
           msg:   t("toast.spoiledMsg", { name: item.name }),
           color: "#c0392b",
           tab:   "stock",
+          silent:true,
         });
         setComplaints(p => [{
           id:     Date.now() + Math.random(),

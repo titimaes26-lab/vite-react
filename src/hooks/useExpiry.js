@@ -79,15 +79,7 @@ export const useExpiry = ({
       );
 
       if (doneTables.length > 0) {
-        doneTables.forEach(tb =>
-          addToast({
-            icon  : "✨",
-            title : t("toast.tableReady"),
-            msg   : t("toast.tableReadyMsg", {name:tb.name}),
-            color : "#2a5c3f",
-            tab   : "tables",
-          })
-        );
+        doneTables.forEach(_tb => {});
         setTables(prev =>
           prev.map(tb =>
             doneTables.find(d => d.id === tb.id)

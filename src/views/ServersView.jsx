@@ -104,7 +104,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
     }
     const prevLevel = (sv.trainings||{})[domain.id] || 0;
     if(prevLevel >= domain.levels.length){
-      addToast&&addToast({icon:"✅",title:tr("servers.trainingMax"),msg:tr("servers.trainingMaxMsg",{name:sv.name}),color:C.muted,tab:"servers"});
+      addToast&&addToast({icon:"✅",title:tr("servers.trainingMax"),msg:tr("servers.trainingMaxMsg",{name:sv.name}),color:C.muted,tab:"servers",silent:true});
       return;
     }
     setCash&&setCash(c=>+(c-cost).toFixed(2));
@@ -142,7 +142,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
       icon:domain.icon,
       title:tr("servers.trainingDone",{name:sv.name,domain:domain.name,level:level.l}),
       msg:tr("servers.trainingDoneMsg",{effect:level.effect,xp:level.xp,moral:level.moralBonus}),
-      color:domain.color, tab:"servers"
+      color:domain.color, tab:"servers", silent:true
     });
     setModal(false);
     setTrainId(null);
@@ -203,7 +203,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
 
   const hireCandidate = (candidate) => {
     if(servers.length >= maxSlots){
-      addToast&&addToast({icon:"🚫",title:tr("servers.teamComplete"),msg:tr("servers.teamCompleteMsg"),color:C.red,tab:"servers"});
+      addToast&&addToast({icon:"🚫",title:tr("servers.teamComplete"),msg:tr("servers.teamCompleteMsg"),color:C.red,tab:"servers",silent:true});
       return;
     }
     if(cash < candidate.hireCost){
@@ -226,7 +226,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
     setCandidatePool(remaining);
     addToast&&addToast({icon:"👔",title:tr("servers.hired",{name:candidate.name}),
       msg:tr("servers.hiredMsg",{cost:candidate.hireCost,remaining:remaining.length,s:remaining.length>1?"s":""}),
-      color:C.green,tab:"servers"});
+      color:C.green,tab:"servers",silent:true});
     if(remaining.length === 0 || servers.length + 1 >= maxSlots) setModal(false);
   };
   const openEdit = (sv) => {
@@ -246,7 +246,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
       setCash&&setCash(c=>+(c-hireCost).toFixed(2));
       addTx&&addTx("achat",`Recrutement — ${form.name}`,hireCost);
       setServers(p=>[...p,{id:Date.now(),name:form.name,status:form.status,totalXp:0,rating:4.0,salary:+(form.salary||12)}]);
-      addToast&&addToast({icon:"👔",title:`${form.name} embauché·e !`,msg:`−${hireCost}€ · Salaire ${form.salary}€/h`,color:C.green,tab:"servers"});
+      addToast&&addToast({icon:"👔",title:`${form.name} embauché·e !`,msg:`−${hireCost}€ · Salaire ${form.salary}€/h`,color:C.green,tab:"servers",silent:true});
     } else {
       setServers(p=>p.map(s=>s.id===editId?{...s,name:form.name,status:form.status,salary:+(form.salary||0)}:s));
     }
@@ -266,7 +266,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
     addTx&&addTx("dépense",`Indemnité licenciement — ${sv.name}`,severance);
     setServers(p=>p.filter(s=>s.id!==fireId));
     addToast&&addToast({icon:"👋",title:tr("servers.fired",{name:sv.name}),
-      msg:tr("servers.firedMsg",{cost:severance}),color:C.terra,tab:"servers"});
+      msg:tr("servers.firedMsg",{cost:severance}),color:C.terra,tab:"servers",silent:true});
     setModal(false);
     setFireId(null);
   };
@@ -379,7 +379,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                       setCash(c=>+(c-cost).toFixed(2));
                       addTx("dépense","Prime brigade",cost);
                       setKitchen(k=>({...k,morale:Math.min(100,(k.morale??100)+30)}));
-                      addToast({icon:"🎉",title:tr("kitchen.incentive"),msg:tr("kitchen.incentiveDesc"),color:C.green,tab:"servers"});
+                      addToast({icon:"🎉",title:tr("kitchen.incentive"),msg:tr("kitchen.incentiveDesc"),color:C.green,tab:"servers",silent:true});
                     }}>
                     💸 Prime 150€
                   </Btn>
@@ -739,7 +739,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                       addTx&&addTx("achat",`Prime motivation — ${sv.name}`,primeCost);
                       setServers(p=>p.map(x=>x.id!==sv.id?x:{...x,moral:Math.min(100,x.moral+50)}));
                       addToast&&addToast({icon:"🎁",title:tr("servers.incentivePaid",{name:sv.name}),
-                        msg:tr("servers.incentiveMsg",{cost:primeCost}),color:C.navy,tab:"servers"});
+                        msg:tr("servers.incentiveMsg",{cost:primeCost}),color:C.navy,tab:"servers",silent:true});
                     }}>
                     {tr("servers.incentive",{cost:primeCost})}
                   </Btn>
@@ -1290,7 +1290,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                           if(training.id==="brigade") t.brigadeUntil=Date.now()+72*3600*1000;
                           return{...k,chef:{...k.chef,totalXp:Math.min(CHEF_MAX_XP,k.chef.totalXp+training.xp)},chefTrainings:t};
                         });
-                        addToast({icon:training.icon,title:training.name+" — "+tr("kitchen.acquired")+"!",msg:`${training.desc} · −${training.cost}€`,color:C.navy,tab:"servers"});
+                        addToast({icon:training.icon,title:training.name+" — "+tr("kitchen.acquired")+"!",msg:`${training.desc} · −${training.cost}€`,color:C.navy,tab:"servers",silent:true});
                         if(training.id!=="brigade") setChefModal(false);
                       }} style={{
                         fontSize:11,fontWeight:700,fontFamily:F.body,
@@ -1415,7 +1415,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                       setCash(c=>+(c-cand.hireCost).toFixed(2));
                       addTx("achat",`Recrutement chef : ${cand.name}`,cand.hireCost);
                       setKitchen(k=>({...k,chef:{...k.chef,name:cand.name,totalXp:cand.totalXp+transferXp,salary:cand.salary,status:"actif"},chefTrainings:{},morale:Math.min(100,(k.morale??100)+10)}));
-                      addToast({icon:"👨‍🍳",title:tr("kitchen.recruited",{name:cand.name}),msg:`−${cand.hireCost}€ · +${transferXp} XP transmis`,color:C.purple,tab:"servers"});
+                      addToast({icon:"👨‍🍳",title:tr("kitchen.recruited",{name:cand.name}),msg:`−${cand.hireCost}€ · +${transferXp} XP transmis`,color:C.purple,tab:"servers",silent:true});
                       setChefModal(false);
                     }} style={{
                       fontSize:11,fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap",
@@ -1553,7 +1553,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                         return{...k,commis:newCommis};
                       });
                       setCommisPool(p=>p.filter(x=>x.id!==cand.id));
-                      addToast({icon:"🔪",title:tr("kitchen.recruited",{name:cand.name}),msg:`−${cand.hireCost}€${cand.specialty?" · "+cand.specialty.icon+" "+cand.specialty.name:""}`,color:C.green,tab:"servers"});
+                      addToast({icon:"🔪",title:tr("kitchen.recruited",{name:cand.name}),msg:`−${cand.hireCost}€${cand.specialty?" · "+cand.specialty.icon+" "+cand.specialty.name:""}`,color:C.green,tab:"servers",silent:true});
                       setCommisHireSlot(null);
                     }} style={{
                       fontSize:11,fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap",

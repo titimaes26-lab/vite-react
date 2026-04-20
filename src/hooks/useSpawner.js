@@ -123,15 +123,6 @@ export const useSpawner = ({
           tab   : "tables",
         });
       }
-      if (forceSpawn) {
-        addToast({
-          icon  : "🚶",
-          title : t("toast.arrive"),
-          msg   : t("toast.arriveMsg"),
-          color : "#8a7d6a",
-          tab   : "tables",
-        });
-      }
     }, 500);
 
     return () => clearInterval(iv);

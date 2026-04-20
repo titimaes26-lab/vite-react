@@ -391,8 +391,10 @@ function AppContent(){
   const dismissToast=useCallback(id=>setToasts(p=>p.filter(x=>x.id!==id)),[]);
   const addToast=useCallback(t=>{
     const id=Date.now()+Math.random();
-    setToasts(p=>[...p.slice(-4),{...t,id}]);
-    setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),4000);
+    if(!t.silent){
+      setToasts(p=>[...p.slice(-4),{...t,id}]);
+      setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),4000);
+    }
     setToastHistory(p=>[{...t,id,at:Date.now()},...p].slice(0,100));
     setToastUnread(n=>n+1);
   },[]);
@@ -425,6 +427,7 @@ function AppContent(){
           msg: `${after.label} (${Math.round(next)}/100)${reason?" · "+reason:""}`,
           color: after.color,
           tab: "stats",
+          silent:true,
         }),50);
       }
       repRef.current = next;
@@ -667,7 +670,7 @@ function AppContent(){
       addTx("remboursement", `Mensualité prêt (${ln.id})`, repay);
       if (newRemaining <= 0) {
         setLoan(null);
-        addToast({ icon:"🎉", title:"Prêt remboursé !", msg:"Votre emprunt est entièrement soldé.", color:C.green, tab:"stats" });
+        addToast({ icon:"🎉", title:"Prêt remboursé !", msg:"Votre emprunt est entièrement soldé.", color:C.green, tab:"stats", silent:true });
       } else {
         setLoan({ ...ln, remaining: newRemaining });
       }
@@ -783,6 +786,7 @@ function AppContent(){
           msg:`🎉 ${nd.tables} tables débloquées${unlockedNames?` · 🍽 ${unlockedNames}`:""}`,
           color:nd.color,
           tab:"tables",
+          silent:true,
         }),50);
         setObjStats(s=>({...s,restoLevel:after.l}));
       }
@@ -801,7 +805,7 @@ function AppContent(){
     addTx("revenu",`Récompense objectif : ${obj.title}`,obj.reward.cash);
     addRestoXp(obj.reward.xp);
     addToast({icon:obj.icon,title:`+${obj.reward.cash}€ · +${obj.reward.xp} XP`,
-      msg:`Objectif "${obj.title}" réclamé !`,color:C.green,tab:"objectives"});
+      msg:`Objectif "${obj.title}" réclamé !`,color:C.green,tab:"objectives",silent:true});
   },[addTx,addRestoXp,addToast]);
 
   /* ── Dérivés (calculés à chaque render) ─────────────── */
