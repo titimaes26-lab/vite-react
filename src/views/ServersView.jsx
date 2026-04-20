@@ -85,6 +85,8 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
     });
   };
 
+  const [staffFilter,setStaffFilter]=useState("cuisine"); // "cuisine" | "salle"
+
   const [modal,setModal]=useState(false);   // "hire" | "edit" | "fire" | "train" | false
   const [form,setForm]=useState({name:"",status:"actif",salary:"12"});
   const [editId,setEditId]=useState(null);
@@ -274,8 +276,29 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
   return(
     <div>
 
+      {/* ══ Toggle Cuisine / Salle ══ */}
+      <div style={{display:"flex",gap:6,marginBottom:16,background:C.bg,
+        border:`1px solid ${C.border}`,borderRadius:11,padding:4,width:"fit-content"}}>
+        {[{id:"cuisine",icon:"👨‍🍳",label:"Cuisine"},{id:"salle",icon:"👤",label:"Salle"}].map(f=>{
+          const active=staffFilter===f.id;
+          return(
+            <button key={f.id} onClick={()=>setStaffFilter(f.id)} style={{
+              display:"flex",alignItems:"center",gap:6,
+              padding:"6px 16px",borderRadius:8,
+              background:active?C.surface:"transparent",
+              border:active?`1px solid ${C.border}`:"1px solid transparent",
+              color:active?C.ink:C.muted,
+              fontSize:12,fontWeight:active?700:500,fontFamily:F.body,
+              cursor:"pointer",boxShadow:active?"0 1px 4px rgba(0,0,0,0.08)":"none",
+              transition:"all 0.15s"}}>
+              <span>{f.icon}</span>{f.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* ══ BRIGADE DE CUISINE ══ */}
-      {kitchen&&(
+      {kitchen&&staffFilter==="cuisine"&&(
         <>
           <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
             👨‍🍳 Brigade de cuisine
@@ -463,12 +486,10 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
             })}
           </div>
 
-          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
-            👤 Personnels en salle
-          </div>
         </>
       )}
 
+      {staffFilter==="salle"&&<>
       {/* ── Header barre ── */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
         marginBottom:16,flexWrap:"wrap",gap:10}}>
@@ -787,6 +808,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
           });
         })()}
       </div>
+      </>}
 
       {/* ── Modale Formation ── */}
       {modal==="train"&&(()=>{
