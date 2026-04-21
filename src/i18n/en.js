@@ -66,6 +66,7 @@ export const en = {
     repLabel: "Rep.",
     queue: "🚶 Queue",
     recallable: "📞 Recallable",
+    noWaiting: "No customers waiting",
     clickTable: "Click on a free table on the floor plan",
     place: "Place",
     tableBtn: "Table",

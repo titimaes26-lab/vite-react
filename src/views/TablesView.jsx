@@ -687,7 +687,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     const kitchenTickets = buildKitchenTickets(orderLines, table);
     const drinkTickets = kitchenTickets.filter(d=>d.cat==="Boissons");
     const foodTickets  = kitchenTickets.filter(d=>d.cat!=="Boissons");
-    setMenu(p=>p.map(m=>{const l=orderLines.find(o=>o.menuId===m.id);if(!l)return m;return{...m,orderCount:(m.orderCount||0)+l.qty,formulaRevenue:l.isFormula?(m.formulaRevenue||0)+l.price*l.qty:(m.formulaRevenue||0)};}));
+    setMenu(p=>p.map(m=>{const l=orderLines.find(o=>o.menuId===m.id);if(!l)return m;return{...m,orderCount:(m.orderCount||0)+l.qty,formulaRevenue:l.isFormula?(m.formulaRevenue||0)+l.price*l.qty:(m.formulaRevenue||0),dayOrderCount:(m.dayOrderCount||0)+l.qty,dayFormulaRevenue:l.isFormula?(m.dayFormulaRevenue||0)+l.price*l.qty:(m.dayFormulaRevenue||0)};}));
     setServers(p=>p.map(s=>s.id!==srv.id?s:{...s,status:"service",serviceUntil:svcUntil}));
     setTables(p=>p.map(t=>t.id!==table.id?t:
       {...t,status:"occupée",server:srv.name,group:g,order:orderLines,svcTimer:0,svcMax:0,svcUntil,
@@ -777,7 +777,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
         <div style={{flex:1,display:"flex",flexDirection:"row",minHeight:0,overflow:"hidden"}}>
 
           {/* ── Panneau gauche — File d'attente + Détail table ── */}
-          {(queue.length>0||waitlist.length>0||selectedTable)&&(
+          {(true)&&(
             <div style={{
               width:bp.isTablet?210:240,flexShrink:0,
               borderRight:`1px solid ${C.border}`,
@@ -787,7 +787,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
             }}>
 
               {/* File d'attente */}
-              {(queue.length>0||waitlist.length>0)&&(
+              {(true)&&(
                 <>
                   <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.border}`,
                     fontWeight:700,fontSize:12,color:C.navy,fontFamily:F.title,
@@ -845,6 +845,11 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                         </div>
                       );
                     })}
+                    {queue.length===0&&waitlist.length===0&&(
+                      <div style={{textAlign:"center",color:C.muted,fontSize:10,fontFamily:F.body,padding:"12px 0",fontStyle:"italic"}}>
+                        {tr("tables.noWaiting")}
+                      </div>
+                    )}
                     {waitlist.length>0&&(
                       <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8,marginTop:4}}>
                         <div style={{fontSize:9,color:C.muted,fontFamily:F.body,fontWeight:600,

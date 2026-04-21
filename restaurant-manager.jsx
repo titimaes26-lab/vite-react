@@ -400,7 +400,7 @@ function AppContent(){
   },[]);
 
   const addTx=useCallback((type,label,amount)=>{
-    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:gameTimeRef.current},...p].slice(0,200));
+    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:gameTimeRef.current,gameDay:currentDayRef.current},...p].slice(0,200));
   },[]);
 
   useEffect(()=>{
@@ -585,6 +585,7 @@ function AppContent(){
   const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
   const gameTimeRef   = useRef("08h00");
+  const currentDayRef = useRef(1);
 
   useEffect(() => { stockRef.current      = stock;      }, [stock]);
   useEffect(() => { cashRef.current       = cash;       }, [cash]);
@@ -596,6 +597,7 @@ function AppContent(){
   useEffect(() => { waitlistRef.current   = waitlist;   }, [waitlist]);
   useEffect(() => { kitchenRef.current    = kitchen;    }, [kitchen]);
   useEffect(() => { loanRef.current       = loan;       }, [loan]);
+  useEffect(() => { currentDayRef.current = dailyStats[dailyStats.length-1]?.day??1; }, [dailyStats]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
   /* ── Pause lors des dialogues ───────────────────────── */
@@ -704,6 +706,7 @@ function AppContent(){
       return [...withSal,{day:nextDay,served:0,lost:0,revenue:0,salary:0}].slice(-15);
     });
     setObjStats(s=>({...s,_hadLoss:false}));
+    setMenu(p=>p.map(m=>({...m,dayOrderCount:0,dayFormulaRevenue:0})));
     if(sal.total>0){
       setCash(c=>+(c-sal.total).toFixed(2));
       addTx("dépense", tl("daily.salaries"), sal.total);
@@ -1260,7 +1263,7 @@ function AppContent(){
         {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} addDayStat={addDayStat} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} restoLvN={rl.l} bp={bp}/>}
         {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
         {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
-        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} bp={bp}/>}
+        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} currentGameDay={dailyStats[dailyStats.length-1]?.day??1} bp={bp}/>}
         </div>
       </div>
 
