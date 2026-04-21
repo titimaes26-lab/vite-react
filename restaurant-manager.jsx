@@ -395,7 +395,7 @@ function AppContent(){
       setToasts(p=>[...p.slice(-4),{...t,id}]);
       setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),4000);
     }
-    setToastHistory(p=>[{...t,id,at:Date.now()},...p].slice(0,100));
+    setToastHistory(p=>[{...t,id,at:gameTimeRef.current},...p].slice(0,100));
     setToastUnread(n=>n+1);
   },[]);
 
@@ -440,7 +440,7 @@ function AppContent(){
       if(p.length===0) return [{day:1,served:0,lost:0,revenue:0,[key]:+value.toFixed(2)}];
       const updated=[...p];
       const idx=updated.length-1;
-      updated[idx]={...updated[idx],[key]:+(updated[idx][key]+value).toFixed(2)};
+      updated[idx]={...updated[idx],[key]:+((updated[idx][key]??0)+value).toFixed(2)};
       return updated;
     });
     if(key==="served") setObjStats(s=>({...s,totalServed:s.totalServed+1}));
@@ -1034,6 +1034,17 @@ function AppContent(){
                 {phase?.label} · {activeTables.filter(t=>t.status==="occupée"||t.status==="mange").length}/{activeTables.length} tables
               </div>
             </div>
+            {/* Banque */}
+            <button onClick={openBank} title="Banque" style={{
+              padding:"5px 11px",fontSize:11,fontWeight:700,
+              background:loan?C.amber:C.navy,
+              border:"none",borderRadius:8,color:"#fff",cursor:"pointer",
+              fontFamily:F.body,display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap",
+              flexShrink:0,
+              boxShadow:loan?`0 2px 8px ${C.amber}55`:`0 2px 8px ${C.navy}33`,
+              animation:loan?"bankPulse 2s ease-in-out infinite":"none"}}>
+              🏦{!bp.isSmall&&<span>{tl("bank.title")}</span>}
+            </button>
             {/* Historique notifications */}
             <div style={{position:"relative",flexShrink:0}}>
               <button onClick={()=>{setShowToastHistory(true);setToastUnread(0);}} title="Historique des notifications" style={{
@@ -1081,12 +1092,12 @@ function AppContent(){
           flexWrap:"nowrap",overflow:"hidden",
         }}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-            <span style={{fontSize:14}}>{rlD.icon}</span>
-            <span style={{fontSize:11,fontWeight:700,color:rlD.color,fontFamily:F.title,whiteSpace:"nowrap"}}>{rlD.name}</span>
-            <span style={{fontSize:9,background:rlD.color+"18",color:rlD.color,
+            <span style={{fontSize:18}}>{rlD.icon}</span>
+            <span style={{fontSize:14,fontWeight:700,color:rlD.color,fontFamily:F.title,whiteSpace:"nowrap"}}>{rlD.name}</span>
+            <span style={{fontSize:11,background:rlD.color+"18",color:rlD.color,
               border:`1px solid ${rlD.color}33`,borderRadius:4,
-              padding:"1px 5px",fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap"}}>N{rlD.l}</span>
-            <span style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>
+              padding:"1px 6px",fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap"}}>N{rlD.l}</span>
+            <span style={{fontSize:11,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>
               {rl.l>=RESTO_LVL.length-1?"✦ Max":`${restoXp}/${rl.next.xpNeeded} XP`}
             </span>
           </div>
@@ -1099,42 +1110,22 @@ function AppContent(){
                 style={{display:"flex",alignItems:"center",gap:5,flexShrink:0,
                   background:tier.color+"14",border:`1px solid ${tier.color}33`,
                   borderRadius:7,padding:"3px 8px",cursor:"default"}}>
-                <span style={{fontSize:13}}>{tier.icon}</span>
-                <div style={{display:"flex",flexDirection:"column",gap:2,minWidth:50}}>
-                  <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                <span style={{fontSize:16}}>{tier.icon}</span>
+                <div style={{display:"flex",flexDirection:"column",gap:2,minWidth:60}}>
+                  <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
                     <div style={{height:"100%",
                       width:`${reputation}%`,
                       background:tier.color,
                       borderRadius:99,transition:"width 0.6s ease"}}/>
                   </div>
-                  <div style={{fontSize:8,color:tier.color,fontWeight:700,
+                  <div style={{fontSize:11,color:tier.color,fontWeight:700,
                     fontFamily:F.body,whiteSpace:"nowrap",lineHeight:1}}>
-                    {tier.icon} {Math.round(reputation)}/100
+                    {tier.label} · {Math.round(reputation)}/100
                   </div>
                 </div>
               </div>
             );
           })()}
-
-          {/* Loan indicator + bank button */}
-          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-            {loan&&(
-              <div style={{background:C.amberP,border:`1px solid ${C.amber}44`,borderRadius:6,
-                padding:"3px 8px",fontSize:10,color:C.amber,fontWeight:600,whiteSpace:"nowrap"}}>
-                🏦 −{loan.remaining.toFixed(0)}€
-              </div>
-            )}
-            <button onClick={openBank} title="Banque" style={{
-              padding:"6px 12px",fontSize:12,fontWeight:700,
-              background:loan?C.amber:C.navy,
-              border:"none",
-              borderRadius:8,color:"#fff",cursor:"pointer",
-              fontFamily:F.body,display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",
-              boxShadow:loan?`0 2px 10px ${C.amber}66`:`0 2px 10px ${C.navy}44`,
-              animation:loan?"bankPulse 2s ease-in-out infinite":"none"}}>
-              🏦 {tl("bank.title")}
-            </button>
-          </div>
 
         </div>
       </div>
@@ -1265,7 +1256,7 @@ function AppContent(){
         {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} kitchen={kitchen} setKitchen={setKitchen} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp}/>}
         {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} restoLvN={rl.l} bp={bp}/>}
         {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} dailyStats={dailyStats} restoLvN={rl.l} bp={bp}/>}
-        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} restoLvN={rl.l} bp={bp}/>}
+        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} addDayStat={addDayStat} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} restoLvN={rl.l} bp={bp}/>}
         {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
         {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
         {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} bp={bp}/>}
@@ -1505,7 +1496,7 @@ function AppContent(){
                     </div>}
                   </div>
                   <div style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0,whiteSpace:"nowrap"}}>
-                    {new Date(t.at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                    {t.at}
                   </div>
                 </div>
               ))}

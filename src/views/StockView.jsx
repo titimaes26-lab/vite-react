@@ -9,7 +9,7 @@ import { C, F, SUPPLIERS } from "../constants/gameData";
 import { Btn, Inp, Sel } from "../components/ui";
 import { quickAmounts } from "../utils/orderUtils";
 
-export function StockView({stock,setStock,cash,setCash,addTx,addToast,kitchen,supplierMode,setSupplierMode,pendingDeliveries,setPendingDeliveries,menu=[],restoLvN=0,bp={}}){
+export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat,kitchen,supplierMode,setSupplierMode,pendingDeliveries,setPendingDeliveries,menu=[],restoLvN=0,bp={}}){
   const storageMult=1+(kitchen?.upgrades?.stockage||0);
   // Ingrédients utilisés par au moins un plat débloqué
   const unlockedStockIds=new Set(
@@ -75,6 +75,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,kitchen,su
     if(cost>0){
       setCash(c=>+(c-cost).toFixed(2));
       addTx("achat",`Achat ${item.name} — ${+addedQty.toFixed(3)} ${item.unit} (${sup.name})`,cost);
+      addDayStat&&addDayStat("stock",cost);
     }
     if(sup.delay>0){
       const now=Date.now();
