@@ -395,7 +395,7 @@ function AppContent(){
       setToasts(p=>[...p.slice(-4),{...t,id}]);
       setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),4000);
     }
-    setToastHistory(p=>[{...t,id,at:Date.now()},...p].slice(0,100));
+    setToastHistory(p=>[{...t,id,at:gameTimeRef.current},...p].slice(0,100));
     setToastUnread(n=>n+1);
   },[]);
 
@@ -1505,7 +1505,7 @@ function AppContent(){
                     </div>}
                   </div>
                   <div style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0,whiteSpace:"nowrap"}}>
-                    {new Date(t.at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+                    {t.at}
                   </div>
                 </div>
               ))}
