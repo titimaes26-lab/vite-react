@@ -440,7 +440,7 @@ function AppContent(){
       if(p.length===0) return [{day:1,served:0,lost:0,revenue:0,[key]:+value.toFixed(2)}];
       const updated=[...p];
       const idx=updated.length-1;
-      updated[idx]={...updated[idx],[key]:+(updated[idx][key]+value).toFixed(2)};
+      updated[idx]={...updated[idx],[key]:+((updated[idx][key]??0)+value).toFixed(2)};
       return updated;
     });
     if(key==="served") setObjStats(s=>({...s,totalServed:s.totalServed+1}));

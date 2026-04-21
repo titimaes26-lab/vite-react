@@ -496,7 +496,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                 const rc=rate>=80?C.green:rate>=50?C.amber:C.red;
                 const estSalary=+(totalSalaryPerHour*18).toFixed(0);
                 const actualSalary=d.salary??0;
-                const actualStock=d.stock??0;
+                const actualStock=+(d.stock||0);
                 const net=+(d.revenue-actualSalary-actualStock).toFixed(2);
                 const estNet=+(d.revenue-estSalary-actualStock).toFixed(2);
                 return(
