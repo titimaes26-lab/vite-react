@@ -443,7 +443,7 @@ function AppContent(){
       updated[idx]={...updated[idx],[key]:+((updated[idx][key]??0)+value).toFixed(2)};
       return updated;
     });
-    if(key==="served") setObjStats(s=>({...s,totalServed:s.totalServed+1}));
+    if(key==="served") setObjStats(s=>({...s,totalServed:s.totalServed+value}));
     if(key==="rating") setObjStats(s=>({...s,totalRating:(s.totalRating||0)+value,ratingCount:(s.ratingCount||0)+1}));
     if(key==="revenue") setObjStats(s=>({...s,totalRevenue:+(s.totalRevenue+value).toFixed(2)}));
     if(key==="lost"){
