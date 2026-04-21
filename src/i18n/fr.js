@@ -403,6 +403,7 @@ export const fr = {
     expEquipment: "Équipements & frais",
     maxLevel: "✦ Niveau max",
     salaries: "Salaires",
+    stocks: "Stocks",
     net: "Net",
     estimated: "Estimé",
   },
