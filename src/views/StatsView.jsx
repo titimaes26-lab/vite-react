@@ -481,10 +481,10 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
           <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>{period+" "+tl("stats.days")}</span>
         </div>
         <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:720}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:840}}>
             <thead>
               <tr style={{background:C.bg}}>
-                {[tl("stats.day"),"✅ "+tl("stats.served"),"😤 "+tl("stats.lost"),tl("stats.rate"),"💶 "+tl("stats.revenue"),"📦 "+tl("stats.stocks"),"💸 "+tl("stats.salaries")+" ("+tl("stats.estimated")+")","⚖️ "+tl("stats.net")+" ("+tl("stats.estimated")+")"].map(h=>(
+                {[tl("stats.day"),"✅ "+tl("stats.served"),"😤 "+tl("stats.lost"),tl("stats.rate"),"💶 "+tl("stats.revenue"),"📦 "+tl("stats.stocks"),"🏦 "+tl("stats.loanRepay"),"💸 "+tl("stats.salaries")+" ("+tl("stats.estimated")+")","⚖️ "+tl("stats.net")+" ("+tl("stats.estimated")+")"].map(h=>(
                   <th key={h} style={{padding:"9px 14px",fontSize:10,fontWeight:700,color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`}}>{h}</th>
                 ))}
               </tr>
@@ -497,8 +497,9 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                 const estSalary=+(totalSalaryPerHour*18).toFixed(0);
                 const actualSalary=d.salary??0;
                 const actualStock=+(d.stock||0);
-                const net=+(d.revenue-actualSalary-actualStock).toFixed(2);
-                const estNet=+(d.revenue-estSalary-actualStock).toFixed(2);
+                const actualLoan=+(d.loan||0);
+                const net=+(d.revenue-actualSalary-actualStock-actualLoan).toFixed(2);
+                const estNet=+(d.revenue-estSalary-actualStock-actualLoan).toFixed(2);
                 return(
                   <tr key={d.day??i} style={{background:i===0?C.greenP:i%2===0?C.card:C.bg}}>
                     <td style={{padding:"9px 14px",fontSize:12,fontWeight:i===0?700:500,color:C.ink,borderBottom:`1px solid ${C.border}11`}}>
@@ -526,6 +527,11 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                     <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
                       <span style={{fontSize:12,fontWeight:700,color:actualStock>0?C.terra:C.muted}}>
                         {actualStock>0?`−${actualStock.toFixed(2)} €`:"—"}
+                      </span>
+                    </td>
+                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
+                      <span style={{fontSize:12,fontWeight:700,color:actualLoan>0?C.purple:C.muted}}>
+                        {actualLoan>0?`−${actualLoan.toFixed(2)} €`:"—"}
                       </span>
                     </td>
                     <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>

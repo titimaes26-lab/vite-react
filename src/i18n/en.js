@@ -404,6 +404,7 @@ export const en = {
     maxLevel: "✦ Max level",
     salaries: "Salaries",
     stocks: "Stocks",
+    loanRepay: "Loan payment",
     net: "Net",
     estimated: "Estimated",
   },
