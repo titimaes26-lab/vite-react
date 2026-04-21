@@ -107,9 +107,9 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
   // ── Financial analysis ─────────────────────────────────
   // Revenue by category from today's transactions
   const locale=lang==="en"?"en-US":"fr-FR";
-  const todayTx=transactions.filter(t=>t.type==="revenu"&&(t.gameDay!=null?t.gameDay===currentGameDay:true));
+  const todayTx=transactions.filter(t=>t.type==="revenu"&&t.gameDay===currentGameDay);
   const totalRevToday=todayTx.reduce((s,t)=>s+t.amount,0);
-  const expTodayTx=transactions.filter(t=>t.type!=="revenu"&&(t.gameDay!=null?t.gameDay===currentGameDay:true));
+  const expTodayTx=transactions.filter(t=>t.type!=="revenu"&&t.gameDay===currentGameDay);
   const totalExpToday=expTodayTx.reduce((s,t)=>s+t.amount,0);
   const netToday=+(totalRevToday-totalExpToday).toFixed(2);
   // Group expenses by type for detailed breakdown
