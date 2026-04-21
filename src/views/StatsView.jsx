@@ -530,9 +530,16 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                       </span>
                     </td>
                     <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
-                      <span style={{fontSize:12,fontWeight:700,color:actualLoan>0?C.purple:C.muted}}>
-                        {actualLoan>0?`−${actualLoan.toFixed(2)} €`:"—"}
-                      </span>
+                      <div style={{display:"flex",flexDirection:"column",gap:1}}>
+                        <span style={{fontSize:12,fontWeight:700,color:actualLoan>0?C.purple:C.muted}}>
+                          {actualLoan>0?`−${actualLoan.toFixed(2)} €`:"—"}
+                        </span>
+                        {loan?.repayPerDay>0&&(
+                          <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
+                            {"(−"+loan.repayPerDay.toFixed(0)+" €)"}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
                       <div style={{display:"flex",flexDirection:"column",gap:1}}>
