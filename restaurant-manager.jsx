@@ -1081,12 +1081,12 @@ function AppContent(){
           flexWrap:"nowrap",overflow:"hidden",
         }}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-            <span style={{fontSize:14}}>{rlD.icon}</span>
-            <span style={{fontSize:11,fontWeight:700,color:rlD.color,fontFamily:F.title,whiteSpace:"nowrap"}}>{rlD.name}</span>
-            <span style={{fontSize:9,background:rlD.color+"18",color:rlD.color,
+            <span style={{fontSize:18}}>{rlD.icon}</span>
+            <span style={{fontSize:14,fontWeight:700,color:rlD.color,fontFamily:F.title,whiteSpace:"nowrap"}}>{rlD.name}</span>
+            <span style={{fontSize:11,background:rlD.color+"18",color:rlD.color,
               border:`1px solid ${rlD.color}33`,borderRadius:4,
-              padding:"1px 5px",fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap"}}>N{rlD.l}</span>
-            <span style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>
+              padding:"1px 6px",fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap"}}>N{rlD.l}</span>
+            <span style={{fontSize:11,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>
               {rl.l>=RESTO_LVL.length-1?"✦ Max":`${restoXp}/${rl.next.xpNeeded} XP`}
             </span>
           </div>
@@ -1099,17 +1099,17 @@ function AppContent(){
                 style={{display:"flex",alignItems:"center",gap:5,flexShrink:0,
                   background:tier.color+"14",border:`1px solid ${tier.color}33`,
                   borderRadius:7,padding:"3px 8px",cursor:"default"}}>
-                <span style={{fontSize:13}}>{tier.icon}</span>
-                <div style={{display:"flex",flexDirection:"column",gap:2,minWidth:50}}>
-                  <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                <span style={{fontSize:16}}>{tier.icon}</span>
+                <div style={{display:"flex",flexDirection:"column",gap:2,minWidth:60}}>
+                  <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
                     <div style={{height:"100%",
                       width:`${reputation}%`,
                       background:tier.color,
                       borderRadius:99,transition:"width 0.6s ease"}}/>
                   </div>
-                  <div style={{fontSize:8,color:tier.color,fontWeight:700,
+                  <div style={{fontSize:11,color:tier.color,fontWeight:700,
                     fontFamily:F.body,whiteSpace:"nowrap",lineHeight:1}}>
-                    {tier.icon} {Math.round(reputation)}/100
+                    {tier.label} · {Math.round(reputation)}/100
                   </div>
                 </div>
               </div>
