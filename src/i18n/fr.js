@@ -66,6 +66,7 @@ export const fr = {
     repLabel: "Rép.",
     queue: "🚶 File d'attente",
     recallable: "📞 Rappelables",
+    noWaiting: "Aucun client en attente",
     clickTable: "Cliquez sur une table libre sur le plan",
     place: "Placer",
     tableBtn: "Table",
