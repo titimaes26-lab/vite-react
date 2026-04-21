@@ -1034,6 +1034,17 @@ function AppContent(){
                 {phase?.label} · {activeTables.filter(t=>t.status==="occupée"||t.status==="mange").length}/{activeTables.length} tables
               </div>
             </div>
+            {/* Banque */}
+            <button onClick={openBank} title="Banque" style={{
+              padding:"5px 11px",fontSize:11,fontWeight:700,
+              background:loan?C.amber:C.navy,
+              border:"none",borderRadius:8,color:"#fff",cursor:"pointer",
+              fontFamily:F.body,display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap",
+              flexShrink:0,
+              boxShadow:loan?`0 2px 8px ${C.amber}55`:`0 2px 8px ${C.navy}33`,
+              animation:loan?"bankPulse 2s ease-in-out infinite":"none"}}>
+              🏦{!bp.isSmall&&<span>{tl("bank.title")}</span>}
+            </button>
             {/* Historique notifications */}
             <div style={{position:"relative",flexShrink:0}}>
               <button onClick={()=>{setShowToastHistory(true);setToastUnread(0);}} title="Historique des notifications" style={{
@@ -1115,26 +1126,6 @@ function AppContent(){
               </div>
             );
           })()}
-
-          {/* Loan indicator + bank button */}
-          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-            {loan&&(
-              <div style={{background:C.amberP,border:`1px solid ${C.amber}44`,borderRadius:6,
-                padding:"3px 8px",fontSize:10,color:C.amber,fontWeight:600,whiteSpace:"nowrap"}}>
-                🏦 −{loan.remaining.toFixed(0)}€
-              </div>
-            )}
-            <button onClick={openBank} title="Banque" style={{
-              padding:"6px 12px",fontSize:12,fontWeight:700,
-              background:loan?C.amber:C.navy,
-              border:"none",
-              borderRadius:8,color:"#fff",cursor:"pointer",
-              fontFamily:F.body,display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",
-              boxShadow:loan?`0 2px 10px ${C.amber}66`:`0 2px 10px ${C.navy}44`,
-              animation:loan?"bankPulse 2s ease-in-out infinite":"none"}}>
-              🏦 {tl("bank.title")}
-            </button>
-          </div>
 
         </div>
       </div>
