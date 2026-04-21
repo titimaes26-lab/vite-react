@@ -9,7 +9,7 @@ import { REP_THRESHOLDS, getRepTier } from "../constants/gameConstants.js";
 import { restoLv, chefLv } from "../utils/levelUtils.js";
 import { useLang } from "../i18n/index.jsx";
 
-export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=50,transactions=[],menu=[],bp={}}){
+export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=50,transactions=[],menu=[],currentGameDay=1,bp={}}){
   const { t: tl, lang } = useLang();
   const [period,setPeriod]=useState(7);   // 5, 7 or 15 game-days
   const [hovRevIdx,setHovRevIdx]=useState(null);
@@ -107,10 +107,9 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
   // ── Financial analysis ─────────────────────────────────
   // Revenue by category from today's transactions
   const locale=lang==="en"?"en-US":"fr-FR";
-  const todayLabel=new Date().toLocaleDateString(locale);
-  const todayTx=transactions.filter(t=>t.type==="revenu"&&new Date(t.date).toLocaleDateString(locale)===todayLabel);
+  const todayTx=transactions.filter(t=>t.type==="revenu"&&(t.gameDay!=null?t.gameDay===currentGameDay:true));
   const totalRevToday=todayTx.reduce((s,t)=>s+t.amount,0);
-  const expTodayTx=transactions.filter(t=>t.type!=="revenu"&&new Date(t.date).toLocaleDateString(locale)===todayLabel);
+  const expTodayTx=transactions.filter(t=>t.type!=="revenu"&&(t.gameDay!=null?t.gameDay===currentGameDay:true));
   const totalExpToday=expTodayTx.reduce((s,t)=>s+t.amount,0);
   const netToday=+(totalRevToday-totalExpToday).toFixed(2);
   // Group expenses by type for detailed breakdown
@@ -129,14 +128,13 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
   const serverSalary=(servers||[]).filter(s=>s.status==="actif").reduce((s,sv)=>s+(sv.salary||0),0);
   const totalSalaryPerHour=chefSalary+commissSalary+serverSalary;
 
-  // Revenue breakdown by menu category (estimated from orders)
+  // Revenue breakdown by menu category (current day only)
   const catRevenue={Entrées:0,Plats:0,Desserts:0,Boissons:0,Formules:0};
-  const totalOrders=menu.reduce((s,m)=>s+(m.orderCount||0),0)||1;
   menu.forEach(m=>{
     const cat=m.cat;
     if(catRevenue[cat]!==undefined)
-      catRevenue[cat]+=m.price*(m.orderCount||0);
-    catRevenue.Formules+=m.formulaRevenue||0;
+      catRevenue[cat]+=m.price*(m.dayOrderCount||0);
+    catRevenue.Formules+=m.dayFormulaRevenue||0;
   });
   const totalCatRev=Object.values(catRevenue).reduce((s,v)=>s+v,0)||1;
   const catColors2={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy,Formules:C.amber};
