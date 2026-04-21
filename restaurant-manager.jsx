@@ -443,7 +443,7 @@ function AppContent(){
       updated[idx]={...updated[idx],[key]:+((updated[idx][key]??0)+value).toFixed(2)};
       return updated;
     });
-    if(key==="served") setObjStats(s=>({...s,totalServed:s.totalServed+1}));
+    if(key==="served") setObjStats(s=>({...s,totalServed:s.totalServed+value}));
     if(key==="rating") setObjStats(s=>({...s,totalRating:(s.totalRating||0)+value,ratingCount:(s.ratingCount||0)+1}));
     if(key==="revenue") setObjStats(s=>({...s,totalRevenue:+(s.totalRevenue+value).toFixed(2)}));
     if(key==="lost"){
@@ -668,6 +668,7 @@ function AppContent(){
       const newRemaining = +(ln.remaining - repay).toFixed(2);
       setCash(c => +Math.max(0, c - repay).toFixed(2));
       addTx("remboursement", `Mensualité prêt (${ln.id})`, repay);
+      addDayStat("loan", repay);
       if (newRemaining <= 0) {
         setLoan(null);
         addToast({ icon:"🎉", title:"Prêt remboursé !", msg:"Votre emprunt est entièrement soldé.", color:C.green, tab:"stats", silent:true });
