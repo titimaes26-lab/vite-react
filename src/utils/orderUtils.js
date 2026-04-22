@@ -67,9 +67,7 @@ export const consumeStock = (dishes, prevStock) => {
           missing.push({ dish: d.name, ing: item.name, need: ing.qty, have: item.qty });
         cost += +(ing.qty * (item.price ?? 0)).toFixed(4);
         s = s.map((x) =>
-          x.id === ing.stockId
-            ? { ...x, qty: Math.max(0, +(x.qty - ing.qty).toFixed(3)) }
-            : x
+          x.id === ing.stockId ? consumeLots(x, ing.qty) : x
         );
       }
     })
