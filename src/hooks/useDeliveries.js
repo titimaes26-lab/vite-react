@@ -9,6 +9,7 @@
 
 import { useEffect } from "react";
 import { useLang } from "../i18n/index.jsx";
+import { addLot } from "../utils/orderUtils.js";
 
 /**
  * @param {{
@@ -32,9 +33,7 @@ export const useDeliveries = ({ setPendingDeliveries, setStock, addToast }) => {
           setStock(s =>
             s.map(item => {
               const match = d.items.find(x => x.stockId === item.id);
-              return match
-                ? { ...item, qty: +(item.qty + match.qty).toFixed(3), freshness: 100 }
-                : item;
+              return match ? addLot(item, match.qty) : item;
             })
           );
           addToast({
