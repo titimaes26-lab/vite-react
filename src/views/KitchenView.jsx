@@ -9,6 +9,7 @@ import { C, F, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
          KITCHEN_UPGRADES, COMMIS_SPECIALTIES, CHEF_TRAININGS } from "../constants/gameData.js";
 import { Btn, XpBar, Badge } from "../components/ui/index.js";
 import { chefLv, commisLv, dishCookTimeWithUpgrades, CHEF_MAX_XP, COMMIS_MAX_XP } from "../utils/levelUtils.js";
+import { consumeLots } from "../utils/orderUtils.js";
 
 export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,restoLvN=0,bp={}}){
   const { t: tl, lang } = useLang();
@@ -74,7 +75,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
       if(item){
         if(item.qty<ing.qty) missing.push({dish:d.name,ing:item.name,need:ing.qty,have:item.qty});
         cost+=+(ing.qty*(item.price||0)).toFixed(4);
-        s=s.map(x=>x.id===ing.stockId?{...x,qty:Math.max(0,+(x.qty-ing.qty).toFixed(3))}:x);
+        s=s.map(x=>x.id===ing.stockId?consumeLots(x,ing.qty):x);
       }
     }));
     return{newStock:s,cost:+cost.toFixed(2),missing};

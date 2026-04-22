@@ -196,9 +196,13 @@ export const sanitizeSave = (save) => {
     cooking: [],
     done: save.kitchen.done || [],
   } : null;
-  const stock = (save.stock || STOCK0).map(item => ({
-    ...item, freshness: item.freshness ?? 100,
-  }));
+  const stock = (save.stock || STOCK0).map(item => {
+    const freshness = item.freshness ?? 100;
+    const lots = item.lots?.length > 0
+      ? item.lots
+      : [{ qty: item.qty ?? 0, freshness, boughtAt: 0 }];
+    return { ...item, freshness: lots[0]?.freshness ?? freshness, lots };
+  });
   // Migration : anciens saves utilisaient repayPerHour → repayPerDay
   let loan = save.loan ?? null;
   if (loan && loan.repayPerHour != null && loan.repayPerDay == null) {

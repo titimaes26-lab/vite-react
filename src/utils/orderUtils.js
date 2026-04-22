@@ -4,6 +4,46 @@
    Aucune dépendance React.
 ═══════════════════════════════════════════════════════ */
 
+/* ─── Gestion des lots (batch freshness) ────────────── */
+
+/**
+ * Retourne les lots d'un item, en créant un lot unique à partir
+ * de qty/freshness si l'item n'a pas encore de lots (migration).
+ */
+export const getLots = (item) =>
+  item.lots?.length > 0
+    ? item.lots
+    : [{ qty: item.qty ?? 0, freshness: item.freshness ?? 100, boughtAt: 0 }];
+
+/**
+ * Ajoute un nouveau lot à un item et recalcule qty + freshness affichée.
+ * freshness = fraîcheur du lot le plus ancien (indice 0).
+ */
+export const addLot = (item, qty, freshness = 100) => {
+  const lots = [...getLots(item), { qty: +qty.toFixed(3), freshness, boughtAt: Date.now() }];
+  const totalQty = +lots.reduce((s, l) => s + l.qty, 0).toFixed(3);
+  return { ...item, lots, qty: totalQty, freshness: lots[0].freshness };
+};
+
+/**
+ * Consomme `amount` d'un item en FIFO (lot le plus ancien d'abord).
+ * Retourne l'item mis à jour avec qty et freshness recalculés.
+ */
+export const consumeLots = (item, amount) => {
+  let remaining = +amount.toFixed(3);
+  const lots = getLots(item)
+    .map(lot => {
+      if (remaining <= 0) return lot;
+      const take = Math.min(lot.qty, remaining);
+      remaining = +(remaining - take).toFixed(3);
+      return { ...lot, qty: +(lot.qty - take).toFixed(3) };
+    })
+    .filter(lot => lot.qty > 0);
+  const totalQty = +lots.reduce((s, l) => s + l.qty, 0).toFixed(3);
+  const freshness = lots[0]?.freshness ?? 0;
+  return { ...item, lots: lots.length > 0 ? lots : [], qty: totalQty, freshness };
+};
+
 /* ─── Consommation des ingrédients ──────────────────── */
 
 /**
@@ -27,9 +67,7 @@ export const consumeStock = (dishes, prevStock) => {
           missing.push({ dish: d.name, ing: item.name, need: ing.qty, have: item.qty });
         cost += +(ing.qty * (item.price ?? 0)).toFixed(4);
         s = s.map((x) =>
-          x.id === ing.stockId
-            ? { ...x, qty: Math.max(0, +(x.qty - ing.qty).toFixed(3)) }
-            : x
+          x.id === ing.stockId ? consumeLots(x, ing.qty) : x
         );
       }
     })

@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useLang } from "../i18n/index.jsx";
 import { C, F, SUPPLIERS } from "../constants/gameData";
 import { Btn, Inp, Sel } from "../components/ui";
-import { quickAmounts } from "../utils/orderUtils";
+import { quickAmounts, addLot, getLots } from "../utils/orderUtils";
 
 export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat,kitchen,supplierMode,setSupplierMode,pendingDeliveries,setPendingDeliveries,menu=[],restoLvN=0,bp={}}){
   const storageMult=1+(kitchen?.upgrades?.stockage||0);
@@ -64,7 +64,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
       const qty=+(target-it.qty-pendingQty(it.id)).toFixed(3);
       if(qty>0){
         const inst=deductCost(it,qty);
-        if(inst)setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(target,+(s.qty+qty).toFixed(3)),freshness:100}:s));
+        if(inst)setStock(p=>p.map(s=>s.id===it.id?addLot(s,qty):s));
       }
     });
   };
@@ -97,7 +97,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
     const item=stock.find(s=>s.id===id);
     let doAdd=true;
     if(v>0&&item){const instant=deductCost(item,v);if(!instant)doAdd=false;}
-    if(doAdd)setStock(p=>p.map(s=>s.id===id?{...s,qty:Math.max(0,+(s.qty+v).toFixed(3)),freshness:v>0?100:(s.freshness??100)}:s));
+    if(doAdd)setStock(p=>p.map(s=>s.id===id?( v>0 ? addLot(s,v) : {...s,qty:Math.max(0,+(s.qty+v).toFixed(3))} ):s));
     setAdjId(null);setAdjV("");
   };
   const quickAmounts=unit=>{
@@ -125,7 +125,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
     toOrder.forEach(s=>{
       const target=itemTarget(s);
       const added=+(target-s.qty).toFixed(3);
-      if(added>0){const inst=deductCost(s,added);if(inst)setStock(p=>p.map(x=>x.id===s.id?{...x,qty:+target.toFixed(2),freshness:100}:x));}
+      if(added>0){const inst=deductCost(s,added);if(inst)setStock(p=>p.map(x=>x.id===s.id?addLot(x,added):x));}
     });
   };
 
@@ -392,7 +392,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
                         <button key={n} onClick={()=>{
                           if(wouldExceed)return;
                           const inst=deductCost(it,n);
-                          if(inst)setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap2,+(s.qty+n).toFixed(3)),freshness:100}:s));
+                          if(inst)setStock(p=>p.map(s=>s.id===it.id?addLot(s,n):s));
                         }} disabled={wouldExceed} style={{
                           padding:"2px 6px",fontSize:9,fontWeight:700,borderRadius:4,
                           background:wouldExceed?C.bg:C.greenP,color:wouldExceed?C.muted:C.green,
@@ -619,15 +619,19 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
                         <span>{cap} {it.unit}</span>
                       </div>
 
-                      {/* Fraîcheur */}
+                      {/* Fraîcheur — lot le plus ancien */}
                       {(()=>{
-                        const f=it.freshness??100;
+                        const lots=getLots(it);
+                        const f=lots[0]?.freshness??100;
                         const fc=freshnessColor(f);
                         const fl=freshnessLabel(f);
                         return(
                           <div style={{marginBottom:7}}>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                              <span style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tl("stock.freshness")}</span>
+                              <div style={{display:"flex",alignItems:"center",gap:4}}>
+                                <span style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tl("stock.freshness")}</span>
+                                {lots.length>1&&<span style={{fontSize:8,background:C.navyP,color:C.navy,borderRadius:99,padding:"0px 5px",fontFamily:F.body,fontWeight:700}}>{lots.length} lots</span>}
+                              </div>
                               <span style={{fontSize:9,fontWeight:700,color:fc,fontFamily:F.body,
                                 background:fc+"18",borderRadius:99,padding:"1px 6px",
                                 border:`1px solid ${fc}33`}}>
@@ -662,7 +666,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
                               <button key={n} onClick={()=>{
                                 if(wouldExceed)return;
                                 const inst=deductCost(it,n);
-                                if(inst)setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap,+(s.qty+n).toFixed(3)),freshness:100}:s));
+                                if(inst)setStock(p=>p.map(s=>s.id===it.id?addLot(s,n):s));
                               }} disabled={wouldExceed} style={{
                                 flex:1,padding:"4px 0",fontSize:10,fontWeight:700,
                                 background:wouldExceed?C.bg:C.greenP,border:`1px solid ${wouldExceed?C.border:C.green}33`,

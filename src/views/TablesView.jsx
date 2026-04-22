@@ -286,7 +286,7 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
               const rows = Math.ceil(n / cols);
 
               // ── 2. Marges fixes du plan ──────────────────────
-              const ML = 30;   // gauche (cuisine)
+              const ML = 0;   // gauche
               const MT = 52;   // haut
               const MR = 47;   // droite (bar)
               const MB = 48;   // bas (entrée + groupes en attente)
@@ -351,14 +351,6 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                     width={130} height={CELL_H * 2}
                     preserveAspectRatio="xMidYMid slice"
                   />
-
-                  {/* Cuisine — gauche */}
-                  <rect x={2} y={MT} width={ML-4} height={30} rx="4"
-                    fill="#b8d4c8" opacity="0.8"/>
-                  <text x={ML/2} y={MT+12} textAnchor="middle" fontSize="8"
-                    fill="#2a5c3f" fontFamily="sans-serif">🍳</text>
-                  <text x={ML/2} y={MT+23} textAnchor="middle" fontSize="7"
-                    fill="#2a5c3f" fontFamily="sans-serif">{tr("tables.cuisineLabel")}</text>
 
                   {/* Tables */}
                   {tables.map((t,i)=>{
