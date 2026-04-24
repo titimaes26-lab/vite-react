@@ -1,0 +1,46 @@
+name: Lint & Dead Code
+
+on:
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  eslint:
+    name: ESLint — unused variables
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install ESLint + plugins
+        run: npm install --no-save eslint eslint-plugin-react eslint-plugin-react-hooks
+
+      - name: Run ESLint
+        run: npx eslint "src/**/*.{js,jsx}" restaurant-manager.jsx --max-warnings=0
+
+  knip:
+    name: Knip — orphan exports
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Knip
+        run: npm install --no-save knip
+
+      - name: Run Knip
+        run: npx knip --reporter compact
