@@ -363,7 +363,10 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
                     const isClientTarget=selectedClient&&isLibre&&t.capacity>=selectedClient.size;
                     const isClientIncompat=selectedClient&&isLibre&&t.capacity<selectedClient.size;
 
-                    const fill=isNettoyage?"#f5d878":isMange?"#4a9e78":isOrdering?"#3a5f8a":
+                    const queuedForT=kitchen.queue.filter(d=>d.tableId===t.id);
+                    const queueStale=queuedForT.length>0&&queuedForT.some(d=>d.addedAt&&(now-d.addedAt)>5000);
+
+                    const fill=queueStale?"#e03030":isNettoyage?"#f5d878":isMange?"#4a9e78":isOrdering?"#3a5f8a":
                       t.status==="occupée"?"#e07a45":myQ.length>0?"#5ab88a":"#c8e6d8";
 
                     // Taille selon capacité — garantit que tw+chaises < CELL_W

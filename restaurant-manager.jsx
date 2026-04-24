@@ -1148,7 +1148,7 @@ function AppContent(){
               (challengeProgress[ch.key]||0);
             return val>=ch.target&&!(challengeClaimed||{})[ch.id];
           }).length;
-          const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:0;
+          const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:t.id==="cuisine"?kitchen.queue.length:0;
           const active=tab===t.id;
           return(
             <button key={t.id} onClick={()=>{
@@ -1200,7 +1200,7 @@ function AppContent(){
             const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):(challengeProgress[ch.key]||0);
             return val>=ch.target&&!(challengeClaimed||{})[ch.id];
           }).length;
-          const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:0;
+          const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:t.id==="cuisine"?kitchen.queue.length:0;
           const active=tab===t.id;
           return(
             <button key={t.id} onClick={()=>{

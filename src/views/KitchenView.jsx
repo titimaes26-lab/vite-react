@@ -59,6 +59,13 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
 
   // Live clock for rendering (independent of logic intervals)
   const [now,setNow]=useState(Date.now());
+  const [pianoCompact,setPianoCompact]=useState(()=>{
+    try{return localStorage.getItem("pianoCompact")==="1";}catch{return false;}
+  });
+  const togglePiano=()=>setPianoCompact(v=>{
+    try{localStorage.setItem("pianoCompact",v?"0":"1");}catch{}
+    return !v;
+  });
 
   useEffect(()=>{
     const iv=setInterval(()=>setNow(Date.now()),250);
@@ -406,14 +413,59 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                 {tl("kitchen.piano")} ({kitchen.cooking.length}/{maxConcurrent})
               </span>
             </div>
-            <span style={{fontSize:9,background:slotsLeft>0?C.greenP:C.redP,
-              color:slotsLeft>0?C.green:C.red,border:`1px solid ${slotsLeft>0?C.green:C.red}33`,
-              borderRadius:20,padding:"2px 7px",fontFamily:F.body,fontWeight:700,whiteSpace:"nowrap"}}>
-              {slotsLeft>0?tl("kitchen.slotsAvailable",{n:slotsLeft}):tl("kitchen.full")}
-            </span>
+            <div style={{display:"flex",alignItems:"center",gap:5}}>
+              <span style={{fontSize:9,background:slotsLeft>0?C.greenP:C.redP,
+                color:slotsLeft>0?C.green:C.red,border:`1px solid ${slotsLeft>0?C.green:C.red}33`,
+                borderRadius:20,padding:"2px 7px",fontFamily:F.body,fontWeight:700,whiteSpace:"nowrap"}}>
+                {slotsLeft>0?tl("kitchen.slotsAvailable",{n:slotsLeft}):tl("kitchen.full")}
+              </span>
+              <button onClick={togglePiano} title={pianoCompact?"Agrandir le piano":"Réduire le piano"} style={{
+                background:"#2a2018",border:"1px solid #3a2e24",borderRadius:6,
+                color:"#8a7a6a",fontSize:11,cursor:"pointer",padding:"2px 6px",lineHeight:1,
+                fontFamily:F.body,fontWeight:700}}>
+                {pianoCompact?"▶":"▼"}
+              </button>
+            </div>
           </div>
 
-          {(()=>{
+          {/* ── Barre compacte ── */}
+          {pianoCompact&&(
+            <div style={{background:"#1a1612",borderRadius:10,border:"2px solid #3a2e24",
+              padding:"6px 10px",display:"flex",flexWrap:"wrap",gap:5}}>
+              {Array.from({length:maxConcurrent},(_,i)=>{
+                const dish=kitchen.cooking[i]||null;
+                const remaining=dish?Math.max(0,Math.ceil((dish.startedAt+dish.timerMax*1000-now)/1000)):0;
+                const pct=dish&&dish.timerMax>0?Math.min(100,((dish.timerMax-remaining)/dish.timerMax)*100):0;
+                const almostDone=pct>80;
+                const col=dish?(almostDone?"#4ade80":"#f97316"):"#3a2e24";
+                const timer=remaining>=60?`${Math.floor(remaining/60)}m${String(remaining%60).padStart(2,"0")}s`:remaining+"s";
+                return(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:4,
+                    background:"#2a2018",borderRadius:6,padding:"3px 7px",
+                    border:`1px solid ${col}44`,minWidth:0}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:col,flexShrink:0,
+                      boxShadow:dish?`0 0 4px ${col}`:"none"}}/>
+                    {dish?(
+                      <>
+                        <span style={{fontSize:9,color:"#fbbf24",fontFamily:F.body,fontWeight:700,
+                          whiteSpace:"nowrap",maxWidth:60,overflow:"hidden",textOverflow:"ellipsis"}}>
+                          {dish.name.length>9?dish.name.slice(0,8)+"…":dish.name}
+                        </span>
+                        <span style={{fontSize:9,color:col,fontFamily:F.body,fontWeight:800,whiteSpace:"nowrap"}}>
+                          {timer}
+                        </span>
+                      </>
+                    ):(
+                      <span style={{fontSize:9,color:"#4a3c2c",fontFamily:F.body}}>libre</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── Vue SVG pleine ── */}
+          {!pianoCompact&&(()=>{
             const cols=maxConcurrent<=4?2:maxConcurrent<=6?3:4;
             const rows=Math.ceil(maxConcurrent/cols);
             // Compact cell sizes
