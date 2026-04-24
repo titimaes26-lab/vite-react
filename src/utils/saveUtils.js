@@ -7,7 +7,7 @@ import { RESTO_LVL, CHEF_LVL } from "../constants/gameData";
 
 export const SAVE_KEY = "resto_save_v1";
 
-export const saveToLocalStorage = (state) => {
+const saveToLocalStorage = (state) => {
   if (!window.localStorage) {
     console.error("LocalStorage non supporté sur ce navigateur");
     return;

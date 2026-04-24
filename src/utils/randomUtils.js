@@ -45,7 +45,7 @@ export const rSize = () => pick([1, 2, 2, 2, 3, 3, 4, 4, 6]);
  * @param {number} seed - valeur initiale (modifiée en place via objet)
  * @returns {number} valeur entre 0 et 1
  */
-export const seededRng = (seedObj) => {
+const seededRng = (seedObj) => {
   seedObj.v = (seedObj.v * 9301 + 49297) % 233280;
   return seedObj.v / 233280;
 };
