@@ -124,8 +124,6 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
           newSpecialty = sp;
         } else if(s.specialty.id===level.specialtyId && level.l===3 && !s.specialtyUpgraded){
           newSpecUpgraded = true;
-        } else if(!s.specialty){
-          newSpecialty = sp;
         }
       }
       return {...s,

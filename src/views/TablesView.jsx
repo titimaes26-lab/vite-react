@@ -19,7 +19,7 @@ import { buildKitchenTickets, svcDuration, eatDuration, calcBill } from "../util
 function DetailPanel({t,tables,servers,kitchen,queue,now,cash,
   C,F,quickPlace,openAssign,checkout,
   addTx,setCash,addToast,setTables,onTableUpgrade,CAP_UPGRADES,
-  calcRating,ratingColor,ratingStars}) {
+  calcRating,ratingColor,ratingStars,setSelectedTable,activeSrv}) {
   // t is passed as prop — tr used for i18n to avoid conflict
   const { t: tr } = useLang();
               // Refresh from live tables
@@ -651,7 +651,14 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     addDayStat("rating", r);
     if (srvObj) {
       const xp = srvXpFromCheckout(r, t.group.size);
-      setServers(p=>p.map(s=>s.id===srvObj.id?{...s,totalXp:Math.min(SRV_MAX_XP,s.totalXp+xp),rating:+(s.rating*0.9+r*0.1).toFixed(1)}:s));
+      setServers(p=>p.map(s=>s.id===srvObj.id?{
+        ...s,
+        totalXp:Math.min(SRV_MAX_XP,s.totalXp+xp),
+        rating:+(s.rating*0.9+r*0.1).toFixed(1),
+        dayCheckouts:(s.dayCheckouts||0)+1,
+        dayCovers:(s.dayCovers||0)+(t.group.size??1),
+        dayRevenue:+((s.dayRevenue||0)+total).toFixed(2),
+      }:s));
     }
     addRestoXp(restoXpFromCheckout(t.group.size, t.group.mood.b, t.group.isVIP||false));
     if (updateReputation) {
@@ -911,6 +918,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                       calcRating={calcRating}
                       ratingColor={ratingColor}
                       ratingStars={ratingStars}
+                      activeSrv={activeSrv}
                     />
                   </div>
                 </div>
@@ -1190,7 +1198,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                   {tr("tables.orderPreview")}
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  {preview.map((o,i)=>(
+                  {(()=>{const catColors={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy,Formules:C.amber};return preview.map((o,i)=>(
                     <div key={i} style={{display:"flex",justifyContent:"space-between",
                       alignItems:"center",fontSize:12,fontFamily:F.body}}>
                       <div style={{display:"flex",gap:7,alignItems:"center"}}>
@@ -1199,7 +1207,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                       </div>
                       <span style={{color:C.terra,fontWeight:600}}>{(o.price*o.qty).toFixed(2)}€</span>
                     </div>
-                  ))}
+                  ))})()}
                   <div style={{borderTop:`1px solid ${C.terra}33`,paddingTop:8,marginTop:2,
                     display:"flex",justifyContent:"space-between",fontWeight:700,fontFamily:F.title}}>
                     <span style={{fontSize:12,color:C.muted}}>{tr("tables.totalEst")}</span>
