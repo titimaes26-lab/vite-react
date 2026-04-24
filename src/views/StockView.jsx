@@ -114,7 +114,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
     const totalCost=toOrder.reduce((sum,s)=>{
       const added=+(itemTarget(s)-s.qty).toFixed(3);
       if(added<=0) return sum;
-      return sum++(+(s.price||0)*(1-sup.discount)*added).toFixed(2);
+      return sum + +(+(s.price||0)*(1-sup.discount)*added).toFixed(2);
     },0);
     if(totalCost>cash){
       addToast&&addToast({icon:"❌",title:"Fonds insuffisants",
