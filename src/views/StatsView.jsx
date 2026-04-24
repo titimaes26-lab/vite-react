@@ -4,7 +4,7 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F, RESTO_LVL, CHEF_LVL, OBJECTIVES_DEF } from "../constants/gameData.js";
+import { C, F, RESTO_LVL, CHEF_LVL, OBJECTIVES_DEF, SRV_LVL } from "../constants/gameData.js";
 import { REP_THRESHOLDS, getRepTier } from "../constants/gameConstants.js";
 import { srvLv } from "../utils/levelUtils.js";
 import { restoLv, chefLv } from "../utils/levelUtils.js";
@@ -492,6 +492,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
               <tbody>
                 {[...servers].sort((a,b)=>(b.dayRevenue||0)-(a.dayRevenue||0)).map((sv,i)=>{
                   const sl=srvLv(sv.totalXp||0);
+                  const slD=SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
                   const moral=sv.moral??100;
                   const moralC=moral>=70?C.green:moral>=40?C.amber:C.red;
                   const rating=sv.rating??0;
@@ -501,9 +502,9 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                     <tr key={sv.id} style={{background:i%2===0?C.card:C.bg,opacity:isActive?1:0.5}}>
                       <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}11`}}>
                         <div style={{display:"flex",alignItems:"center",gap:7}}>
-                          <div style={{width:28,height:28,borderRadius:"50%",background:sl.d.color+"22",
-                            border:`1.5px solid ${sl.d.color}44`,display:"flex",alignItems:"center",
-                            justifyContent:"center",fontSize:14,flexShrink:0}}>{sl.d.icon}</div>
+                          <div style={{width:28,height:28,borderRadius:"50%",background:slD.color+"22",
+                            border:`1.5px solid ${slD.color}44`,display:"flex",alignItems:"center",
+                            justifyContent:"center",fontSize:14,flexShrink:0}}>{slD.icon}</div>
                           <div>
                             <div style={{fontSize:11,fontWeight:700,color:C.ink}}>{sv.name}</div>
                             {!isActive&&<div style={{fontSize:9,color:C.muted}}>{sv.status}</div>}
@@ -511,8 +512,8 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                         </div>
                       </td>
                       <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}11`}}>
-                        <span style={{fontSize:11,fontWeight:700,color:sl.d.color}}>N{sl.l}</span>
-                        <span style={{fontSize:9,color:C.muted,marginLeft:4}}>{sl.d.name}</span>
+                        <span style={{fontSize:11,fontWeight:700,color:slD.color}}>N{sl.l}</span>
+                        <span style={{fontSize:9,color:C.muted,marginLeft:4}}>{slD.name}</span>
                       </td>
                       <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}11`}}>
                         <div style={{display:"flex",alignItems:"center",gap:5}}>
