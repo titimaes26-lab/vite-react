@@ -707,6 +707,7 @@ function AppContent(){
     });
     setObjStats(s=>({...s,_hadLoss:false}));
     setMenu(p=>p.map(m=>({...m,dayOrderCount:0,dayFormulaRevenue:0})));
+    setServers(p=>p.map(s=>({...s,dayCheckouts:0,dayCovers:0,dayRevenue:0})));
     if(sal.total>0){
       setCash(c=>+(c-sal.total).toFixed(2));
       addTx("dépense", tl("daily.salaries"), sal.total);

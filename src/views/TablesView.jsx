@@ -651,7 +651,14 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
     addDayStat("rating", r);
     if (srvObj) {
       const xp = srvXpFromCheckout(r, t.group.size);
-      setServers(p=>p.map(s=>s.id===srvObj.id?{...s,totalXp:Math.min(SRV_MAX_XP,s.totalXp+xp),rating:+(s.rating*0.9+r*0.1).toFixed(1)}:s));
+      setServers(p=>p.map(s=>s.id===srvObj.id?{
+        ...s,
+        totalXp:Math.min(SRV_MAX_XP,s.totalXp+xp),
+        rating:+(s.rating*0.9+r*0.1).toFixed(1),
+        dayCheckouts:(s.dayCheckouts||0)+1,
+        dayCovers:(s.dayCovers||0)+(t.group.size??1),
+        dayRevenue:+((s.dayRevenue||0)+total).toFixed(2),
+      }:s));
     }
     addRestoXp(restoXpFromCheckout(t.group.size, t.group.mood.b, t.group.isVIP||false));
     if (updateReputation) {
