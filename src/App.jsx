@@ -953,6 +953,38 @@ export default function App(){
                 {phase?.icon??""} {t("phase."+(phase?.id??""))}
               </div>
             </div>
+            {/* Bouton pub récompensée +1000€ */}
+            <button
+              disabled={adWatching}
+              onClick={() => {
+                setAdWatching(true);
+                triggerAd("rewarded", {
+                  onRewarded: () => {
+                    setCash(c => +(c + 1000).toFixed(2));
+                    addTx("revenu", "Bonus pub vidéo", 1000);
+                    addToast({ icon: "📺", title: "+1 000 € · Pub regardée !" });
+                    setAdWatching(false);
+                  },
+                });
+              }}
+              title="+1 000€ en regardant une pub"
+              style={{
+                display:"flex",alignItems:"center",gap:4,flexShrink:0,
+                padding:"4px 9px",borderRadius:7,
+                background: adWatching ? C.amberP : C.greenP,
+                border:`1.5px solid ${adWatching ? C.amber : C.green}55`,
+                cursor: adWatching ? "not-allowed" : "pointer",
+                opacity: adWatching ? 0.7 : 1,
+                transition:"all 0.2s", fontFamily:F.body,
+              }}>
+              <span style={{fontSize:13,animation:adWatching?"pulse 0.8s ease-in-out infinite":undefined}}>
+                {adWatching ? "⏳" : "📺"}
+              </span>
+              <span style={{fontSize:11,fontWeight:700,color:adWatching?C.amber:C.green,whiteSpace:"nowrap"}}>
+                {adWatching ? "..." : "+1 000€"}
+              </span>
+            </button>
+
             <button onClick={()=>setShowHelp(true)} title="Guide utilisateur" style={{
               width:30,height:30,borderRadius:"50%",
               border:`1.5px solid ${C.green}44`,
@@ -1054,38 +1086,6 @@ export default function App(){
               🏦
             </button>
           </div>
-
-          {/* Bouton pub récompensée +1000€ */}
-          <button
-            disabled={adWatching}
-            onClick={() => {
-              setAdWatching(true);
-              triggerAd("rewarded", {
-                onRewarded: () => {
-                  setCash(c => +(c + 1000).toFixed(2));
-                  addTx("revenu", "Bonus pub vidéo", 1000);
-                  addToast({ icon: "📺", title: "+1 000 € · Pub regardée !" });
-                  setAdWatching(false);
-                },
-              });
-            }}
-            title="+1 000€ en regardant une pub"
-            style={{
-              flexShrink: 0, display: "flex", alignItems: "center", gap: 5,
-              padding: "5px 10px", borderRadius: 7,
-              background: adWatching ? C.amberP : C.greenP,
-              border: `1.5px solid ${adWatching ? C.amber : C.green}55`,
-              cursor: adWatching ? "not-allowed" : "pointer",
-              opacity: adWatching ? 0.7 : 1,
-              transition: "all 0.2s", fontFamily: F.body,
-            }}>
-            <span style={{ fontSize: 13, animation: adWatching ? "pulse 0.8s ease-in-out infinite" : undefined }}>
-              {adWatching ? "⏳" : "📺"}
-            </span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: adWatching ? C.amber : C.green, whiteSpace: "nowrap" }}>
-              {adWatching ? "..." : "+1 000€"}
-            </span>
-          </button>
 
           {/* Bouton sauvegarde manuelle */}
           <button
