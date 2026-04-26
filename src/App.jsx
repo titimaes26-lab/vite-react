@@ -86,6 +86,7 @@ import { StockView }      from "./views/StockView";
 import { ComplaintsView } from "./views/ComplaintsView";
 import { StatsView }      from "./views/StatsView";
 import { ObjectivesView } from "./views/ObjectivesView";
+import { triggerAd }      from "./services/adBridge";
 
 
 // resetGame est appelé depuis l'intérieur du composant App
@@ -173,6 +174,7 @@ export default function App(){
   const [showDialog, setShowDialog] = useState(null);
   const pausedRef     = useRef(false);
   const pauseStartRef = useRef(null);
+  const [adWatching, setAdWatching] = useState(false);
 
   /* ── Indicateur de sauvegarde ──────────────────────── */
   const [saveStatus,setSaveStatus]=useState("idle");
@@ -576,6 +578,44 @@ export default function App(){
     }
   }, [showDialog]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* ── Pause pendant la pub ───────────────────────────── */
+  useEffect(() => {
+    if (adWatching) {
+      pausedRef.current = true;
+      pauseStartRef.current = Date.now();
+    } else if (pauseStartRef.current !== null) {
+      pausedRef.current = false;
+      const dur = Date.now() - pauseStartRef.current;
+      pauseStartRef.current = null;
+      if (dur > 100) {
+        setTables(ts => ts.map(t => ({
+          ...t,
+          eatUntil:   t.eatUntil   ? t.eatUntil   + dur : null,
+          cleanUntil: t.cleanUntil ? t.cleanUntil + dur : null,
+          svcUntil:   t.svcUntil   ? t.svcUntil   + dur : null,
+          placedAt:   t.placedAt   ? t.placedAt   + dur : null,
+        })));
+        setQueue(q => q.map(g => ({ ...g, expiresAt: g.expiresAt + dur })));
+        setWaitlist(w => w.map(g => ({
+          ...g,
+          recallUntil: g.recallUntil ? g.recallUntil + dur : null,
+        })));
+        setServers(ss => ss.map(s => ({
+          ...s,
+          serviceUntil: s.serviceUntil ? s.serviceUntil + dur : null,
+          cleanUntil:   s.cleanUntil   ? s.cleanUntil   + dur : null,
+        })));
+        setKitchen(k => ({
+          ...k,
+          cooking: (k.cooking ?? []).map(d => ({
+            ...d,
+            startedAt: d.startedAt ? d.startedAt + dur : null,
+          })),
+        }));
+      }
+    }
+  }, [adWatching]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ── Afficher l'intro au premier lancement ─────────── */
   useEffect(() => {
     if (isLoaded && !introSeen) setShowDialog("intro");
@@ -861,7 +901,7 @@ export default function App(){
                 fontSize:bp.isMobile?13:15,fontWeight:800,color:C.ink,fontFamily:F.title,
                 whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
                 letterSpacing:"-0.02em",lineHeight:1.2,
-              }}>Le Grand Restaurant</div>
+              }}>Le Grand Restaurant TEST-V2</div>
               <div style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap",marginTop:1,letterSpacing:"0.02em"}}>
                 {now.toLocaleDateString(locale,{weekday:"short",day:"numeric",month:"short"})}
               </div>
@@ -1358,6 +1398,39 @@ export default function App(){
       )}
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
+
+      {/* Bouton pub flottant — toujours visible */}
+      <button
+        disabled={adWatching}
+        onClick={() => {
+          setAdWatching(true);
+          triggerAd("rewarded", {
+            onRewarded: () => {
+              setCash(c => +(c + 1000).toFixed(2));
+              addTx("revenu", "Bonus pub vidéo", 1000);
+              addToast({ icon: "📺", title: "+1 000 € · Pub regardée !" });
+              setAdWatching(false);
+            },
+          });
+        }}
+        title="+1 000€ en regardant une pub"
+        style={{
+          position:"fixed", top:80, left:"50%", transform:"translateX(-50%)", zIndex:99999,
+          display:"flex", alignItems:"center", gap:6,
+          padding:"12px 20px", borderRadius:50,
+          background:"#ff4444",
+          border:"3px solid #fff",
+          cursor:"pointer",
+          boxShadow:"0 4px 24px rgba(255,0,0,0.5)",
+          transition:"all 0.2s", fontFamily:F.body,
+        }}>
+        <span style={{fontSize:18,animation:adWatching?"pulse 0.8s ease-in-out infinite":undefined}}>
+          {adWatching ? "⏳" : "📺"}
+        </span>
+        <span style={{fontSize:12,fontWeight:800,color:"#fff",whiteSpace:"nowrap"}}>
+          {adWatching ? "Pub..." : "+1 000€"}
+        </span>
+      </button>
     </div>
   );
 }

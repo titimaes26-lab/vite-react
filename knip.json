@@ -3,7 +3,8 @@
   "entry": [
     "src/main.jsx",
     "src/App.jsx",
-    "restaurant-manager.jsx"
+    "restaurant-manager.jsx",
+    "src/services/adBridge.js"
   ],
   "project": [
     "src/**/*.{js,jsx}",
