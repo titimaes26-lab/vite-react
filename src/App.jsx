@@ -86,6 +86,7 @@ import { StockView }      from "./views/StockView";
 import { ComplaintsView } from "./views/ComplaintsView";
 import { StatsView }      from "./views/StatsView";
 import { ObjectivesView } from "./views/ObjectivesView";
+import { triggerAd }      from "./services/adBridge";
 
 
 // resetGame est appelé depuis l'intérieur du composant App
@@ -173,6 +174,7 @@ export default function App(){
   const [showDialog, setShowDialog] = useState(null);
   const pausedRef     = useRef(false);
   const pauseStartRef = useRef(null);
+  const [adWatching, setAdWatching] = useState(false);
 
   /* ── Indicateur de sauvegarde ──────────────────────── */
   const [saveStatus,setSaveStatus]=useState("idle");
@@ -575,6 +577,44 @@ export default function App(){
       }
     }
   }, [showDialog]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── Pause pendant la pub ───────────────────────────── */
+  useEffect(() => {
+    if (adWatching) {
+      pausedRef.current = true;
+      pauseStartRef.current = Date.now();
+    } else if (pauseStartRef.current !== null) {
+      pausedRef.current = false;
+      const dur = Date.now() - pauseStartRef.current;
+      pauseStartRef.current = null;
+      if (dur > 100) {
+        setTables(ts => ts.map(t => ({
+          ...t,
+          eatUntil:   t.eatUntil   ? t.eatUntil   + dur : null,
+          cleanUntil: t.cleanUntil ? t.cleanUntil + dur : null,
+          svcUntil:   t.svcUntil   ? t.svcUntil   + dur : null,
+          placedAt:   t.placedAt   ? t.placedAt   + dur : null,
+        })));
+        setQueue(q => q.map(g => ({ ...g, expiresAt: g.expiresAt + dur })));
+        setWaitlist(w => w.map(g => ({
+          ...g,
+          recallUntil: g.recallUntil ? g.recallUntil + dur : null,
+        })));
+        setServers(ss => ss.map(s => ({
+          ...s,
+          serviceUntil: s.serviceUntil ? s.serviceUntil + dur : null,
+          cleanUntil:   s.cleanUntil   ? s.cleanUntil   + dur : null,
+        })));
+        setKitchen(k => ({
+          ...k,
+          cooking: (k.cooking ?? []).map(d => ({
+            ...d,
+            startedAt: d.startedAt ? d.startedAt + dur : null,
+          })),
+        }));
+      }
+    }
+  }, [adWatching]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Afficher l'intro au premier lancement ─────────── */
   useEffect(() => {
@@ -1014,6 +1054,38 @@ export default function App(){
               🏦
             </button>
           </div>
+
+          {/* Bouton pub récompensée +1000€ */}
+          <button
+            disabled={adWatching}
+            onClick={() => {
+              setAdWatching(true);
+              triggerAd("rewarded", {
+                onRewarded: () => {
+                  setCash(c => +(c + 1000).toFixed(2));
+                  addTx("revenu", "Bonus pub vidéo", 1000);
+                  addToast({ icon: "📺", title: "+1 000 € · Pub regardée !" });
+                  setAdWatching(false);
+                },
+              });
+            }}
+            title="+1 000€ en regardant une pub"
+            style={{
+              flexShrink: 0, display: "flex", alignItems: "center", gap: 5,
+              padding: "5px 10px", borderRadius: 7,
+              background: adWatching ? C.amberP : C.greenP,
+              border: `1.5px solid ${adWatching ? C.amber : C.green}55`,
+              cursor: adWatching ? "not-allowed" : "pointer",
+              opacity: adWatching ? 0.7 : 1,
+              transition: "all 0.2s", fontFamily: F.body,
+            }}>
+            <span style={{ fontSize: 13, animation: adWatching ? "pulse 0.8s ease-in-out infinite" : undefined }}>
+              {adWatching ? "⏳" : "📺"}
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: adWatching ? C.amber : C.green, whiteSpace: "nowrap" }}>
+              {adWatching ? "..." : "+1 000€"}
+            </span>
+          </button>
 
           {/* Bouton sauvegarde manuelle */}
           <button
