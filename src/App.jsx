@@ -1415,14 +1415,13 @@ export default function App(){
         }}
         title="+1 000€ en regardant une pub"
         style={{
-          position:"fixed", bottom:72, right:16, zIndex:9000,
+          position:"fixed", top:80, left:"50%", transform:"translateX(-50%)", zIndex:99999,
           display:"flex", alignItems:"center", gap:6,
-          padding:"10px 14px", borderRadius:50,
-          background: adWatching ? C.amber : C.green,
-          border:"none",
-          cursor: adWatching ? "not-allowed" : "pointer",
-          opacity: adWatching ? 0.8 : 1,
-          boxShadow:`0 4px 16px ${adWatching?C.amber:C.green}55`,
+          padding:"12px 20px", borderRadius:50,
+          background:"#ff4444",
+          border:"3px solid #fff",
+          cursor:"pointer",
+          boxShadow:"0 4px 24px rgba(255,0,0,0.5)",
           transition:"all 0.2s", fontFamily:F.body,
         }}>
         <span style={{fontSize:18,animation:adWatching?"pulse 0.8s ease-in-out infinite":undefined}}>
