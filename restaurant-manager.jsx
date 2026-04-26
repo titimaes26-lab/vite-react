@@ -808,7 +808,17 @@ function AppContent(){
       const after=restoLv(next);
       if(after.l>before.l){
         const nd=RESTO_LVL[after.l];
-        setTimeout(()=>setLevelUpData(nd), 50);
+        setTimeout(()=>{
+          setLevelUpData(nd);
+          // Pub automatique au level-up (seulement dans GDevelop/iframe)
+          if(window !== window.parent){
+            setAdWatching(true);
+            const safety=setTimeout(()=>setAdWatching(false), 30000);
+            triggerAd("rewarded",{
+              onRewarded:()=>{ clearTimeout(safety); setAdWatching(false); },
+            });
+          }
+        }, 50);
         // Débloquer les plats dont unlockLevel correspond au nouveau niveau
         const newlyUnlocked=MENU0.filter(
           d=>(d.unlockLevel??0)>before.l&&(d.unlockLevel??0)<=after.l
