@@ -13,9 +13,9 @@ const TRUSTED_ORIGINS = [
 const postToParent = (type, payload = {}) => {
   if (window === window.parent) return;
   try {
-    TRUSTED_ORIGINS.forEach(origin => {
-      window.parent.postMessage({ source: "react-app", type, ...payload }, origin);
-    });
+    // "*" est nécessaire car l'origine de GDevelop n'est pas connue à l'avance.
+    // La sécurité est assurée côté réception (vérification de event.origin dans GDevelop).
+    window.parent.postMessage({ source: "react-app", type, ...payload }, "*");
   } catch (err) {
     console.error("[Bridge] Impossible d'envoyer le message :", err.message);
   }
