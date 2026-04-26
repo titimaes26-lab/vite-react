@@ -5,7 +5,7 @@
 ═══════════════════════════════════════════════════════ */
 
 const TRUSTED_ORIGINS = [
-  "https://ton-jeu.gdevelop.io",
+  "https://vite-react-tau-one-80.vercel.app/",
   "capacitor://localhost",
   "http://localhost",
 ];
