@@ -5,9 +5,12 @@
 ═══════════════════════════════════════════════════════ */
 
 const postToParent = (type, payload = {}) => {
-  if (window === window.parent) return;
   try {
+    // Envoie au parent (iframe) ET à la fenêtre courante (même contexte GDevelop)
     window.parent.postMessage({ source: "react-app", type, ...payload }, "*");
+    if (window.parent === window) {
+      // Même fenêtre : postMessage s'envoie à soi-même, GDevelop l'intercepte via son listener
+    }
   } catch (err) {
     console.error("[Bridge] Impossible d'envoyer le message :", err.message);
   }
