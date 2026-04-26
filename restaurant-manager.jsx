@@ -5,6 +5,7 @@ import { LanguageSelect } from "./src/components/LanguageSelect.jsx";
 // ── Services ───────────────────────────────────────────
 import { saveGame, loadGame, SAVE_KEY } from "./src/services/persistence.js";
 import { sendToGDevelop, buildGDevelopPayload, sanitizeSave } from "./src/services/gdevelopBridge.js";
+import { triggerAd } from "./src/services/adBridge.js";
 
 // ── Données serveurs ───────────────────────────────────
 import { SRV_SPECIALTIES, pickSpecialty, TRAINING_CATALOG, getMaxMoral } from "./src/constants/serverData.js";
@@ -303,6 +304,7 @@ function AppContent(){
   const summaryShownRef=useRef(false);
   const pausedRef     = useRef(false);
   const pauseStartRef = useRef(null);
+  const [adWatching, setAdWatching] = useState(false);
   const [isGameOver,setIsGameOver]=useState(false);
   const salaryAccruedRef=useRef({ total: 0, perPerson: {} });
 
@@ -639,6 +641,44 @@ function AppContent(){
     }
   }, [isDialogOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* ── Pause pendant la pub ───────────────────────────── */
+  useEffect(() => {
+    if (adWatching) {
+      pausedRef.current = true;
+      pauseStartRef.current = Date.now();
+    } else if (pauseStartRef.current !== null) {
+      pausedRef.current = false;
+      const dur = Date.now() - pauseStartRef.current;
+      pauseStartRef.current = null;
+      if (dur > 100) {
+        setTables(ts => ts.map(t => ({
+          ...t,
+          eatUntil:   t.eatUntil   ? t.eatUntil   + dur : null,
+          cleanUntil: t.cleanUntil ? t.cleanUntil + dur : null,
+          svcUntil:   t.svcUntil   ? t.svcUntil   + dur : null,
+          placedAt:   t.placedAt   ? t.placedAt   + dur : null,
+        })));
+        setQueue(q => q.map(g => ({ ...g, expiresAt: g.expiresAt + dur })));
+        setWaitlist(w => w.map(g => ({
+          ...g,
+          recallUntil: g.recallUntil ? g.recallUntil + dur : null,
+        })));
+        setServers(ss => ss.map(s => ({
+          ...s,
+          serviceUntil: s.serviceUntil ? s.serviceUntil + dur : null,
+          cleanUntil:   s.cleanUntil   ? s.cleanUntil   + dur : null,
+        })));
+        setKitchen(k => ({
+          ...k,
+          cooking: (k.cooking ?? []).map(d => ({
+            ...d,
+            startedAt: d.startedAt ? d.startedAt + dur : null,
+          })),
+        }));
+      }
+    }
+  }, [adWatching]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ── Horloge de jeu ────────────────────────────────── */
   const { clockNow, gameTime, phase, isDayOver: clockIsDayOver, resetDay } = useGameClock(dayStartRealMs, pausedRef);
   gameTimeRef.current  = gameTime.str;
@@ -768,7 +808,17 @@ function AppContent(){
       const after=restoLv(next);
       if(after.l>before.l){
         const nd=RESTO_LVL[after.l];
-        setTimeout(()=>setLevelUpData(nd), 50);
+        setTimeout(()=>{
+          setLevelUpData(nd);
+          // Pub automatique au level-up (seulement dans GDevelop/iframe)
+          if(window !== window.parent){
+            setAdWatching(true);
+            const safety=setTimeout(()=>setAdWatching(false), 30000);
+            triggerAd("rewarded",{
+              onRewarded:()=>{ clearTimeout(safety); setAdWatching(false); },
+            });
+          }
+        }, 50);
         // Débloquer les plats dont unlockLevel correspond au nouveau niveau
         const newlyUnlocked=MENU0.filter(
           d=>(d.unlockLevel??0)>before.l&&(d.unlockLevel??0)<=after.l
@@ -1071,6 +1121,36 @@ function AppContent(){
                 </div>
               )}
             </div>
+            <button
+              disabled={adWatching}
+              onClick={() => {
+                setAdWatching(true);
+                triggerAd("rewarded", {
+                  onRewarded: () => {
+                    setCash(c => +(c + 1000).toFixed(2));
+                    addTx("revenu", "Bonus pub vidéo", 1000);
+                    addToast({ icon: "📺", title: "+1 000 € · Pub regardée !" });
+                    setAdWatching(false);
+                  },
+                });
+              }}
+              title="+1 000€ en regardant une pub"
+              style={{
+                display:"flex",alignItems:"center",gap:4,flexShrink:0,
+                padding:"4px 9px",borderRadius:7,
+                background: adWatching ? C.amberP : C.greenP,
+                border:`1.5px solid ${adWatching ? C.amber : C.green}55`,
+                cursor: adWatching ? "not-allowed" : "pointer",
+                opacity: adWatching ? 0.7 : 1,
+                transition:"all 0.2s",
+              }}>
+              <span style={{fontSize:13,animation:adWatching?"pulse 0.8s ease-in-out infinite":undefined}}>
+                {adWatching ? "⏳" : "📺"}
+              </span>
+              <span style={{fontSize:11,fontWeight:700,color:adWatching?C.amber:C.green,whiteSpace:"nowrap"}}>
+                {adWatching ? "..." : "+1 000€"}
+              </span>
+            </button>
             <button onClick={()=>setShowHelp(true)} title="Guide utilisateur" style={{
               width:30,height:30,borderRadius:"50%",
               border:`1.5px solid ${C.green}44`,
@@ -1521,6 +1601,7 @@ function AppContent(){
       {showStockTutorial       && isLoaded && <StockDialog      onDone={handleStockTutorialDone}/>}
       {showMenuTutorial     && isLoaded && <MenuDialog    onDone={handleMenuTutorialDone}/>}
       {showKitchenTutorial  && isLoaded && <KitchenDialog onDone={handleKitchenTutorialDone}/>}
+
     </div>
   );
 }
