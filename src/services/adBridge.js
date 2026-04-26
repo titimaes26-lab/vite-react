@@ -4,17 +4,9 @@
    Séparé de gdevelopBridge.js (état du jeu) — responsabilité unique.
 ═══════════════════════════════════════════════════════ */
 
-const TRUSTED_ORIGINS = [
-  "https://vite-react-tau-one-80.vercel.app/",
-  "capacitor://localhost",
-  "http://localhost",
-];
-
 const postToParent = (type, payload = {}) => {
   if (window === window.parent) return;
   try {
-    // "*" est nécessaire car l'origine de GDevelop n'est pas connue à l'avance.
-    // La sécurité est assurée côté réception (vérification de event.origin dans GDevelop).
     window.parent.postMessage({ source: "react-app", type, ...payload }, "*");
   } catch (err) {
     console.error("[Bridge] Impossible d'envoyer le message :", err.message);
@@ -31,7 +23,6 @@ export const triggerAd = (adType, { onRewarded } = {}) => {
   postToParent("AD_REQUEST", { adType });
   if (adType === "rewarded" && typeof onRewarded === "function") {
     const handler = (event) => {
-      if (!TRUSTED_ORIGINS.includes(event.origin)) return;
       if (event.data?.type === "AD_REWARDED") {
         onRewarded(event.data);
         window.removeEventListener("message", handler);
