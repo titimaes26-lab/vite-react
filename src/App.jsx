@@ -628,8 +628,9 @@ export default function App(){
   resetDayRef.current  = resetDay;
   gameTimeRef.current  = gameTime.str;
 
-  const phaseRef    = useRef(phase);
-  useEffect(() => { phaseRef.current = phase; });
+  const phaseRef      = useRef(phase);
+  const isDayOverRef  = useRef(isDayOver);
+  useEffect(() => { phaseRef.current = phase; isDayOverRef.current = isDayOver; });
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef, pausedRef });
   useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, pausedRef });
@@ -648,25 +649,25 @@ export default function App(){
   });
   useObjectives ({ objStats, completedIds, pendingClaim, setPendingClaim, addToast });
 
-  // Fermeture : vider la file et la waitlist dès l'entrée dans la phase
+  // Fin de journée : vider la file et la waitlist dès que isDayOver
   useEffect(()=>{
-    if(!isLoaded || phase?.id !== "fermeture") return;
+    if(!isLoaded || !isDayOver) return;
     setQueue(q=>{
       if(q.length === 0) return q;
-      addToast({ icon:"🔒", title:"Fermeture !", msg:`${q.length} groupe(s) renvoyé(s) — le restaurant ferme.`, color:"#ef4444", tab:"tables" });
+      addToast({ icon:"🌙", title:"Fin de service !", msg:`${q.length} groupe(s) renvoyé(s) — le restaurant ferme.`, color:"#8b5cf6", tab:"tables" });
       return [];
     });
     setWaitlist(w=>{
       if(w.length === 0) return w;
       return [];
     });
-  },[isLoaded, phase?.id]);
+  },[isLoaded, isDayOver]);
 
   // Fin de journée : polling 500ms via refs (évite les stale closures)
   useEffect(()=>{
     if(!isLoaded) return;
     const iv = setInterval(()=>{
-      if(phaseRef.current?.id !== "fermeture") return;
+      if(!isDayOverRef.current) return;
       const tables  = tablesRef.current;
       const queue   = queueRef.current;
       const wlist   = waitlistRef.current;

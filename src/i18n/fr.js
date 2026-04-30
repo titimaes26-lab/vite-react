@@ -53,11 +53,9 @@ export const fr = {
   },
 
   phase: {
-    mise_en_place: "Mise en place",
-    rush_midi: "Rush Midi",
-    creux: "Creux",
-    grand_service: "Grand Service",
-    fermeture: "Fermeture",
+    petit_dejeuner: "Petit Déjeuner",
+    dejeuner: "Déjeuner",
+    diner: "Dîner",
   },
 
   tables: {

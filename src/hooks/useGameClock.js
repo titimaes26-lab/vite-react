@@ -16,10 +16,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 /* ─── Échelle & bornes ───────────────────────────────── */
 
-const DAY_START_ABS = 8 * 60;   // 08:00 = 480 min depuis minuit
-const DAY_END_ABS   = 27 * 60;  // 03:00 (lendemain) = 1620 min
+const DAY_START_ABS = 7 * 60;   // 07:00 = 420 min depuis minuit
+const DAY_END_ABS   = 23 * 60;  // 23:00 = 1380 min
 
-// 1140 min de jeu × 1 000 ms/min = 1 140 000 ms réelles (19 minutes réelles)
+// 960 min de jeu × 1 000 ms/min = 960 000 ms réelles (16 minutes réelles)
 export const REAL_DAY_MS = (DAY_END_ABS - DAY_START_ABS) * 1_000;
 
 /* ─── Phases de service ──────────────────────────────── */
@@ -31,77 +31,53 @@ export const REAL_DAY_MS = (DAY_END_ABS - DAY_START_ABS) * 1_000;
  *   prepBonus             — bonus de vitesse de cuisson (0.20 = +20 %)
  *   cleanBonus            — bonus de vitesse de nettoyage (0.50 = +50 %)
  *   priceMultiplier       — facteur sur le prix des plats (1.10 = +10 %)
+ *   allowedCats           — catégories de plats disponibles pendant cette phase
  */
 export const PHASES = [
   {
-    id: "mise_en_place",
-    label: "Mise en place",
-    icon: "🧹",
-    color: "#6b7280",
-    startAbs: 480,   // 08:00
-    endAbs:   690,   // 11:30
-    spawnRate: 0.75,
-    prepBonus: 0.20,
-    patienceMultiplier: 1.0,
+    id: "petit_dejeuner",
+    label: "Petit Déjeuner",
+    icon: "☕",
+    color: "#f59e0b",
+    startAbs: 420,   // 07:00
+    endAbs:   660,   // 11:00
+    spawnRate: 0.8,
+    prepBonus: 0.15,
+    patienceMultiplier: 1.2,
     cleanBonus: 0,
     priceMultiplier: 1.0,
-    desc: "Pas de clients · +20 % vitesse cuisson",
+    allowedCats: ["Petit Déjeuner", "Boissons"],
+    desc: "Service calme · plats du matin · +15 % vitesse cuisson",
   },
   {
-    id: "rush_midi",
-    label: "Rush Midi",
+    id: "dejeuner",
+    label: "Déjeuner",
     icon: "🌞",
     color: "#f97316",
-    startAbs: 690,   // 11:30
-    endAbs:   870,   // 14:30
+    startAbs: 660,   // 11:00
+    endAbs:   900,   // 15:00
     spawnRate: 2.0,
     prepBonus: 0,
-    patienceMultiplier: 0.7,
+    patienceMultiplier: 0.75,
     cleanBonus: 0,
     priceMultiplier: 1.0,
-    desc: "Affluence max · −30 % patience",
+    allowedCats: ["Entrées", "Plats", "Desserts", "Boissons"],
+    desc: "Affluence max · −25 % patience",
   },
   {
-    id: "creux",
-    label: "Creux",
-    icon: "😴",
-    color: "#3b82f6",
-    startAbs: 870,   // 14:30
-    endAbs:   1080,  // 18:00
-    spawnRate: 0.75,
-    prepBonus: 0,
-    patienceMultiplier: 1.2,
-    cleanBonus: 0.5,
-    priceMultiplier: 1.0,
-    desc: "Calme · +50 % vitesse nettoyage",
-  },
-  {
-    id: "grand_service",
-    label: "Grand Service",
-    icon: "✨",
+    id: "diner",
+    label: "Dîner",
+    icon: "🌙",
     color: "#8b5cf6",
-    startAbs: 1080,  // 18:00
-    endAbs:   1260,  // 21:00
+    startAbs: 900,   // 15:00
+    endAbs:   1380,  // 23:00
     spawnRate: 1.5,
     prepBonus: 0,
     patienceMultiplier: 0.9,
     cleanBonus: 0,
     priceMultiplier: 1.10,
-    desc: "Plats complexes · +10 % prix",
-  },
-  {
-    id: "fermeture",
-    label: "Fermeture",
-    icon: "🔒",
-    color: "#ef4444",
-    startAbs: 1260,  // 21:00
-    endAbs:   1620,  // 03:00 (lendemain)
-    spawnRate: 0,
-    prepBonus: 0,
-    patienceMultiplier: 1.0,
-    cleanBonus: 0,
-    priceMultiplier: 1.0,
-    desc: "Service terminé — fin de journée quand la salle est vide",
+    allowedCats: ["Entrées", "Plats", "Desserts", "Boissons"],
+    desc: "Service du soir · +10 % prix",
   },
 ];
 
