@@ -47,7 +47,7 @@ import {
 } from "./utils/orderUtils";
 
 // ── Hooks métier ───────────────────────────────────────
-import { useGameClock, isOnShift } from "./hooks/useGameClock";
+import { useGameClock, isOnShift, SHIFTS, DEFAULT_DAY_START_ABS, DEFAULT_DAY_END_ABS } from "./hooks/useGameClock";
 import { useSpawner }     from "./hooks/useSpawner";
 import { useExpiry }      from "./hooks/useExpiry";
 import { useSalary }      from "./hooks/useSalary";
@@ -621,10 +621,25 @@ export default function App(){
     if (isLoaded && !introSeen) setShowDialog("intro");
   }, [isLoaded, introSeen]);
 
+  /* ── Bornes dynamiques de la journée ────────────────── */
+  // Une période est active si au moins 1 serveur ET 1 chef y est assigné.
+  const activeShifts = Object.values(SHIFTS).filter(sh => {
+    const hasServer = servers.some(s => s.shift === sh.id);
+    const hasChef   = kitchen.chef?.shift === sh.id
+                   || (kitchen.chefs ?? []).some(c => c.shift === sh.id);
+    return hasServer && hasChef;
+  });
+  const dayStartAbs = activeShifts.length > 0
+    ? Math.min(...activeShifts.map(sh => sh.startAbs))
+    : DEFAULT_DAY_START_ABS;
+  const dayEndAbs = activeShifts.length > 0
+    ? Math.max(...activeShifts.map(sh => sh.endAbs))
+    : DEFAULT_DAY_END_ABS;
+
   /* ── Hooks métier ────────────────────────────────────── */
   // Remplacent 13 useEffect inline (salary, moralDrain, deliveries,
   // events, dailySpecials, spawner, challenges, expiry, clockNow, objectives)
-  const { clockNow, phase, isDayOver, gameTime, resetDay } = useGameClock({ pausedRef });
+  const { clockNow, phase, isDayOver, gameTime, resetDay } = useGameClock({ pausedRef, dayStartAbs, dayEndAbs });
   resetDayRef.current  = resetDay;
   gameTimeRef.current  = gameTime.str;
 
@@ -671,7 +686,7 @@ export default function App(){
       const tables  = tablesRef.current;
       const queue   = queueRef.current;
       const wlist   = waitlistRef.current;
-      const salleVide = tables.every(t => t.status === "libre" || t.status === "nettoyage");
+      const salleVide = tables.every(t => t.status === "libre");
       if(!salleVide || queue.length > 0 || wlist.length > 0) return;
       showDailySummary();
     }, 500);

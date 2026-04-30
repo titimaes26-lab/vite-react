@@ -16,13 +16,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
-/* ─── Échelle & bornes ───────────────────────────────── */
+/* ─── Bornes par défaut (journée complète) ───────────── */
+export const DEFAULT_DAY_START_ABS = 7 * 60;   // 07:00
+export const DEFAULT_DAY_END_ABS   = 23 * 60;  // 23:00
 
-const DAY_START_ABS = 7 * 60;   // 07:00 = 420 min depuis minuit
-const DAY_END_ABS   = 23 * 60;  // 23:00 = 1380 min
-
-// 960 min de jeu × 1 000 ms/min = 960 000 ms réelles (16 minutes réelles)
-export const REAL_DAY_MS = (DAY_END_ABS - DAY_START_ABS) * 1_000;
+// Conservé pour compatibilité (journée complète)
+export const REAL_DAY_MS = (DEFAULT_DAY_END_ABS - DEFAULT_DAY_START_ABS) * 1_000;
 
 /* ─── Phases de service ──────────────────────────────── */
 /**
@@ -107,15 +106,11 @@ export function isOnShift(shift, absMin) {
  * en heure de jeu simulée.
  *
  * @param {number} elapsedRealMs
+ * @param {number} [dayStartAbs=420] — début de journée en minutes absolues
  * @returns {{ h: number, m: number, absMin: number, str: string }}
- *
- * Exemples :
- *   0        → { h:8,  m:0,  str:"08h00" }
- *   210_000  → { h:11, m:30, str:"11h30" }  (Rush Midi commence)
- *   960_000  → { h:0,  m:0,  str:"00h00" }  (fin de journée)
  */
-export function realMsToGameTime(elapsedRealMs) {
-  const absMin = DAY_START_ABS + Math.floor(Math.max(0, elapsedRealMs) / 1_000);
+export function realMsToGameTime(elapsedRealMs, dayStartAbs = DEFAULT_DAY_START_ABS) {
+  const absMin = dayStartAbs + Math.floor(Math.max(0, elapsedRealMs) / 1_000);
   const h = Math.floor(absMin / 60) % 24;
   const m = absMin % 60;
   return {
@@ -149,7 +144,11 @@ export function getPhase(absMin) {
  *   resetDay      : Function, // remet l'horloge à 08h00
  * }}
  */
-export function useGameClock(dayStartMs, pausedRef) {
+export function useGameClock({
+  pausedRef,
+  dayStartAbs = DEFAULT_DAY_START_ABS,
+  dayEndAbs   = DEFAULT_DAY_END_ABS,
+} = {}) {
   const [clockNow,   setClockNow]  = useState(() => Date.now());
   const [dayStart,   setDayStart]  = useState(() => Date.now());
   const pausedAtRef = useRef(null);
@@ -175,10 +174,11 @@ export function useGameClock(dayStartMs, pausedRef) {
     setDayStart(Date.now());
   }, []);
 
+  const realDayMs     = (dayEndAbs - dayStartAbs) * 1_000;
   const elapsedRealMs = Math.max(0, clockNow - dayStart);
-  const gameTime      = realMsToGameTime(elapsedRealMs);
+  const gameTime      = realMsToGameTime(elapsedRealMs, dayStartAbs);
   const phase         = getPhase(gameTime.absMin);
-  const isDayOver     = elapsedRealMs >= REAL_DAY_MS;
+  const isDayOver     = elapsedRealMs >= realDayMs;
 
   return { clockNow, gameTime, phase, isDayOver, elapsedRealMs, resetDay };
 }
