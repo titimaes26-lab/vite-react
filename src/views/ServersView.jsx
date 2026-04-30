@@ -115,6 +115,44 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
 
   const [staffFilter,setStaffFilter]=useState("cuisine"); // "cuisine" | "salle"
 
+  /* ── Chefs supplémentaires ─────────────────────────── */
+  const [chefHireIdx,setChefHireIdx]=useState(null);
+  const [chefConfirmIdx,setChefConfirmIdx]=useState(null);
+  const [chefPool,setChefPool]=useState([]);
+  const [chefPoolDate,setChefPoolDate]=useState("");
+
+  const buildAdditionalChefPool=(dateStr)=>{
+    let seed=dateStr.split("").reduce((a,c)=>a+c.charCodeAt(0),0)+99;
+    const rng=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+    const fn=["Baptiste","Cédric","Élodie","Franck","Gaëtan","Héloïse","Ivan","Julie","Karim","Laura","Marc","Nadia","Olivier","Pauline","Quentin","Rachel","Sébastien","Tania"];
+    const ln=["Aubert","Besson","Collet","Dumas","Évrard","Fournier","Gros","Hamelin","Imbert","Jourdain","Kilic","Leconte","Moulin","Nguyen","Ortega","Pasquier"];
+    return Array.from({length:4},(_,i)=>{
+      const lvl=Math.min(3,Math.floor(rng()*4));
+      const xpBase=[0,120,380,830][lvl];
+      const salary=Math.round(18+lvl*5+rng()*6);
+      const aclD=CHEF_LVL[lvl];
+      return{
+        id:`acp-${dateStr}-${i}`,
+        name:fn[Math.floor(rng()*fn.length)]+" "+ln[Math.floor(rng()*ln.length)],
+        totalXp:xpBase+Math.round(rng()*80),
+        salary,
+        hireCost:Math.round(salary*5),
+        lvl,
+        icon:aclD?.icon||"🧑‍🍳",
+        lvlName:aclD?.name||"Apprenti",
+        lvlColor:aclD?.color||C.muted,
+      };
+    });
+  };
+
+  useEffect(()=>{
+    if(chefHireIdx===null)return;
+    const today=new Date().toLocaleDateString("fr-FR");
+    if(chefPoolDate===today&&chefPool.length>0)return;
+    setChefPool(buildAdditionalChefPool(today));
+    setChefPoolDate(today);
+  },[chefHireIdx]);
+
   const [modal,setModal]=useState(false);   // "hire" | "edit" | "fire" | "train" | false
   const [form,setForm]=useState({name:"",status:"actif",salary:"12"});
   const [editId,setEditId]=useState(null);
@@ -514,6 +552,71 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               );
             })}
           </div>
+
+          {/* ── Chefs supplémentaires ── */}
+          {(()=>{
+            const maxChefSlots=Math.min(3,Math.floor(restoLvN/5)+1);
+            return(
+              <>
+                <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginTop:16,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+                  🧑‍🍳 Chefs supplémentaires
+                  <span style={{fontSize:10,background:C.amberP,color:C.amber,border:`1px solid ${C.amber}33`,borderRadius:6,padding:"1px 8px",fontWeight:600}}>
+                    {(kitchen.chefs??[]).length}/{maxChefSlots} slot{maxChefSlots>1?"s":""}
+                  </span>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"repeat(auto-fill,minmax(270px,1fr))",gap:bp.isMobile?10:13,marginBottom:16}}>
+                  {Array.from({length:maxChefSlots},(_,idx)=>{
+                    const ac=(kitchen.chefs??[])[idx];
+                    if(ac){
+                      const acl=chefLv(ac.totalXp??0);
+                      const aclD=CHEF_LVL[Math.min(acl.l,CHEF_LVL.length-1)];
+                      const severance=Math.round((ac.salary||20)*2);
+                      return(
+                        <Card key={ac.id} accent={aclD.color+"44"}>
+                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+                            <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                              <div style={{width:40,height:40,background:aclD.color+"1a",
+                                border:`2px solid ${aclD.color}33`,borderRadius:11,
+                                display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>
+                                {aclD.icon}
+                              </div>
+                              <div>
+                                <div style={{fontSize:13,fontWeight:600,color:C.ink,fontFamily:F.title}}>{ac.name}</div>
+                                <div style={{display:"flex",gap:5,marginTop:3}}>
+                                  <Badge color={aclD.color} sm>{aclD.name}</Badge>
+                                  <Badge color={C.amber} bg={C.amberP} sm>💶 {ac.salary}€/h</Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{marginBottom:10}}>
+                            <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:C.muted,marginBottom:4,fontFamily:F.body}}>
+                              <span>XP · Niv.{acl.l}</span>
+                              <span style={{color:aclD.color,fontWeight:600}}>{acl.r}/{acl.n}</span>
+                            </div>
+                            <XpBar xp={acl.r} needed={acl.n} color={aclD.color}/>
+                          </div>
+                          <ShiftPicker shift={ac.shift??null} onChange={s=>setKitchen(k=>({...k,chefs:(k.chefs??[]).map((c,i)=>i===idx?{...c,shift:s}:c)}))}/>
+                          <div style={{display:"flex",gap:7}}>
+                            <Btn sm v="danger" onClick={()=>setChefConfirmIdx(idx)}>{tr("servers.fire")}</Btn>
+                          </div>
+                        </Card>
+                      );
+                    }
+                    return(
+                      <div key={`chef-empty-${idx}`} style={{background:C.bg,border:`1.5px dashed ${C.border}`,
+                        borderRadius:14,padding:"18px 16px",display:"flex",flexDirection:"column",
+                        alignItems:"center",justifyContent:"center",minHeight:140,gap:8}}>
+                        <span style={{fontSize:28}}>🧑‍🍳</span>
+                        <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>Poste libre</div>
+                        <Btn sm v="amber" onClick={()=>setChefHireIdx(idx)}>+ Recruter</Btn>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            );
+          })()}
 
         </>
       )}
@@ -1593,6 +1696,92 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                       border:`1.5px solid ${canAfford?C.green:C.border}`,
                       cursor:canAfford?"pointer":"not-allowed"}}>
                       💰 {cand.hireCost}€
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ MODAL : Confirmation licenciement chef suppl. ══ */}
+      {chefConfirmIdx!==null&&(()=>{
+        const ac=(kitchen?.chefs??[])[chefConfirmIdx];
+        if(!ac)return null;
+        const severance=Math.round((ac.salary||20)*2);
+        const canAffordFire=cash>=severance;
+        return(
+          <Modal title={`Licencier ${ac.name} ?`} onClose={()=>setChefConfirmIdx(null)}>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{background:C.redP,border:`1px solid ${C.red}22`,borderRadius:8,
+                padding:"10px 14px",fontSize:11,color:C.red,fontFamily:F.body,fontWeight:600}}>
+                Indemnité de départ : {severance}€
+              </div>
+              <div style={{display:"flex",gap:10}}>
+                <Btn full v="ghost" onClick={()=>setChefConfirmIdx(null)}>{tr("app.cancel")}</Btn>
+                <Btn full v={canAffordFire?"danger":"disabled"} disabled={!canAffordFire}
+                  onClick={()=>{
+                    setCash(c=>+(c-severance).toFixed(2));
+                    addTx("dépense",`Indemnité licenciement — ${ac.name}`,severance);
+                    setKitchen(k=>({...k,chefs:(k.chefs??[]).filter((_,i)=>i!==chefConfirmIdx)}));
+                    setChefConfirmIdx(null);
+                  }} icon="👋">
+                  {canAffordFire?`Confirmer (−${severance}€)`:"Fonds insuffisants"}
+                </Btn>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
+
+      {/* ══ MODAL : Recruter un chef supplémentaire ══ */}
+      {chefHireIdx!==null&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}
+          onClick={()=>setChefHireIdx(null)}>
+          <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:420,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:14,fontWeight:800,color:C.ink,fontFamily:F.title,marginBottom:4,display:"flex",justifyContent:"space-between"}}>
+              🧑‍🍳 Recruter un chef
+              <button onClick={()=>setChefHireIdx(null)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:C.muted}}>✕</button>
+            </div>
+            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:14}}>Candidats disponibles aujourd'hui</div>
+            {chefPool.length===0&&<div style={{color:C.muted,fontSize:11,fontFamily:F.body,textAlign:"center",padding:20}}>Aucun candidat disponible</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:9}}>
+              {chefPool.map(cand=>{
+                const canAfford=cash>=cand.hireCost;
+                return(
+                  <div key={cand.id} style={{background:C.bg,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"9px 13px",
+                    display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+                    <div style={{display:"flex",alignItems:"center",gap:9}}>
+                      <span style={{fontSize:20}}>{cand.icon}</span>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>{cand.name}</div>
+                        <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
+                          <span style={{color:cand.lvlColor,fontWeight:700}}>{cand.lvlName}</span>
+                          {" · "}{cand.salary}€/h
+                        </div>
+                      </div>
+                    </div>
+                    <button disabled={!canAfford} onClick={()=>{
+                      if(!canAfford)return;
+                      setCash(c=>+(c-cand.hireCost).toFixed(2));
+                      addTx("achat",`Recrutement chef : ${cand.name}`,cand.hireCost);
+                      setKitchen(k=>{
+                        const newChefs=[...(k.chefs??[])];
+                        const newEntry={id:Date.now(),name:cand.name,totalXp:cand.totalXp,status:"actif",salary:cand.salary,shift:null};
+                        if(chefHireIdx<newChefs.length)newChefs[chefHireIdx]=newEntry;
+                        else newChefs.push(newEntry);
+                        return{...k,chefs:newChefs};
+                      });
+                      setChefPool(p=>p.filter(x=>x.id!==cand.id));
+                      addToast&&addToast({icon:"🧑‍🍳",title:`${cand.name} recruté(e) !`,msg:`−${cand.hireCost}€`,color:C.green,tab:"servers",silent:true});
+                      setChefHireIdx(null);
+                    }} style={{
+                      background:canAfford?C.amber:"#e5e7eb",color:canAfford?"#fff":"#9ca3af",
+                      border:"none",borderRadius:8,padding:"6px 14px",
+                      fontSize:12,fontWeight:700,fontFamily:F.body,cursor:canAfford?"pointer":"not-allowed"}}>
+                      {canAfford?`${cand.hireCost}€`:"Trop cher"}
                     </button>
                   </div>
                 );

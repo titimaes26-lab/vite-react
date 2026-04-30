@@ -74,6 +74,10 @@ export const sanitizeSave = (save) => {
           specialty: null,
           ...c,
         })),
+        chefs: (save.kitchen.chefs || []).map(c => ({
+          shift: null,
+          ...c,
+        })),
       }
     : null;
   return { ...save, tables, servers, kitchen, queue: [] };

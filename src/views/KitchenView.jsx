@@ -51,10 +51,16 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
   };
   const brigadeSlot=(kitchen.chefTrainings?.brigade&&kitchen.chefTrainings.brigadeUntil>Date.now())?1:0;
 
-  const maxConcurrent=4+unlockedCommis+extraSlots+brigadeSlot;
+  // Chefs supplémentaires actifs et en créneau
+  const absMin = gameTime?.absMin ?? 0;
+  const activeAdditionalChefs = (kitchen.chefs ?? []).filter(
+    c => c.status === "actif" && isOnShift(c.shift, absMin)
+  );
+
+  const maxConcurrent=4+unlockedCommis+extraSlots+brigadeSlot+activeAdditionalChefs.length;
 
   const upgDishCookTime=(prepTime,chefSpeed,commisCount,cat="")=>
-    Math.max(5,Math.round(prepTime/((chefSpeed+speedBonus)*(1+commisCount*0.15)*moraleMult*(1+specBonus(cat)+trainingBonus(cat)))));
+    Math.max(5,Math.round(prepTime/((chefSpeed+speedBonus)*(1+commisCount*0.15)*(1+activeAdditionalChefs.length*0.10)*moraleMult*(1+specBonus(cat)+trainingBonus(cat)))));
 
   const catColors={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy};
 
@@ -99,12 +105,18 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
         const stillCooking=k.cooking.filter(d=>t<d.startedAt+d.timerMax*1000);
         const xpPerDish=12;
         const activeCommis=k.commis.filter(c=>c.status==="actif").slice(0,unlockedCommis);
+        const activeChefs=(k.chefs??[]).filter(c=>c.status==="actif");
         return {
           ...k,
           chef:{...k.chef,totalXp:Math.min(CHEF_MAX_XP,k.chef.totalXp+justDone.length*xpPerDish)},
           commis:k.commis.map(c=>
             activeCommis.find(a=>a.id===c.id)
-              ?{...c,totalXp:Math.min(COMMIS_MAX_XP,c.totalXp+Math.round(xpPerDish*0.4))}
+              ?{...c,totalXp:Math.min(CHEF_MAX_XP,c.totalXp+Math.round(xpPerDish*0.6))}
+              :c
+          ),
+          chefs:(k.chefs??[]).map(c=>
+            activeChefs.find(a=>a.id===c.id)
+              ?{...c,totalXp:Math.min(CHEF_MAX_XP,c.totalXp+Math.round(xpPerDish*0.8))}
               :c
           ),
           cooking:stillCooking,

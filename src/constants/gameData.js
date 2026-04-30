@@ -570,6 +570,7 @@ export const KITCHEN0 = {
     salary: 28,
     shift: null,
   },
+  chefs: [],
   commis: [],
   queue:        [],
   cooking:      [],
