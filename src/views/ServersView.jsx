@@ -555,7 +555,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
 
           {/* ── Chefs supplémentaires ── */}
           {(()=>{
-            const maxChefSlots=Math.min(3,Math.floor(restoLvN/5)+1);
+            const maxChefSlots=restoLvN>=8?3:restoLvN>=3?2:1;
             return(
               <>
                 <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginTop:16,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
