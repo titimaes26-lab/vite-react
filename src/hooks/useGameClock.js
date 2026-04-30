@@ -2,11 +2,13 @@
    src/hooks/useGameClock.js
    Moteur de temps accéléré — 1 seconde réelle = 1 minute de jeu.
 
-   Journée simulée : 08:00 → 03:00 (19 h de jeu = 1140 s réelles = 19 min réelles)
+   Journée simulée : 07:00 → 23:00 (16 h de jeu = 960 s réelles = 16 min réelles)
 
    Exports :
-     PHASES            — tableau des 5 phases de service
-     REAL_DAY_MS       — durée réelle d'une journée en ms (1 140 000)
+     PHASES            — tableau des 3 phases de service
+     SHIFTS            — créneaux de travail du personnel (matin / soir)
+     isOnShift         — teste si un créneau est actif pour un absMin donné
+     REAL_DAY_MS       — durée réelle d'une journée en ms (960 000)
      realMsToGameTime  — convertit elapsed réel → { h, m, absMin, str }
      getPhase          — retourne la phase active pour un absMin donné
      useGameClock      — hook principal ; retourne gameTime.str à jour
@@ -80,6 +82,23 @@ export const PHASES = [
     desc: "Service du soir · +10 % prix",
   },
 ];
+
+/* ─── Créneaux de travail du personnel ───────────────── */
+export const SHIFTS = {
+  matin: { id: "matin", label: "Matin",  icon: "🌅", startAbs: 420,  endAbs: 900  }, // 07h-15h
+  soir:  { id: "soir",  label: "Soir",   icon: "🌙", startAbs: 900,  endAbs: 1380 }, // 15h-23h
+};
+
+/**
+ * Retourne true si le personnel avec ce créneau est actuellement en service.
+ * @param {string|null} shift  — "matin" | "soir" | null
+ * @param {number}      absMin — minutes depuis minuit (ex: 900 = 15h00)
+ */
+export function isOnShift(shift, absMin) {
+  if (!shift) return false;
+  const s = SHIFTS[shift];
+  return s ? absMin >= s.startAbs && absMin < s.endAbs : false;
+}
 
 /* ─── Utilitaires purs ───────────────────────────────── */
 

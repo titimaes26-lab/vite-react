@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { C, F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL, STAFF_QUALITY_REQ,
          CHEF_LVL, COMMIS_LVL, CHEF_TRAININGS, KITCHEN_UPGRADES, COMMIS_SPECIALTIES } from "../constants/gameData.js";
+import { SHIFTS } from "../hooks/useGameClock.js";
 import { SRV_SPECIALTIES, TRAINING_CATALOG, pickSpecialty, getMaxMoral } from "../constants/serverConstants.js";
 import { Badge, Card, Btn, Modal, Lbl, Inp, Sel, XpBar } from "../components/ui/index.js";
 import { useLang } from "../i18n/index.jsx";
@@ -15,6 +16,32 @@ import { rName } from "../utils/randomUtils.js";
 const moralIcon   = (m) => m>=70?"😊":m>=40?"😐":m>=20?"😓":"💀";
 const moralKey    = (m) => m>=70?"moralFine":m>=40?"moralTired":m>=20?"moralExhausted":"moralBurnout";
 const moralColor  = (m) => m>=70 ? "#236b47" : m>=40 ? "#a86e08" : "#b83025";
+
+const SHIFT_OPTIONS = [
+  { id: null,    label: "—",               bg: "transparent",  color: "#8a7a65", border: "#ddd0b8" },
+  { id: "matin", label: "🌅 07h–15h",      bg: "#fef3c7",      color: "#92400e", border: "#f59e0b" },
+  { id: "soir",  label: "🌙 15h–23h",      bg: "#ede9fe",      color: "#5b21b6", border: "#8b5cf6" },
+];
+
+const ShiftPicker = ({ shift, onChange }) => (
+  <div style={{marginBottom:10}}>
+    <div style={{fontSize:10,color:"#8a7a65",fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",marginBottom:5,fontWeight:600}}>
+      🕐 Créneau
+    </div>
+    <div style={{display:"flex",gap:4}}>
+      {SHIFT_OPTIONS.map(opt=>(
+        <button key={String(opt.id)} onClick={()=>onChange(opt.id)} style={{
+          flex:1,padding:"4px 0",borderRadius:7,fontSize:10,fontWeight:700,
+          fontFamily:"'Inter','Segoe UI',system-ui,sans-serif",cursor:"pointer",
+          background:shift===opt.id?opt.bg:"transparent",
+          color:shift===opt.id?opt.color:"#8a7a65",
+          border:`1.5px solid ${shift===opt.id?opt.border:"#ddd0b8"}`,
+          transition:"all 0.12s",
+        }}>{opt.label}</button>
+      ))}
+    </div>
+  </div>
+);
 
 // Plages XP, salaire et taux de spécialité des candidats selon le niveau resto
 const _candidateXpRange  = (lv) => [[0,100],[80,350],[300,800],[700,1500],[1200,2500]][Math.min(Math.floor(lv/5),4)];
@@ -219,6 +246,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
       salary  : candidate.salary,
       moral   : candidate.moral,
       specialty: candidate.specialty,
+      shift   : null,
     }]);
     const remaining = candidatePool.filter(c=>c.id!==candidate.id);
     setCandidatePool(remaining);
@@ -367,6 +395,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
               </div>
 
               <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                <ShiftPicker shift={chf.shift??null} onChange={s=>setKitchen(k=>({...k,chef:{...k.chef,shift:s}}))}/>
                 <Btn sm v="navy" onClick={()=>setChefModal("train")} icon="📚">{tr("kitchen.trainChef")}</Btn>
                 <Btn sm v="danger" onClick={()=>setChefModal("confirmReplace")}>{tr("servers.fire")}</Btn>
                 {brigMorale<60&&(
@@ -442,6 +471,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                       <XpBar xp={cml.r} needed={cml.n} color={cmlD.color}/>
                     </div>
 
+                    <ShiftPicker shift={cm.shift??null} onChange={s=>setKitchen(k=>({...k,commis:k.commis.map((c,i)=>i===idx?{...c,shift:s}:c)}))}/>
                     <div style={{display:"flex",gap:7}}>
                       <Btn sm v="danger" onClick={()=>setCommisConfirmSlot(idx)}>{tr("servers.fire")}</Btn>
                     </div>
@@ -709,6 +739,8 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                   </div>
                 )}
               </div>
+
+              <ShiftPicker shift={sv.shift??null} onChange={s=>setServers(p=>p.map(x=>x.id===sv.id?{...x,shift:s}:x))}/>
 
               {/* Actions */}
               <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
@@ -1545,7 +1577,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                       setKitchen(k=>{
                         const slot=commisHireSlot;
                         const newCommis=[...k.commis];
-                        const newEntry={id:Date.now(),name:cand.name,totalXp:cand.totalXp,status:"actif",task:null,salary:cand.salary,specialty:cand.specialty};
+                        const newEntry={id:Date.now(),name:cand.name,totalXp:cand.totalXp,status:"actif",task:null,salary:cand.salary,specialty:cand.specialty,shift:null};
                         if(slot<newCommis.length) newCommis[slot]=newEntry;
                         else newCommis.push(newEntry);
                         return{...k,commis:newCommis};

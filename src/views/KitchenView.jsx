@@ -10,8 +10,9 @@ import { C, F, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
 import { Btn, XpBar, Badge } from "../components/ui/index.js";
 import { chefLv, commisLv, dishCookTimeWithUpgrades, CHEF_MAX_XP, COMMIS_MAX_XP } from "../utils/levelUtils.js";
 import { consumeLots } from "../utils/orderUtils.js";
+import { isOnShift } from "../hooks/useGameClock.js";
 
-export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,restoLvN=0,bp={}}){
+export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,gameTime,restoLvN=0,bp={}}){
   const { t: tl, lang } = useLang();
   const chf=kitchen.chef;
   const cl=chefLv(chf.totalXp);
@@ -146,8 +147,11 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
     prevChefLvRef.current=cl.l;
   },[cl.l]);
 
+  const chefOnShift = isOnShift(kitchen.chef?.shift, gameTime?.absMin ?? 0);
+
   // Start one dish
   const startDish=(dish)=>{
+    if(!chefOnShift)return;
     if(kitchen.cooking.length>=maxConcurrent)return;
     const ct=upgDishCookTime(dish.prepTime||60,clD.speed,unlockedCommis,dish.cat||"");
     let blocked=false;
@@ -172,6 +176,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
 
   // Start all dishes filling free slots
   const startAll=()=>{
+    if(!chefOnShift)return;
     const slots=maxConcurrent-kitchen.cooking.length;
     if(slots<=0)return;
     const toStart=kitchen.queue.slice(0,slots);
@@ -298,6 +303,24 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
 
   return(
     <div>
+      {/* Bandeau hors créneau */}
+      {kitchen.chef?.shift && !chefOnShift && (
+        <div style={{background:"#fef3c7",border:"1.5px solid #f59e0b",borderRadius:10,
+          padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10,
+          fontSize:11,fontFamily:F.body,fontWeight:700,color:"#92400e"}}>
+          <span style={{fontSize:18}}>💤</span>
+          <span>{kitchen.chef.name} est hors créneau — la cuisine est à l'arrêt.</span>
+        </div>
+      )}
+      {!kitchen.chef?.shift && (
+        <div style={{background:"#fdf3dc",border:"1.5px solid #a86e08",borderRadius:10,
+          padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10,
+          fontSize:11,fontFamily:F.body,fontWeight:600,color:"#a86e08"}}>
+          <span style={{fontSize:16}}>⚠️</span>
+          <span>Aucun créneau assigné au chef — assigner un créneau dans l'onglet Personnel.</span>
+        </div>
+      )}
+
       {/* ══ PIPELINE responsive ══ */}
       <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"minmax(200px,1fr) minmax(240px,1.2fr) minmax(200px,1fr)",
         gap:12,marginBottom:20}}>
@@ -326,7 +349,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                   )}
                 </div>
                 {kitchen.queue.length>0&&slotsLeft>0&&(
-                  <Btn sm v="terra" onClick={startAll}>▶ {tl("kitchen.all")}</Btn>
+                  <Btn sm v={chefOnShift?"terra":"disabled"} disabled={!chefOnShift} onClick={startAll}>▶ {tl("kitchen.all")}</Btn>
                 )}
               </div>
             );
