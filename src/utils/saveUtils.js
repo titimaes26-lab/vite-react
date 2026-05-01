@@ -54,14 +54,17 @@ export const sanitizeSave = (save) => {
     if (t.status === "occupée") return { ...t, svcUntil: null };
     return t;
   });
-  const servers = (save.servers || []).map((s) =>
-    s.status === "service" ? { ...s, status: "actif", serviceUntil: null } : s
-  );
+  const servers = (save.servers || []).map((s) => ({
+    shift: null,
+    ...s,
+    ...(s.status === "service" ? { status: "actif", serviceUntil: null } : {}),
+  }));
   const kitchen = save.kitchen
     ? {
         morale: 100,
         chefTrainings: {},
         ...save.kitchen,
+        chef: { shift: null, ...(save.kitchen.chef || {}) },
         queue: [
           ...(save.kitchen.queue || []),
           ...(save.kitchen.cooking || []).map((d) => ({
