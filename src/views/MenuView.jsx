@@ -23,8 +23,8 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
   const [fSelections,setFSelections]=useState({});
   const { t: tl } = useLang();
 
-  const cats=["Tout","Entrées","Plats","Desserts","Boissons"];
-  const catC={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy};
+  const cats=["Tout","Petit Déjeuner","Entrées","Plats","Desserts","Boissons"];
+  const catC={"Petit Déjeuner":C.amber,Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy};
   /* ── Calculs par plat ── */
   const dishCost=(m)=>
     (m.ingredients||[]).reduce((sum,ing)=>{
@@ -574,7 +574,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
             </div>
             <div><Lbl>{tl("menu.category")}</Lbl>
               <Sel value={form.cat} onChange={e=>setForm(p=>({...p,cat:e.target.value}))}>
-                {["Entrées","Plats","Desserts","Boissons"].map(c=><option key={c}>{c}</option>)}
+                {["Petit Déjeuner","Entrées","Plats","Desserts","Boissons"].map(c=><option key={c}>{c}</option>)}
               </Sel>
             </div>
             <div style={{background:C.terraP,border:`1.5px solid ${C.terra}22`,borderRadius:12,padding:14}}>

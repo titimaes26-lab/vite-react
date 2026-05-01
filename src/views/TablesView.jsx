@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { C, F, CAP_UPGRADES, SRV_LVL, GAME_EVENTS, RESTO_LVL } from "../constants/gameData.js";
 import { getRepTier } from "../constants/gameConstants.js";
 import { REP_DELTA } from "../constants/gameConstants.js";
+import { isOnShift } from "../hooks/useGameClock.js";
 import { Badge, Btn, Sel, Modal, XpBar, Lbl, Inp } from "../components/ui/index.js";
 import { useLang } from "../i18n/index.jsx";
 import { srvLv, calcRating, ratingColor, ratingStars, calcTip, restoXpFromCheckout, srvXpFromCheckout, SRV_MAX_XP } from "../utils/levelUtils.js";
@@ -569,7 +570,7 @@ function SvgFloorPlan({tables,servers,kitchen,queue,now,C,F,
               );
 }
 
-export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,formulas=[],stock=[],bp={}}) {
+export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,gameTime,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,formulas=[],stock=[],bp={}}) {
 
   const { t: tr } = useLang();
   const now = clockNow;
@@ -582,7 +583,8 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
   const [preview, setPreview] = useState([]);
 
   const freeTbl = (g) => tables.filter(t => t.status==="libre" && t.capacity>=g.size);
-  const activeSrv = servers.filter(s => s.status==="actif" && (s.moral??100)>10);
+  const absMin = gameTime?.absMin ?? 0;
+  const activeSrv = servers.filter(s => s.status==="actif" && (s.moral??100)>10 && isOnShift(s.shift, absMin));
 
   const quickPlace = (g) => {
     const ft = freeTbl(g)[0];
@@ -808,7 +810,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                       const pct=Math.max(0,(g.expiresAt-now)/(g.patMax*1000));
                       const col=pct>0.5?C.green:pct>0.25?C.amber:C.red;
                       const freeT=tables.filter(t=>t.status==="libre"&&t.capacity>=g.size);
-                      const aS=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
+                      const aS=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10&&isOnShift(s.shift,absMin));
                       const isSelected=selectedClient?.id===g.id;
                       return(
                         <div key={g.id}
@@ -958,7 +960,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
               const isLm=t.status==="libre";const isCm=t.status==="occupée"&&!isOm;
               const isEm=isMm&&t.eatUntil&&now<t.eatUntil;
               const myQm=queue.filter(g=>g.size<=t.capacity&&isLm);
-              const aSm=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10);
+              const aSm=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10&&isOnShift(s.shift,absMin));
               const ph=isOm?0:isCm?1:isMm?2:isNm?3:-1;
               const pCs=["#3a5f8a","#e07a45","#4a9e78","#f5a623"];
               const pIs=["🛎","🔥","🍴","🧹"];const pLs=[tr("tables.phaseOrder"),tr("tables.phaseKitchen"),tr("tables.phaseEating"),tr("tables.phaseCleaning")];

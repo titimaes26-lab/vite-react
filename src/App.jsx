@@ -47,7 +47,7 @@ import {
 } from "./utils/orderUtils";
 
 // ── Hooks métier ───────────────────────────────────────
-import { useGameClock } from "./hooks/useGameClock";
+import { useGameClock, isOnShift, SHIFTS, DEFAULT_DAY_START_ABS, DEFAULT_DAY_END_ABS } from "./hooks/useGameClock";
 import { useSpawner }     from "./hooks/useSpawner";
 import { useExpiry }      from "./hooks/useExpiry";
 import { useSalary }      from "./hooks/useSalary";
@@ -621,15 +621,31 @@ export default function App(){
     if (isLoaded && !introSeen) setShowDialog("intro");
   }, [isLoaded, introSeen]);
 
+  /* ── Bornes dynamiques de la journée ────────────────── */
+  // Une période est active si au moins 1 serveur ET 1 chef y est assigné.
+  const activeShifts = Object.values(SHIFTS).filter(sh => {
+    const hasServer = servers.some(s => s.shift === sh.id);
+    const hasChef   = kitchen.chef?.shift === sh.id
+                   || (kitchen.chefs ?? []).some(c => c.shift === sh.id);
+    return hasServer && hasChef;
+  });
+  const dayStartAbs = activeShifts.length > 0
+    ? Math.min(...activeShifts.map(sh => sh.startAbs))
+    : DEFAULT_DAY_START_ABS;
+  const dayEndAbs = activeShifts.length > 0
+    ? Math.max(...activeShifts.map(sh => sh.endAbs))
+    : DEFAULT_DAY_END_ABS;
+
   /* ── Hooks métier ────────────────────────────────────── */
   // Remplacent 13 useEffect inline (salary, moralDrain, deliveries,
   // events, dailySpecials, spawner, challenges, expiry, clockNow, objectives)
-  const { clockNow, phase, isDayOver, gameTime, resetDay } = useGameClock({ pausedRef });
+  const { clockNow, phase, isDayOver, gameTime, resetDay } = useGameClock({ pausedRef, dayStartAbs, dayEndAbs });
   resetDayRef.current  = resetDay;
   gameTimeRef.current  = gameTime.str;
 
-  const phaseRef    = useRef(phase);
-  useEffect(() => { phaseRef.current = phase; });
+  const phaseRef      = useRef(phase);
+  const isDayOverRef  = useRef(isDayOver);
+  useEffect(() => { phaseRef.current = phase; isDayOverRef.current = isDayOver; });
 
   useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef, pausedRef });
   useExpiry     ({ setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, pausedRef });
@@ -648,34 +664,82 @@ export default function App(){
   });
   useObjectives ({ objStats, completedIds, pendingClaim, setPendingClaim, addToast });
 
-  // Fermeture : vider la file et la waitlist dès l'entrée dans la phase
+  // Fin de journée : vider la file et la waitlist dès que isDayOver
   useEffect(()=>{
-    if(!isLoaded || phase?.id !== "fermeture") return;
+    if(!isLoaded || !isDayOver) return;
     setQueue(q=>{
       if(q.length === 0) return q;
-      addToast({ icon:"🔒", title:"Fermeture !", msg:`${q.length} groupe(s) renvoyé(s) — le restaurant ferme.`, color:"#ef4444", tab:"tables" });
+      addToast({ icon:"🌙", title:"Fin de service !", msg:`${q.length} groupe(s) renvoyé(s) — le restaurant ferme.`, color:"#8b5cf6", tab:"tables" });
       return [];
     });
     setWaitlist(w=>{
       if(w.length === 0) return w;
       return [];
     });
-  },[isLoaded, phase?.id]);
+  },[isLoaded, isDayOver]);
 
   // Fin de journée : polling 500ms via refs (évite les stale closures)
   useEffect(()=>{
     if(!isLoaded) return;
     const iv = setInterval(()=>{
-      if(phaseRef.current?.id !== "fermeture") return;
+      if(!isDayOverRef.current) return;
       const tables  = tablesRef.current;
       const queue   = queueRef.current;
       const wlist   = waitlistRef.current;
-      const salleVide = tables.every(t => t.status === "libre" || t.status === "nettoyage");
+      const salleVide = tables.every(t => t.status === "libre");
       if(!salleVide || queue.length > 0 || wlist.length > 0) return;
       showDailySummary();
     }, 500);
     return () => clearInterval(iv);
   },[isLoaded, showDailySummary]);
+
+  // Relève de quart : quand la phase change, les serveurs du quart sortant
+  // libèrent leurs tables aux serveurs du quart entrant.
+  useEffect(() => {
+    if (!isLoaded) return;
+    const currentServers = serversRef.current;
+    const currentTables  = tablesRef.current;
+
+    // Quels serveurs sont désormais hors créneau mais avaient une table ?
+    const absMin = gameTime.absMin;
+    const leavingNames = new Set(
+      currentServers
+        .filter(s => s.shift && !isOnShift(s.shift, absMin) && (s.status === "service" || s.status === "nettoyage"))
+        .map(s => s.name)
+    );
+    if (leavingNames.size === 0) return;
+
+    // Serveurs disponibles du quart en cours
+    let relief = currentServers.filter(
+      s => s.shift && isOnShift(s.shift, absMin) && s.status === "actif" && (s.moral ?? 100) > 10
+    );
+
+    const tableUpdates   = {};
+    const serverUpdates  = {};
+
+    for (const t of currentTables) {
+      if (!t.server || !leavingNames.has(t.server)) continue;
+      const newSrv = relief[0];
+      if (newSrv) {
+        relief = relief.slice(1);
+        tableUpdates[t.id]       = newSrv.name;
+        serverUpdates[newSrv.id] = { status: "service", serviceUntil: t.svcUntil };
+        addToast({ icon: "🔄", title: "Relève de quart", msg: `${newSrv.name} reprend la table ${t.name}.`, color: C.navy, tab: "tables" });
+      } else {
+        tableUpdates[t.id] = null;
+        addToast({ icon: "⚠️", title: "Relève impossible", msg: `Aucun serveur du soir disponible pour la table ${t.name}.`, color: C.amber, tab: "tables" });
+      }
+    }
+
+    if (Object.keys(tableUpdates).length === 0) return;
+
+    setTables(p => p.map(t => t.id in tableUpdates ? { ...t, server: tableUpdates[t.id] } : t));
+    setServers(p => p.map(s => {
+      if (leavingNames.has(s.name))   return { ...s, status: "actif", serviceUntil: null };
+      if (s.id in serverUpdates)       return { ...s, ...serverUpdates[s.id] };
+      return s;
+    }));
+  }, [isLoaded, gameTime.absMin]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const now=new Date(clockNow);
 
@@ -1146,9 +1210,9 @@ export default function App(){
       {/* Content */}
       <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
-        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} restoLvN={rl.l} formulas={formulas} bp={bp}/>}
-        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
-        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} restoLvN={rl.l} servers={servers} setServers={setServers} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp}/>}
+        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} gameTime={gameTime} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} activeTheme={activeTheme} restoLvN={rl.l} formulas={formulas} bp={bp}/>}
+        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} kitchen={kitchen} setKitchen={setKitchen} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp}/>}
+        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} gameTime={gameTime} restoLvN={rl.l} servers={servers} setServers={setServers} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp}/>}
         {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} activeTheme={activeTheme} setActiveTheme={setActiveTheme} dailyStats={dailyStats} restoLvN={rl.l} bp={bp}/>}
         {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} bp={bp}/>}
         {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
