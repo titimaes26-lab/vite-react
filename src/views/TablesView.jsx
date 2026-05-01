@@ -584,7 +584,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
 
   const freeTbl = (g) => tables.filter(t => t.status==="libre" && t.capacity>=g.size);
   const absMin = gameTime?.absMin ?? 0;
-  const activeSrv = servers.filter(s => s.status==="actif" && (s.moral??100)>10 && isOnShift(s.shift, absMin));
+  const activeSrv = servers.filter(s => s.status==="actif" && (s.moral??100)>10 && (!s.shift || isOnShift(s.shift, absMin)));
 
   const quickPlace = (g) => {
     const ft = freeTbl(g)[0];
@@ -716,7 +716,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
   const confirm = () => {
     if (!tgtT || !tgtS || preview.length===0) return;
     const table = tables.find(t=>String(t.id)===tgtT);
-    const srv   = servers.find(s=>String(s.id)===tgtS);
+    const srv   = servers.find(s=>s.name===tgtS);
     if (!table || !srv) return;
     openKitchen(modal, table, srv);
     setTgtT(null); setTgtS(null); setPreview([]);
@@ -810,7 +810,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                       const pct=Math.max(0,(g.expiresAt-now)/(g.patMax*1000));
                       const col=pct>0.5?C.green:pct>0.25?C.amber:C.red;
                       const freeT=tables.filter(t=>t.status==="libre"&&t.capacity>=g.size);
-                      const aS=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10&&isOnShift(s.shift,absMin));
+                      const aS=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10&&(!s.shift||isOnShift(s.shift,absMin)));
                       const isSelected=selectedClient?.id===g.id;
                       return(
                         <div key={g.id}
@@ -960,7 +960,7 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
               const isLm=t.status==="libre";const isCm=t.status==="occupée"&&!isOm;
               const isEm=isMm&&t.eatUntil&&now<t.eatUntil;
               const myQm=queue.filter(g=>g.size<=t.capacity&&isLm);
-              const aSm=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10&&isOnShift(s.shift,absMin));
+              const aSm=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10&&(!s.shift||isOnShift(s.shift,absMin)));
               const ph=isOm?0:isCm?1:isMm?2:isNm?3:-1;
               const pCs=["#3a5f8a","#e07a45","#4a9e78","#f5a623"];
               const pIs=["🛎","🔥","🍴","🧹"];const pLs=[tr("tables.phaseOrder"),tr("tables.phaseKitchen"),tr("tables.phaseEating"),tr("tables.phaseCleaning")];
