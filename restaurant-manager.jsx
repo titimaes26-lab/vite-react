@@ -816,6 +816,7 @@ function AppContent(){
             const safety=setTimeout(()=>setAdWatching(false), 30000);
             triggerAd("rewarded",{
               onRewarded:()=>{ clearTimeout(safety); setAdWatching(false); },
+              onNotReady:()=>{ clearTimeout(safety); setAdWatching(false); },
             });
           }
         }, 50);
@@ -1130,6 +1131,10 @@ function AppContent(){
                     setCash(c => +(c + 1000).toFixed(2));
                     addTx("revenu", "Bonus pub vidéo", 1000);
                     addToast({ icon: "📺", title: "+1 000 € · Pub regardée !" });
+                    setAdWatching(false);
+                  },
+                  onNotReady: () => {
+                    addToast({ icon: "⏳", title: "Pub pas encore prête, réessaie dans quelques secondes" });
                     setAdWatching(false);
                   },
                 });

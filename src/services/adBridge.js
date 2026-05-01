@@ -21,13 +21,17 @@ const postToParent = (type, payload = {}) => {
  * @param {"interstitial"|"rewarded"} adType - type de pub
  * @param {{ onRewarded?: (data: object) => void }} options
  */
-export const triggerAd = (adType, { onRewarded } = {}) => {
+export const triggerAd = (adType, { onRewarded, onNotReady } = {}) => {
   if (!["interstitial", "rewarded"].includes(adType)) return;
   postToParent("AD_REQUEST", { adType });
-  if (adType === "rewarded" && typeof onRewarded === "function") {
+  if (adType === "rewarded") {
     const handler = (event) => {
       if (event.data?.type === "AD_REWARDED") {
-        onRewarded(event.data);
+        if (typeof onRewarded === "function") onRewarded(event.data);
+        window.removeEventListener("message", handler);
+      }
+      if (event.data?.type === "AD_NOT_READY") {
+        if (typeof onNotReady === "function") onNotReady();
         window.removeEventListener("message", handler);
       }
     };
