@@ -54,30 +54,6 @@ export const REP_DELTA = {
 /** Gain de moral par tick (50ms) quand le serveur est en pause */
 export const MORAL_PAUSE_GAIN = 3;
 
-/* ─── Thèmes de menu ─────────────────────────────────── */
-export const MENU_THEMES = [
-  {
-    id: "none",    icon: "📋", name: "Standard",
-    color: C.muted, desc: "Menu classique sans modificateur.",
-    priceMult: 1.00, repBonus: 0, xpMult: 1.0, accent: C.bg,
-  },
-  {
-    id: "bistrot", icon: "🍺", name: "Bistrot",
-    color: C.green, desc: "Cuisine généreuse et abordable.",
-    priceMult: 0.90, repBonus: 0, xpMult: 1.0, accent: C.greenP,
-  },
-  {
-    id: "gastro",  icon: "⭐", name: "Gastronomique",
-    color: C.purple, desc: "Plats élaborés, prix premium +15%.",
-    priceMult: 1.15, repBonus: 5, xpMult: 1.2, accent: C.purpleP,
-  },
-  {
-    id: "saison",  icon: "🌿", name: "Saisonnier",
-    color: C.terra, desc: "Produits frais du marché, réputation +8.",
-    priceMult: 1.00, repBonus: 8, xpMult: 1.1, accent: C.terraP,
-  },
-];
-
 /* ─── Formules de menu (menus fixes à prix réduit) ───── */
 export const FORMULA_PRESETS = [
   {
