@@ -432,8 +432,8 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                 💶 {chf.salary}€/h
               </div>
 
+              <ShiftPicker shift={chf.shift??null} onChange={s=>setKitchen(k=>({...k,chef:{...k.chef,shift:s}}))}/>
               <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-                <ShiftPicker shift={chf.shift??null} onChange={s=>setKitchen(k=>({...k,chef:{...k.chef,shift:s}}))}/>
                 <Btn sm v="navy" onClick={()=>setChefModal("train")} icon="📚">{tr("kitchen.trainChef")}</Btn>
                 <Btn sm v="danger" onClick={()=>setChefModal("confirmReplace")}>{tr("servers.fire")}</Btn>
                 {brigMorale<60&&(
