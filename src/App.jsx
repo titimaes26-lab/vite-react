@@ -948,7 +948,7 @@ export default function App(){
 
         {/* Ligne 1 : logo · alertes · horloge · aide */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-          padding:bp.isMobile?"0 10px":"0 16px",minHeight:bp.isMobile?46:52,gap:8,flexWrap:"nowrap",overflow:"hidden"}}>
+          padding:bp.isMobile?"0 10px":"0 16px",minHeight:bp.isMobile?46:52,gap:8,flexWrap:bp.isMobile?"wrap":"nowrap"}}>
 
           {/* Logo + nom */}
           <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,minWidth:0}}>
@@ -973,7 +973,7 @@ export default function App(){
           </div>
 
           {/* Alertes + horloge + aide */}
-          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0,flexWrap:bp.isMobile?"wrap":"nowrap",justifyContent:"flex-end"}}>
             {sAlerts>0&&(
               <div style={{
                 background:C.redP,border:`1.5px solid ${C.red}28`,borderRadius:8,
@@ -1040,27 +1040,26 @@ export default function App(){
           borderTop:`1px solid ${C.border}`,
           padding:bp.isMobile?"5px 10px 7px":"6px 16px 9px",display:"flex",alignItems:"center",gap:bp.isMobile?6:10,
           background:`linear-gradient(180deg,${C.bg}90,${C.bg})`,
-          flexWrap:"nowrap",overflow:"hidden",
+          flexWrap:bp.isMobile?"wrap":"nowrap",
         }}>
-          <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+          {/* Groupe niveau + barre XP — prend toute la largeur sur mobile */}
+          <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0,
+            ...(bp.isMobile?{width:"100%",order:0}:{})}}>
             <span style={{fontSize:14}}>{rlD.icon}</span>
             <span style={{fontSize:11,fontWeight:700,color:rlD.color,fontFamily:F.title,whiteSpace:"nowrap"}}>{rlD.name}</span>
             <span style={{fontSize:9,background:rlD.color+"18",color:rlD.color,
               border:`1px solid ${rlD.color}33`,borderRadius:4,
               padding:"1px 5px",fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap"}}>N{rlD.l}</span>
-          </div>
-          <div style={{flex:1,minWidth:40}}>
-            <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
-              <div style={{height:"100%",
-                width:rl.l>=RESTO_LVL.length-1?"100%":`${rl.pct}%`,
-                background:rlD.color,borderRadius:99,transition:"width 0.6s ease"}}/>
+            <div style={{flex:1,minWidth:40}}>
+              <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
+                <div style={{height:"100%",
+                  width:rl.l>=RESTO_LVL.length-1?"100%":`${rl.pct}%`,
+                  background:rlD.color,borderRadius:99,transition:"width 0.6s ease"}}/>
+              </div>
             </div>
-          </div>
-          <div style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0,whiteSpace:"nowrap"}}>
-            {rl.l>=RESTO_LVL.length-1
-              ? "✦ Max"
-              : `${restoXp}/${rl.next.xpNeeded} XP`
-            }
+            <span style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0,whiteSpace:"nowrap"}}>
+              {rl.l>=RESTO_LVL.length-1?"✦ Max":`${restoXp}/${rl.next.xpNeeded} XP`}
+            </span>
           </div>
 
           {/* ── Réputation ── */}
