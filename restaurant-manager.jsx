@@ -1023,7 +1023,8 @@ function AppContent(){
 
         {/* Ligne 1 : logo · alertes · horloge · aide */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-          padding:bp.isMobile?"0 10px":"0 16px",minHeight:bp.isMobile?46:52,gap:8,flexWrap:"nowrap",overflow:"hidden"}}>
+          padding:bp.isMobile?"0 10px":"0 16px",minHeight:bp.isMobile?46:52,gap:8,
+          flexWrap:bp.isMobile?"wrap":"nowrap"}}>
 
           {/* Logo + nom */}
           <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,minWidth:0}}>
@@ -1045,7 +1046,8 @@ function AppContent(){
           </div>
 
           {/* Alertes + horloge + aide */}
-          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0,
+            flexWrap:bp.isMobile?"wrap":"nowrap",justifyContent:"flex-end"}}>
             {sAlerts>0&&(
               <div style={{
                 background:C.redP,border:`1.5px solid ${C.red}28`,borderRadius:8,
@@ -1169,14 +1171,16 @@ function AppContent(){
           </div>
         </div>
 
-        {/* Ligne 2 : niveau restaurant + cash */}
+        {/* Ligne 2 : niveau restaurant + réputation */}
         <div style={{
           borderTop:`1px solid ${C.border}`,
           padding:bp.isMobile?"5px 10px 7px":"6px 16px 9px",display:"flex",alignItems:"center",gap:bp.isMobile?6:10,
           background:`linear-gradient(180deg,${C.bg}90,${C.bg})`,
-          flexWrap:"nowrap",overflow:"hidden",
+          flexWrap:bp.isMobile?"wrap":"nowrap",
         }}>
-          <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+          {/* Groupe niveau — pleine largeur sur mobile */}
+          <div style={{display:"flex",alignItems:"center",gap:6,
+            ...(bp.isMobile?{width:"100%"}:{flexShrink:0})}}>
             <span style={{fontSize:18}}>{rlD.icon}</span>
             <span style={{fontSize:14,fontWeight:700,color:rlD.color,fontFamily:F.title,whiteSpace:"nowrap"}}>{rlD.name}</span>
             <span style={{fontSize:11,background:rlD.color+"18",color:rlD.color,

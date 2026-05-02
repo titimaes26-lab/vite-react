@@ -17,8 +17,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 /* ─── Bornes par défaut (journée complète) ───────────── */
-export const DEFAULT_DAY_START_ABS = 7 * 60;   // 07:00
-export const DEFAULT_DAY_END_ABS   = 23 * 60;  // 23:00
+const DEFAULT_DAY_START_ABS = 7 * 60;   // 07:00
+const DEFAULT_DAY_END_ABS   = 23 * 60;  // 23:00
 
 // Conservé pour compatibilité (journée complète)
 export const REAL_DAY_MS = (DEFAULT_DAY_END_ABS - DEFAULT_DAY_START_ABS) * 1_000;
