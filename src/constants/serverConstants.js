@@ -13,7 +13,7 @@ export const SRV_SPECIALTIES = [
   { id:"vip",       icon:"🎩", name:"Gestion VIP",  color:"#b87d10", desc:"Patience clients VIP +30s",        tipMult:1.15, speedMult:1.0  },
 ];
 
-export const pickSpecialty = () =>
+const pickSpecialty = () =>
   SRV_SPECIALTIES[Math.floor(Math.random() * SRV_SPECIALTIES.length)];
 
 /* ─── Catalogue de formations serveurs ───────────────── */
