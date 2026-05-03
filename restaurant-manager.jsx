@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Component } from "react";
 import { LangProvider, useLang } from "./src/i18n/index.jsx";
 import { LanguageSelect } from "./src/components/LanguageSelect.jsx";
 
@@ -88,6 +88,22 @@ import { StockView }      from "./src/views/StockView.jsx";
 import { ComplaintsView } from "./src/views/ComplaintsView.jsx";
 import { StatsView }      from "./src/views/StatsView.jsx";
 import { ObjectivesView } from "./src/views/ObjectivesView.jsx";
+
+class TabErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{padding:24,color:"#c0392b",fontFamily:"monospace",background:"#fff8f8",border:"1px solid #c0392b",borderRadius:8,margin:16}}>
+          <strong>Erreur dans l'onglet — veuillez recharger la page</strong>
+          <pre style={{marginTop:8,fontSize:11,whiteSpace:"pre-wrap"}}>{String(this.state.error)}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export default function App() {
   return (
@@ -911,6 +927,7 @@ function AppContent(){
 
       {/* Content */}
       <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
+        <TabErrorBoundary key={tab}>
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
         {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} restoLvN={rl.l} stock={stock} formulas={formulas} bp={bp}/>}
         {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} kitchen={kitchen} setKitchen={setKitchen} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp}/>}
@@ -921,6 +938,7 @@ function AppContent(){
         {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
         {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} currentGameDay={dailyStats[dailyStats.length-1]?.day??1} bp={bp}/>}
         </div>
+        </TabErrorBoundary>
       </div>
 
       {/* Barre file d'attente + cash — toujours visible */}
