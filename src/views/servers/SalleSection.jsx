@@ -6,6 +6,7 @@ import { useLang } from "../../i18n/index.jsx";
 import { srvLv, srvTierCap, TIER_UNLOCK_LV, SRV_MAX_XP } from "../../utils/levelUtils.js";
 
 /* ─── Helpers locaux ────────────────────────────────── */
+const moralIcon   = (m) => m>=70?"😊":m>=40?"😐":m>=20?"😓":"💀";
 const moralKey    = (m) => m>=70?"moralFine":m>=40?"moralTired":m>=20?"moralExhausted":"moralBurnout";
 const moralColor  = (m) => m>=70 ? "#236b47" : m>=40 ? "#a86e08" : "#b83025";
 
