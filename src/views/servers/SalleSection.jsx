@@ -86,6 +86,7 @@ export function SalleSection({ servers, setServers, tables, clockNow, restoLvN, 
       const newMoral = Math.min(getMaxMoral({...s,trainings:newTrainings}),(s.moral??100)+level.moralBonus);
       // Assign/upgrade specialty if domain has one
       let newSpecUpgraded = s.specialtyUpgraded;
+      let newSpecialty = s.specialty;
       if(level.specialtyId){
         const sp = SRV_SPECIALTIES.find(x=>x.id===level.specialtyId);
         if(!s.specialty){
@@ -186,6 +187,11 @@ export function SalleSection({ servers, setServers, tables, clockNow, restoLvN, 
     setEditId(sv.id);
     setForm({name:sv.name,status:sv.status,salary:String(sv.salary||12)});
     setModal("edit");
+  };
+
+  const openTrain = (sv) => {
+    setTrainId(sv.id);
+    setModal("train");
   };
 
   const openFire = (sv) => {
