@@ -83,7 +83,7 @@ export const PHASES = [
 ];
 
 /* ─── Créneaux de travail du personnel ───────────────── */
-export const SHIFTS = {
+const SHIFTS = {
   matin: { id: "matin", label: "Matin",  icon: "🌅", startAbs: 420,  endAbs: 900  }, // 07h-15h
   soir:  { id: "soir",  label: "Soir",   icon: "🌙", startAbs: 900,  endAbs: 1380 }, // 15h-23h
 };
