@@ -36,6 +36,7 @@ const ShiftPicker = ({ shift, onChange }) => (
 );
 
 // Plages XP, salaire et taux de spécialité des candidats selon le niveau resto
+const _candidateXpRange  = (lv) => [[0,100],[80,350],[300,800],[700,1500],[1200,2500]][Math.min(Math.floor(lv/5),4)];
 const _candidateSalRange = (lv) => [[10,13],[11,15],[13,17],[15,20],[18,25]][Math.min(Math.floor(lv/5),4)];
 const _candidateSpecRate = (lv) => lv<5?0.10:lv<10?0.25:lv<20?0.40:0.60;
 
@@ -43,19 +44,18 @@ export function SalleSection({ servers, setServers, tables, clockNow, restoLvN, 
   const { t: tr } = useLang();
 
   /* ── État salle ────────────────────────────────────── */
+  const [modal,setModal]=useState(false);
   const [form,setForm]=useState({name:"",status:"actif",salary:"12"});
   const [editId,setEditId]=useState(null);
   const [fireId,setFireId]=useState(null);
   const [trainId,setTrainId]=useState(null);
 
-  /* ── Valeurs dérivées salle ────────────────────────── */
-  const canHire  = servers.length < maxSlots;
-  // Coût de recrutement : 3× le salaire horaire
+  const maxSlots  = SERVER_SLOTS_BY_LEVEL[restoLvN||0] ?? 2;
+  const hireCost  = parseFloat(form.salary) * 3;
+  const tierCap   = srvTierCap(restoLvN||0);
+  const activeReq = STAFF_QUALITY_REQ.find(r => (restoLvN||0) >= r.atLv) || null;
+  const canHire   = servers.length < maxSlots;
   const canAfford = cash >= hireCost;
-
-  // ── Plafond de tier serveur lié au niveau resto ──────
-
-  // ── Exigence de qualité du personnel active ──────────
   const nextReq   = STAFF_QUALITY_REQ.find(r => (restoLvN||0) < r.atLv) || null;
   const reqMet    = !activeReq || servers.filter(s => srvLv(s.totalXp||0).l >= activeReq.tier).length >= activeReq.count;
 
