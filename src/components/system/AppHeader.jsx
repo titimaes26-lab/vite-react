@@ -51,7 +51,7 @@ export function AppHeader({
             boxShadow:`0 3px 10px ${C.green}38`,
           }}>🍽</div>
           <div style={{minWidth:0}}>
-            <div className={bp.isSmall?"hide-mobile":""} style={{
+            <div style={{
               fontSize:bp.isMobile?13:15,fontWeight:800,color:C.ink,fontFamily:F.title,
               whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
               letterSpacing:"-0.02em",lineHeight:1.2,
