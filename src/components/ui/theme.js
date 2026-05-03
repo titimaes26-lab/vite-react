@@ -5,4 +5,5 @@
    Facilite un futur remplacement de thème sans toucher
    chaque composant.
 ═══════════════════════════════════════════════════════ */
-export { C, F } from "../../constants/gameData.js";
+export { useC } from "../../contexts/ThemeContext.jsx";
+export { F } from "../../constants/gameData.js";

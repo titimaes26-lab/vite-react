@@ -3,10 +3,12 @@
    Extrait du monolithe restaurant-manager.jsx
    Modal affichant l'historique des transactions (grand livre).
 ═══════════════════════════════════════════════════════ */
-import { C, F } from "../../constants/gameData";
+import { F } from "../../constants/gameData";
 import { useLang } from "../../i18n/index.jsx";
+import { useC } from "../../contexts/ThemeContext.jsx";
 
 export function LedgerModal({ onClose, cash, transactions }) {
+  const C = useC();
   const { t: tl } = useLang();
 
   return (

@@ -3,10 +3,11 @@
    Extrait du monolithe restaurant-manager.jsx
    En-tête collante (sticky) + barre de navigation.
 ═══════════════════════════════════════════════════════ */
-import { C, F, TABS, RESTO_LVL } from "../../constants/gameData";
+import { F, TABS, RESTO_LVL } from "../../constants/gameData";
 import { getRepTier } from "../../constants/gameConstants";
 import { triggerAd } from "../../services/adBridge";
 import { useLang } from "../../i18n/index.jsx";
+import { useC, useDark } from "../../contexts/ThemeContext.jsx";
 
 export function AppHeader({
   tab, setTab,
@@ -24,13 +25,15 @@ export function AppHeader({
   pendingClaim, kitchen, activeTables,
 }) {
   const { t: tl } = useLang();
+  const C = useC();
+  const { dark, toggle: toggleDark } = useDark();
 
   return (
     <div style={{position:"sticky",top:0,zIndex:1000,background:C.surface}}>
 
     {/* Header — 2 lignes */}
     <div style={{
-      background:`linear-gradient(180deg,${C.surface} 0%,#faf7f0 100%)`,
+      background:`linear-gradient(180deg,${C.surface} 0%,${C.surface2} 100%)`,
       borderBottom:`1px solid ${C.border}`,
       boxShadow:"0 2px 14px rgba(23,18,14,0.08), 0 1px 3px rgba(23,18,14,0.04)",
     }}>
@@ -167,6 +170,16 @@ export function AppHeader({
               {adWatching ? "..." : "+1 000€"}
             </span>
           </button>
+          <button onClick={toggleDark} title={dark ? "Mode clair" : "Mode sombre"} style={{
+            width:30,height:30,borderRadius:"50%",
+            border:`1.5px solid ${dark ? C.amber+"88" : C.navy+"44"}`,
+            background:dark ? C.amberP : C.navyP,
+            cursor:"pointer",fontSize:15,
+            display:"flex",alignItems:"center",justifyContent:"center",
+            flexShrink:0,
+            transition:"all 0.25s",
+            boxShadow:dark?`0 2px 7px ${C.amber}30`:`0 2px 7px ${C.navy}20`,
+          }}>{dark ? "☀️" : "🌙"}</button>
           <button onClick={()=>setShowHelp(true)} title="Guide utilisateur" style={{
             width:30,height:30,borderRadius:"50%",
             border:`1.5px solid ${C.green}44`,

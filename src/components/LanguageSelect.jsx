@@ -3,9 +3,11 @@
    Écran de sélection de langue au démarrage
 ═══════════════════════════════════════════════════════ */
 import { useLang } from "../i18n/index.jsx";
-import { C, F } from "../constants/gameData.js";
+import { F } from "../constants/gameData.js";
+import { useC } from "../contexts/ThemeContext.jsx";
 
 export function LanguageSelect() {
+  const C = useC();
   const { setLang } = useLang();
 
   const choose = (code) => setLang(code);

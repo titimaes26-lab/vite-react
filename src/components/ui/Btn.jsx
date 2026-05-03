@@ -11,23 +11,23 @@
      full      {boolean}   width: 100%
      icon      {ReactNode?} affiché avant le label
 ═══════════════════════════════════════════════════════ */
-import { C, F } from "./theme.js";
-
-const VARIANTS = {
-  primary  : { bg: C.green,       fg: "#fff",   bdr: C.green   },
-  secondary: { bg: "transparent", fg: C.green,  bdr: C.green   },
-  terra    : { bg: C.terra,       fg: "#fff",   bdr: C.terra   },
-  ghost    : { bg: "transparent", fg: C.muted,  bdr: C.border  },
-  danger   : { bg: C.red,        fg: "#fff",   bdr: C.red     },
-  navy     : { bg: C.navy,        fg: "#fff",   bdr: C.navy    },
-  amber    : { bg: C.amber,       fg: "#fff",   bdr: C.amber   },
-  disabled : { bg: C.border,      fg: C.muted,  bdr: C.border  },
-};
+import { useC, F } from "./theme.js";
 
 export const Btn = ({
   children, onClick, v = "primary",
   sm = false, disabled = false, full = false, icon,
 }) => {
+  const C = useC();
+  const VARIANTS = {
+    primary  : { bg: C.green,       fg: "#fff",   bdr: C.green   },
+    secondary: { bg: "transparent", fg: C.green,  bdr: C.green   },
+    terra    : { bg: C.terra,       fg: "#fff",   bdr: C.terra   },
+    ghost    : { bg: "transparent", fg: C.muted,  bdr: C.border  },
+    danger   : { bg: C.red,         fg: "#fff",   bdr: C.red     },
+    navy     : { bg: C.navy,        fg: "#fff",   bdr: C.navy    },
+    amber    : { bg: C.amber,       fg: "#fff",   bdr: C.amber   },
+    disabled : { bg: C.border,      fg: C.muted,  bdr: C.border  },
+  };
   const vv = VARIANTS[v] ?? VARIANTS.primary;
   return (
     <button

@@ -9,7 +9,7 @@
      sm       {boolean} taille réduite (défaut: false)
      children {ReactNode}
 ═══════════════════════════════════════════════════════ */
-import { C, F } from "./theme.js";
+import { F } from "./theme.js";
 
 export const Badge = ({ color, bg, children, sm = false }) => (
   <span style={{

@@ -4,13 +4,15 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F, RESTO_LVL, CHEF_LVL, OBJECTIVES_DEF, SRV_LVL } from "../constants/gameData.js";
+import { F, RESTO_LVL, CHEF_LVL, OBJECTIVES_DEF, SRV_LVL } from "../constants/gameData.js";
 import { REP_THRESHOLDS, getRepTier } from "../constants/gameConstants.js";
 import { srvLv } from "../utils/levelUtils.js";
 import { restoLv, chefLv } from "../utils/levelUtils.js";
 import { useLang } from "../i18n/index.jsx";
+import { useC } from "../contexts/ThemeContext.jsx";
 
 export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=50,transactions=[],menu=[],currentGameDay=1,bp={}}){
+  const C = useC();
   const { t: tl, lang } = useLang();
   const [period,setPeriod]=useState(7);   // 5, 7 or 15 game-days
   const [hovRevIdx,setHovRevIdx]=useState(null);

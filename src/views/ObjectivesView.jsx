@@ -3,13 +3,15 @@
    Vue des objectifs de progression et défis quotidiens.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F, OBJECTIVES_DEF, SERIES_LABELS, SERIES_COLORS,
+import { F, OBJECTIVES_DEF, SERIES_LABELS, SERIES_COLORS,
          CHALLENGES_POOL } from "../constants/gameData.js";
 import { Btn } from "../components/ui/index.js";
 import { restoLv } from "../utils/levelUtils.js";
 import { useLang } from "../i18n/index.jsx";
+import { useC } from "../contexts/ThemeContext.jsx";
 
 export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,todayChallenges,challengeProgress,challengeClaimed,setChallengeClaimed,challengeLostToday,setCash,addTx,addRestoXp,addToast,restoXp,restoLvN,bp={}}){
+  const C = useC();
   const { t: tl } = useLang();
   const series=[1,2,3,4];
 

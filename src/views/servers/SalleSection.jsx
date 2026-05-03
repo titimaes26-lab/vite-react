@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { C, F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL, STAFF_QUALITY_REQ } from "../../constants/gameData.js";
+import { F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL, STAFF_QUALITY_REQ } from "../../constants/gameData.js";
 import { SRV_SPECIALTIES, TRAINING_CATALOG, getMaxMoral } from "../../constants/serverConstants.js";
 import { Badge, Card, Btn, Modal, XpBar } from "../../components/ui/index.js";
 import { useLang } from "../../i18n/index.jsx";
+import { useC } from "../../contexts/ThemeContext.jsx";
 import { srvLv, srvTierCap, TIER_UNLOCK_LV, SRV_MAX_XP } from "../../utils/levelUtils.js";
 
 /* ─── Helpers locaux ────────────────────────────────── */
@@ -42,6 +43,7 @@ const _candidateSalRange = (lv) => [[10,13],[11,15],[13,17],[15,20],[18,25]][Mat
 const _candidateSpecRate = (lv) => lv<5?0.10:lv<10?0.25:lv<20?0.40:0.60;
 
 export function SalleSection({ servers, setServers, tables, clockNow, restoLvN, cash, setCash, addTx, addToast, candidatePool, setCandidatePool, candidateDate, setCandidateDate, bp }) {
+  const C = useC();
   const { t: tr } = useLang();
 
   /* ── État salle ────────────────────────────────────── */

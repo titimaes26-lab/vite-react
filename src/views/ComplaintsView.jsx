@@ -4,11 +4,13 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F } from "../constants/gameData.js";
+import { F } from "../constants/gameData.js";
 import { Card, Badge, Modal, Lbl, Inp, Sel, Btn } from "../components/ui/index.js";
 import { useLang } from "../i18n/index.jsx";
+import { useC } from "../contexts/ThemeContext.jsx";
 
 export function ComplaintsView({complaints,setComplaints,tables,servers,seenIds}){
+  const C = useC();
   const { t: tl } = useLang();
   const [modal,setModal]=useState(false);
   const [form,setForm]=useState({date:"",table:"",server:"",type:"Qualité plat",desc:"",status:"nouveau",prio:"moyenne"});

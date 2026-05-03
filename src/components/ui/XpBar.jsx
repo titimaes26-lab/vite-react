@@ -9,21 +9,25 @@
      color  {string} couleur de la barre (défaut: C.green)
      h      {number} hauteur en px (défaut: 6)
 ═══════════════════════════════════════════════════════ */
-import { C } from "./theme.js";
+import { useC } from "./theme.js";
 
-export const XpBar = ({ xp, needed, color = C.green, h = 6 }) => (
-  <div style={{
-    background  : C.border,
-    borderRadius: 99,
-    overflow    : "hidden",
-    height      : h,
-  }}>
+export const XpBar = ({ xp, needed, color, h = 6 }) => {
+  const C = useC();
+  const barColor = color ?? C.green;
+  return (
     <div style={{
-      height     : "100%",
-      width      : `${Math.min(100, (xp / Math.max(1, needed)) * 100)}%`,
-      background : color,
+      background  : C.border,
       borderRadius: 99,
-      transition : "width 0.5s ease",
-    }} />
-  </div>
-);
+      overflow    : "hidden",
+      height      : h,
+    }}>
+      <div style={{
+        height     : "100%",
+        width      : `${Math.min(100, (xp / Math.max(1, needed)) * 100)}%`,
+        background : barColor,
+        borderRadius: 99,
+        transition : "width 0.5s ease",
+      }} />
+    </div>
+  );
+};

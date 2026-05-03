@@ -2,10 +2,12 @@
    src/components/DailySummaryModal.jsx
    Résumé de fin de journée.
 ═══════════════════════════════════════════════════════ */
-import { C, F } from "../constants/gameData.js";
+import { F } from "../constants/gameData.js";
 import { useLang } from "../i18n/index.jsx";
+import { useC } from "../contexts/ThemeContext.jsx";
 
 export function DailySummaryModal({ onClose, dailyStats, objStats, servers, transactions, isRecord, salaryData }) {
+  const C = useC();
   const { t: tl } = useLang();
   const today      = dailyStats[dailyStats.length - 1] || { served: 0, lost: 0, revenue: 0, date: "" };
   const totalClients = today.served + today.lost;

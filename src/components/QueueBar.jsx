@@ -3,10 +3,12 @@
    Barre flottante — file d'attente + cash — toujours visible
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect, useRef } from "react";
-import { C, F } from "../constants/gameData.js";
+import { F } from "../constants/gameData.js";
 import { useLang } from "../i18n/index.jsx";
+import { useC } from "../contexts/ThemeContext.jsx";
 
 export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
+  const C = useC();
   const { t, lang } = useLang();
   const locale = lang === "en" ? "en-US" : "fr-FR";
   const [now, setNow] = useState(Date.now());

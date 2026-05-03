@@ -3,7 +3,8 @@
    Modale de passage de niveau restaurant
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect } from "react";
-import { C, F, RESTO_LVL, SERVER_SLOTS_BY_LEVEL } from "../constants/gameData.js";
+import { F, RESTO_LVL, SERVER_SLOTS_BY_LEVEL } from "../constants/gameData.js";
+import { useC } from "../contexts/ThemeContext.jsx";
 
 /* ─── Calcul dynamique des déblocages ────────────────── */
 const ERA_LABELS = [
@@ -62,6 +63,7 @@ const computeUnlocks = (levelData) => {
 };
 
 export function LevelUpModal({ levelData, onClose }) {
+  const C = useC();
   const [visible, setVisible] = useState(false);
   const [itemsVisible, setItemsVisible] = useState(false);
 

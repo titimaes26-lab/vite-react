@@ -5,11 +5,13 @@
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
 import { useLang } from "../i18n/index.jsx";
-import { C, F, SUPPLIERS } from "../constants/gameData";
+import { F, SUPPLIERS } from "../constants/gameData";
 import { Btn, Inp, Sel } from "../components/ui";
 import { quickAmounts, addLot, getLots } from "../utils/orderUtils";
+import { useC } from "../contexts/ThemeContext.jsx";
 
 export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat,kitchen,supplierMode,setSupplierMode,pendingDeliveries,setPendingDeliveries,menu=[],restoLvN=0,bp={}}){
+  const C = useC();
   const storageMult=1+(kitchen?.upgrades?.stockage||0);
   // Ingrédients utilisés par au moins un plat débloqué
   const unlockedStockIds=new Set(

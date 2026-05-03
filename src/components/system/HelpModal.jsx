@@ -4,11 +4,13 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F } from "../../constants/gameData";
+import { F } from "../../constants/gameData";
 import { HELP_SECTIONS } from "../../constants/helpContent.js";
+import { useC } from "../../contexts/ThemeContext.jsx";
 import { useLang } from "../../i18n/index.jsx";
 
 export function HelpModal({onClose}){
+  const C = useC();
   const { t: tl } = useLang();
   const [sec,setSec]=useState(0);
   const s=HELP_SECTIONS[sec];

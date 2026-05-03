@@ -7,8 +7,9 @@
      /gustave.png  — ratio 16:9  (~1400×788)
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect } from "react";
-import { C, F } from "../constants/gameData.js";
+import { F } from "../constants/gameData.js";
 import { useLang } from "../i18n/index.jsx";
+import { useC } from "../contexts/ThemeContext.jsx";
 
 import { SPEAKERS_FR, SPEAKERS_EN, INTRO_DIALOG, TABLES_DIALOG, SERVERS_DIALOG, BANK_DIALOG, STATS_DIALOG, OBJECTIVES_DIALOG, STOCK_DIALOG, MENU_DIALOG, KITCHEN_DIALOG, INTRO_DIALOG_EN, TABLES_DIALOG_EN, SERVERS_DIALOG_EN, BANK_DIALOG_EN, STATS_DIALOG_EN, OBJECTIVES_DIALOG_EN, STOCK_DIALOG_EN, MENU_DIALOG_EN, KITCHEN_DIALOG_EN } from "../constants/dialogData.js";
 
@@ -17,6 +18,7 @@ import { SPEAKERS_FR, SPEAKERS_EN, INTRO_DIALOG, TABLES_DIALOG, SERVERS_DIALOG, 
    COMPOSANT GÉNÉRIQUE — DialogScene
 ═══════════════════════════════════════════════════════ */
 function DialogScene({ dialogData, ctaLabel = "OK", onDone }) {
+  const C = useC();
   const { lang, t } = useLang();
   const SPEAKERS = lang === "en" ? SPEAKERS_EN : SPEAKERS_FR;
 

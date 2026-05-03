@@ -3,9 +3,11 @@
    Extrait du monolithe restaurant-manager.jsx
    Panneau latéral affichant l'historique des notifications.
 ═══════════════════════════════════════════════════════ */
-import { C, F } from "../../constants/gameData";
+import { F } from "../../constants/gameData";
+import { useC } from "../../contexts/ThemeContext.jsx";
 
 export function NotificationHistory({ onClose, toastHistory, setToastHistory }) {
+  const C = useC();
   return (
     <div onClick={onClose}
       style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:2000,

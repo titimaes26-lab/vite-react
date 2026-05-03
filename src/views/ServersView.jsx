@@ -4,11 +4,12 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect } from "react";
-import { C, F, CHEF_LVL, COMMIS_LVL, CHEF_TRAININGS, KITCHEN_UPGRADES, COMMIS_SPECIALTIES } from "../constants/gameData.js";
+import { F, CHEF_LVL, COMMIS_LVL, CHEF_TRAININGS, KITCHEN_UPGRADES, COMMIS_SPECIALTIES } from "../constants/gameData.js";
 import { Badge, Card, Btn, Modal, XpBar } from "../components/ui/index.js";
 import { useLang } from "../i18n/index.jsx";
 import { chefLv, commisLv, CHEF_MAX_XP, COMMIS_MAX_XP } from "../utils/levelUtils.js";
 import { SalleSection } from "./servers/SalleSection.jsx";
+import { useC } from "../contexts/ThemeContext.jsx";
 /* ─── Helpers locaux ────────────────────────────────── */
 const moralIcon   = (m) => m>=70?"😊":m>=40?"😐":m>=20?"😓":"💀";
 const moralKey    = (m) => m>=70?"moralFine":m>=40?"moralTired":m>=20?"moralExhausted":"moralBurnout";
@@ -49,6 +50,7 @@ const _candidateSpecRate = (lv) => lv<5?0.10:lv<10?0.25:lv<20?0.40:0.60;
 
 
 export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast,candidatePool=[],setCandidatePool,candidateDate="",setCandidateDate,kitchen,setKitchen,commisPool=[],setCommisPool=()=>{},commisPoolDate="",setCommisPoolDate=()=>{},bp={}}){
+  const C = useC();
   const { t: tr, lang } = useLang();
 
   /* ── État chef / commis ────────────────────────────── */

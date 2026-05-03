@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, Component } from "react";
 import { LangProvider, useLang } from "./src/i18n/index.jsx";
+import { ThemeProvider, useC } from "./src/contexts/ThemeContext.jsx";
 import { LanguageSelect } from "./src/components/LanguageSelect.jsx";
 
 // ── Services ───────────────────────────────────────────
@@ -27,7 +28,7 @@ import { APP_STYLES }          from "./src/constants/appStyles.js";
 
 // ── Données statiques ──────────────────────────────────
 import {
-  C, F,
+  F,
   SRV_LVL, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
   RESTO_LVL, SERVER_SLOTS_BY_LEVEL, CAP_UPGRADES,
   MOODS, NAMES1, NAMES2,
@@ -107,13 +108,16 @@ class TabErrorBoundary extends Component {
 
 export default function App() {
   return (
-    <LangProvider>
-      <AppContent />
-    </LangProvider>
+    <ThemeProvider>
+      <LangProvider>
+        <AppContent />
+      </LangProvider>
+    </ThemeProvider>
   );
 }
 
 function AppContent(){
+  const C = useC();
   const { lang, t: tl } = useLang();
   const bp=useBreakpoint();
   const _today = new Date().toLocaleDateString("fr-FR");

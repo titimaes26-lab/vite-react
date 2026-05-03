@@ -4,12 +4,13 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect } from "react";
-import { C, F, CAP_UPGRADES, SRV_LVL, GAME_EVENTS, RESTO_LVL } from "../constants/gameData.js";
+import { F, CAP_UPGRADES, SRV_LVL, GAME_EVENTS, RESTO_LVL } from "../constants/gameData.js";
 import { getRepTier } from "../constants/gameConstants.js";
 import { REP_DELTA } from "../constants/gameConstants.js";
 import { isOnShift } from "../hooks/useGameClock.js";
 import { Badge, Btn, Sel, Modal, XpBar, Lbl, Inp } from "../components/ui/index.js";
 import { useLang } from "../i18n/index.jsx";
+import { useC } from "../contexts/ThemeContext.jsx";
 import { srvLv, calcRating, ratingColor, ratingStars, calcTip, restoXpFromCheckout, srvXpFromCheckout, SRV_MAX_XP } from "../utils/levelUtils.js";
 import { generateOrderWithFormulas } from "../utils/randomUtils.js";
 import { buildKitchenTickets, svcDuration, eatDuration, calcBill } from "../utils/orderUtils.js";
@@ -18,7 +19,7 @@ import { SvgFloorPlan } from "./tables/SvgFloorPlan.jsx";
 
 
 export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,gameTime,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,formulas=[],stock=[],bp={}}) {
-
+  const C = useC();
   const { t: tr } = useLang();
   const now = clockNow;
 

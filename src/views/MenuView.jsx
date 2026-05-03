@@ -5,11 +5,13 @@
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
 import { useLang } from "../i18n/index.jsx";
-import { C, F, MENU0 } from "../constants/gameData.js";
+import { F, MENU0 } from "../constants/gameData.js";
 import { FORMULA_PRESETS } from "../constants/gameConstants.js";
 import { Badge, Btn, Modal, Lbl, Inp, Sel } from "../components/ui/index.js";
+import { useC } from "../contexts/ThemeContext.jsx";
 
 export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,restoLvN=0,bp={}}){
+  const C = useC();
   const [mainTab,setMainTab]=useState("carte");
   const [catFilter,setCatFilter]=useState("Tout");
   const [sortBy,setSortBy]=useState("cat");

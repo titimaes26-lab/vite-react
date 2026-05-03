@@ -5,14 +5,16 @@
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect, useRef } from "react";
 import { useLang } from "../i18n/index.jsx";
-import { C, F, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
+import { F, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
          KITCHEN_UPGRADES, COMMIS_SPECIALTIES, CHEF_TRAININGS } from "../constants/gameData.js";
 import { Btn, XpBar, Badge } from "../components/ui/index.js";
 import { chefLv, commisLv, dishCookTimeWithUpgrades, CHEF_MAX_XP, COMMIS_MAX_XP } from "../utils/levelUtils.js";
 import { consumeLots } from "../utils/orderUtils.js";
 import { isOnShift } from "../hooks/useGameClock.js";
+import { useC } from "../contexts/ThemeContext.jsx";
 
 export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,gameTime,restoLvN=0,bp={}}){
+  const C = useC();
   const { t: tl, lang } = useLang();
   const chf=kitchen.chef;
   const cl=chefLv(chf.totalXp);
