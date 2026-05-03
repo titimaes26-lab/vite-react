@@ -936,6 +936,39 @@ function AppContent(){
 
 
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
+      {showResetModal&&(
+        <div onClick={()=>setShowResetModal(false)} style={{position:"fixed",inset:0,
+          background:"rgba(0,0,0,0.55)",zIndex:10001,
+          display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:18,
+            padding:28,width:"100%",maxWidth:380,
+            boxShadow:"0 24px 60px rgba(0,0,0,0.3)",textAlign:"center"}}>
+            <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
+            <div style={{fontSize:18,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8}}>
+              {tl("app.newGame")}
+            </div>
+            <div style={{fontSize:13,color:C.muted,fontFamily:F.body,marginBottom:24,lineHeight:1.6}}>
+              {tl("app.newGameWarning")}<br/>
+              {tl("app.irreversible")}
+            </div>
+            <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+              <button onClick={()=>setShowResetModal(false)} style={{
+                padding:"10px 22px",borderRadius:9,border:`1.5px solid ${C.border}`,
+                background:C.bg,color:C.muted,cursor:"pointer",
+                fontSize:13,fontWeight:600,fontFamily:F.body}}>
+                {tl("app.cancel")}
+              </button>
+              <button onClick={doReset} style={{
+                padding:"10px 22px",borderRadius:9,border:"none",
+                background:C.red,color:"#fff",cursor:"pointer",
+                fontSize:13,fontWeight:700,fontFamily:F.body,
+                boxShadow:`0 4px 14px ${C.red}55`}}>
+                {tl("app.restart")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {showBank&&<BankModal onClose={()=>setShowBank(false)} cash={cash} loan={loan}
         setLoan={setLoan} setCash={setCash} addTx={addTx} addToast={addToast}/>}
       {/* Ledger modal */}
