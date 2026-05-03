@@ -13,7 +13,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
   const storageMult=1+(kitchen?.upgrades?.stockage||0);
   // Ingrédients utilisés par au moins un plat débloqué
   const unlockedStockIds=new Set(
-    menu.filter(d=>d.unlockLevel<=restoLvN).flatMap(d=>d.ingredients.map(i=>i.stockId))
+    menu.filter(d=>(d.unlockLevel??0)<=restoLvN).flatMap(d=>(d.ingredients||[]).map(i=>i.stockId))
   );
   const visibleStock=stock.filter(s=>unlockedStockIds.has(s.id));
   const [inlineAlertId, setInlineAlertId] = useState(null);
