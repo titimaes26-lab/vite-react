@@ -414,6 +414,16 @@ export const en = {
     loanRepay: "Loan payment",
     net: "Net",
     estimated: "Estimated",
+    records: {
+      title: "Best Records",
+      revenue: "Best revenue",
+      served: "Most customers",
+      rate: "Best service rate",
+      net: "Best net result",
+      prev: "Previous:",
+      dayLabel: "Day",
+      noData: "Play more than 1 day to see your records",
+    },
   },
 
   complaints: {

@@ -105,6 +105,74 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
     );
   };
 
+  // ── Records (past completed days only) ────────────────
+  const pastDays = dailyStats.slice(0, -1).filter(d => (d.revenue || 0) > 0 || (d.served || 0) > 0);
+  const currentDay = dailyStats[dailyStats.length - 1];
+
+  const getRecord = (arr, getValue) =>
+    arr.reduce((best, d) => {
+      const v = getValue(d);
+      return v > best.value ? { value: v, day: d.day } : best;
+    }, { value: -Infinity, day: null });
+
+  const recRevenue = getRecord(pastDays, d => d.revenue || 0);
+  const recServed  = getRecord(pastDays, d => d.served || 0);
+  const recRate    = getRecord(pastDays, d => {
+    const total = (d.served || 0) + (d.lost || 0);
+    return total > 0 ? Math.round((d.served / total) * 100) : 0;
+  });
+  const recNet = getRecord(pastDays, d =>
+    +((d.revenue || 0) - (d.salary || 0) - (d.stock || 0) - (d.loan || 0)).toFixed(2)
+  );
+
+  const todayRevenue = currentDay?.revenue || 0;
+  const todayServed  = currentDay?.served || 0;
+  const todayLost    = currentDay?.lost || 0;
+  const todayTotal   = todayServed + todayLost;
+  const todayRate    = todayTotal > 0 ? Math.round((todayServed / todayTotal) * 100) : 0;
+  const todayNet     = currentDay
+    ? +((currentDay.revenue || 0) - (currentDay.salary || 0) - (currentDay.stock || 0) - (currentDay.loan || 0)).toFixed(2)
+    : 0;
+
+  const recordCards = [
+    {
+      key: "revenue", icon: "💶",
+      label: tl("stats.records.revenue"),
+      rec: recRevenue,
+      recFmt: v => `${v.toFixed(0)} €`,
+      todayVal: todayRevenue,
+      todayFmt: `${todayRevenue.toFixed(0)} €`,
+      color: C.amber,
+    },
+    {
+      key: "served", icon: "👥",
+      label: tl("stats.records.served"),
+      rec: recServed,
+      recFmt: v => String(Math.round(v)),
+      todayVal: todayServed,
+      todayFmt: String(todayServed),
+      color: C.green,
+    },
+    {
+      key: "rate", icon: "✅",
+      label: tl("stats.records.rate"),
+      rec: recRate,
+      recFmt: v => `${Math.round(v)} %`,
+      todayVal: todayRate,
+      todayFmt: `${todayRate} %`,
+      color: C.green,
+    },
+    {
+      key: "net", icon: "⚖️",
+      label: tl("stats.records.net"),
+      rec: recNet,
+      recFmt: v => `${v >= 0 ? "+" : ""}${v.toFixed(0)} €`,
+      todayVal: todayNet,
+      todayFmt: `${todayNet >= 0 ? "+" : ""}${todayNet.toFixed(0)} €`,
+      color: C.navy,
+    },
+  ];
+
   // ── Financial analysis ─────────────────────────────────
   // Revenue by category from today's transactions
   const locale=lang==="en"?"en-US":"fr-FR";
@@ -208,6 +276,61 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
             </div>
           ))}
         </div>
+      </div>
+
+      {/* ══ RECORDS ══ */}
+      <div style={{marginBottom:20}}>
+        <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,
+          marginBottom:10,display:"flex",alignItems:"center",gap:7}}>
+          <span>🏆</span> {tl("stats.records.title")}
+        </div>
+        {pastDays.length === 0 ? (
+          <div style={{padding:"14px 18px",background:C.card,border:`1.5px solid ${C.border}`,
+            borderRadius:12,fontSize:11,color:C.muted,fontFamily:F.body,textAlign:"center"}}>
+            {tl("stats.records.noData")}
+          </div>
+        ) : (
+          <div style={{display:"grid",
+            gridTemplateColumns:bp.isMobile?"1fr 1fr":"repeat(4,1fr)",gap:10}}>
+            {recordCards.map(rc => {
+              const hasRecord = rc.rec.day !== null && rc.rec.value !== -Infinity;
+              const isBeating = hasRecord && rc.todayVal > rc.rec.value;
+              return (
+                <div key={rc.key} style={{
+                  background: isBeating ? `${rc.color}12` : C.card,
+                  border:`1.5px solid ${isBeating ? rc.color+"55" : C.border}`,
+                  borderRadius:14,padding:"14px 16px",
+                  position:"relative",overflow:"hidden",
+                  transition:"border-color 0.3s,background 0.3s",
+                }}>
+                  {isBeating && (
+                    <div style={{
+                      position:"absolute",top:0,right:0,
+                      background:rc.color,color:"#fff",
+                      fontSize:8,fontWeight:800,padding:"3px 8px",
+                      borderBottomLeftRadius:8,fontFamily:F.body,letterSpacing:"0.05em",
+                    }}>LIVE 🔥</div>
+                  )}
+                  <div style={{fontSize:18,marginBottom:4}}>{rc.icon}</div>
+                  <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:6}}>
+                    {rc.label}
+                  </div>
+                  <div style={{fontSize:20,fontWeight:800,lineHeight:1,fontFamily:F.title,
+                    color: isBeating ? rc.color : hasRecord ? C.ink : C.muted}}>
+                    {isBeating ? rc.todayFmt : hasRecord ? rc.recFmt(rc.rec.value) : "—"}
+                  </div>
+                  <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:5}}>
+                    {isBeating && hasRecord
+                      ? `${tl("stats.records.prev")} ${rc.recFmt(rc.rec.value)} · ${tl("stats.day")} ${rc.rec.day}`
+                      : hasRecord
+                        ? `${tl("stats.day")} ${rc.rec.day}`
+                        : ""}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ══ GRAPHIQUES SVG ══ */}
