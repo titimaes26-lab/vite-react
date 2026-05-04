@@ -8,6 +8,7 @@ import { getRepTier } from "../../constants/gameConstants";
 import { triggerAd } from "../../services/adBridge";
 import { useLang } from "../../i18n/index.jsx";
 import { useC, useDark } from "../../contexts/ThemeContext.jsx";
+import { getPrestigeTier } from "../../constants/prestigeData.js";
 
 export function AppHeader({
   tab, setTab,
@@ -19,7 +20,7 @@ export function AppHeader({
   adWatching, setAdWatching,
   setCash, addTx, addToast,
   setShowHelp, setShowResetModal,
-  rl, rlD, restoXp, reputation,
+  rl, rlD, restoXp, prestige = 0, reputation,
   complaints, setSeenIds,
   todayChallenges, challengeProgress, challengeClaimed, challengeLostToday,
   pendingClaim, kitchen, activeTables,
@@ -213,6 +214,14 @@ export function AppHeader({
           <span style={{fontSize:11,background:rlD.color+"18",color:rlD.color,
             border:`1px solid ${rlD.color}33`,borderRadius:4,
             padding:"1px 6px",fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap"}}>N{rlD.l}</span>
+          {prestige>0&&(()=>{const pt=getPrestigeTier(prestige);return(
+            <span style={{fontSize:11,background:pt.color+"20",color:pt.color,
+              border:`1px solid ${pt.color}44`,borderRadius:4,
+              padding:"1px 6px",fontWeight:800,fontFamily:F.body,whiteSpace:"nowrap",
+              animation:"popIn 0.3s ease"}}>
+              {pt.icon} P{prestige}
+            </span>
+          );})()}
           <span style={{fontSize:11,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>
             {rl.l>=RESTO_LVL.length-1?"✦ Max":`${restoXp}/${rl.next.xpNeeded} XP`}
           </span>

@@ -5,13 +5,14 @@
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
 import { F, RESTO_LVL, CHEF_LVL, OBJECTIVES_DEF, SRV_LVL } from "../constants/gameData.js";
+import { getPrestigeTier, MAX_PRESTIGE } from "../constants/prestigeData.js";
 import { REP_THRESHOLDS, getRepTier } from "../constants/gameConstants.js";
 import { srvLv } from "../utils/levelUtils.js";
 import { restoLv, chefLv } from "../utils/levelUtils.js";
 import { useLang } from "../i18n/index.jsx";
 import { useC } from "../contexts/ThemeContext.jsx";
 
-export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=50,transactions=[],menu=[],currentGameDay=1,bp={}}){
+export function StatsView({dailyStats,loan,objStats,restoXp,prestige=0,onPrestige,kitchen,servers,reputation=50,transactions=[],menu=[],currentGameDay=1,bp={}}){
   const C = useC();
   const { t: tl, lang } = useLang();
   const [period,setPeriod]=useState(7);   // 5, 7 or 15 game-days
@@ -279,6 +280,72 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
           ))}
         </div>
       </div>
+
+      {/* ══ PRESTIGE ══ */}
+      {(()=>{
+        const isMaxLevel=rl.l>=RESTO_LVL.length-1;
+        const pt=getPrestigeTier(prestige);
+        const nextPt=getPrestigeTier(prestige+1);
+        const canPrestige=isMaxLevel&&prestige<MAX_PRESTIGE;
+        if(!isMaxLevel&&prestige===0) return null;
+        return(
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,
+              marginBottom:10,display:"flex",alignItems:"center",gap:7}}>
+              <span>✦</span> {tl("prestige.section")}
+            </div>
+            <div style={{
+              background: canPrestige ? `${nextPt.color}0e` : C.card,
+              border:`1.5px solid ${canPrestige?nextPt.color+"44":C.border}`,
+              borderRadius:14,padding:"16px 18px",
+              display:"flex",alignItems:"center",gap:16,flexWrap:"wrap",
+              transition:"border-color 0.3s,background 0.3s",
+            }}>
+              {/* Left: current prestige info */}
+              <div style={{flex:1,minWidth:160}}>
+                {prestige>0?(
+                  <>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                      <span style={{fontSize:28}}>{pt.icon}</span>
+                      <div>
+                        <div style={{fontSize:15,fontWeight:800,color:pt.color,fontFamily:F.title,lineHeight:1}}>{pt.name}</div>
+                        <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>{tl("prestige.currentLabel")} {prestige}</div>
+                      </div>
+                    </div>
+                    <div style={{fontSize:11,color:C.muted,fontFamily:F.body}}>
+                      {tl("prestige.bonusXpLabel")} :{" "}
+                      <span style={{color:pt.color,fontWeight:700}}>+{Math.round((pt.xpMultiplier-1)*100)}%</span>
+                    </div>
+                  </>
+                ):(
+                  <div style={{fontSize:11,color:C.muted,fontFamily:F.body,lineHeight:1.6}}>
+                    {tl("prestige.noPrestige")}
+                  </div>
+                )}
+              </div>
+              {/* Right: prestige CTA */}
+              {canPrestige&&(
+                <button onClick={onPrestige} style={{
+                  padding:"10px 20px",borderRadius:10,border:"none",
+                  background:`linear-gradient(135deg,${nextPt.color},${nextPt.color}bb)`,
+                  color:"#fff",fontSize:12,fontWeight:800,fontFamily:F.body,
+                  cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
+                  boxShadow:`0 4px 14px ${nextPt.color}44`,
+                  animation:"pulse 2s ease-in-out infinite",
+                }}>
+                  {nextPt.icon} {tl("prestige.available")}
+                </button>
+              )}
+              {!canPrestige&&prestige>=MAX_PRESTIGE&&(
+                <div style={{fontSize:11,color:C.muted,fontFamily:F.body,padding:"6px 14px",
+                  background:C.surface2,borderRadius:8,border:`1px solid ${C.border}`}}>
+                  {pt.icon} Max prestige
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ══ RECORDS ══ */}
       <div style={{marginBottom:20}}>

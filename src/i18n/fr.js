@@ -588,4 +588,23 @@ export const fr = {
   kitchenTutorial: {
     cta: "On allume les feux !",
   },
+  prestige: {
+    section:       "Prestige",
+    available:     "PRESTIGE DISPONIBLE",
+    title:         "Prestige",
+    xpBonus:       "Bonus XP permanent",
+    cashReward:    "Prime de prestige",
+    resets:        "Ce qui repart à zéro :",
+    resetLevel:    "Niveau restaurant",
+    resetObjectives: "Objectifs complétés",
+    keeps:         "Ce qui reste :",
+    keepsCash:     "Argent & transactions",
+    keepsEquip:    "Équipements & personnel",
+    keepsHistory:  "Historique des stats",
+    confirm:       "Effectuer le prestige",
+    cancel:        "Annuler",
+    currentLabel:  "Prestige actuel",
+    bonusXpLabel:  "Bonus XP en cours",
+    noPrestige:    "Atteignez le niveau maximum pour effectuer un prestige.",
+  },
 };

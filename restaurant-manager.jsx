@@ -77,7 +77,9 @@ import { useObjectives }  from "./src/hooks/useObjectives.js";
 import { Badge, Card, Btn, Inp, Sel, Lbl, XpBar, Modal } from "./src/components/ui/index.js";
 import { Toasts } from "./src/components/system/Toasts.jsx";
 import { IntroDialog, TablesDialog, ServersDialog, BankDialog, StatsDialog, ObjectivesDialog, StockDialog, MenuDialog, KitchenDialog } from "./src/components/IntroDialog.jsx";
-import { LevelUpModal } from "./src/components/LevelUpModal.jsx";
+import { LevelUpModal }   from "./src/components/LevelUpModal.jsx";
+import { PrestigeModal }  from "./src/components/PrestigeModal.jsx";
+import { getPrestigeTier, PRESTIGE_ICONS } from "./src/constants/prestigeData.js";
 import { QueueBar }    from "./src/components/QueueBar.jsx";
 
 // ── Vues ───────────────────────────────────────────────
@@ -267,6 +269,8 @@ function AppContent(){
   const [toastUnread,setToastUnread]=useState(0);
   const [showToastHistory,setShowToastHistory]=useState(false);
   const [restoXp,setRestoXp]=useState(0);
+  const [prestige,setPrestige]=useState(0);
+  const [showPrestigeModal,setShowPrestigeModal]=useState(false);
   const [cash,setCash]=useState(5000);
   const [transactions,setTransactions]=useState([
     {id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now(),gameTime:"08h00"}
@@ -386,8 +390,9 @@ function AppContent(){
           const _unlockedC=CHEF_LVL[Math.min(chefLv(sv.kitchen.chef?.totalXp||0).l,CHEF_LVL.length-1)].commis;
           setKitchen({...sv.kitchen,commis:(sv.kitchen.commis||[]).slice(0,_unlockedC)});
         }
-        if(sv.restoXp!=null) setRestoXp(sv.restoXp);
-        if(sv.cash!=null)    setCash(sv.cash);
+        if(sv.restoXp!=null)  setRestoXp(sv.restoXp);
+        if(sv.prestige!=null) setPrestige(sv.prestige);
+        if(sv.cash!=null)     setCash(sv.cash);
         if(sv.transactions)  setTransactions(sv.transactions);
         if(sv.loan!=null)    setLoan(sv.loan);
         const validModes=["rapide","normal","lowcost"];
@@ -571,7 +576,7 @@ function AppContent(){
   const gdSyncStateRef = useRef({});
   useEffect(()=>{
     gdSyncStateRef.current = {
-      cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
+      cash, restoXp, prestige, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
       reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
       formulas, dailySpecials, challengeDate,
       completedIds, pendingClaim, todayChallenges, challengeProgress,
@@ -579,7 +584,7 @@ function AppContent(){
       candidatePool, candidateDate,
       dayStartRealMs,
     };
-  },[cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
+  },[cash, restoXp, prestige, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
      reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
      formulas, dailySpecials, challengeDate,
      completedIds, pendingClaim, todayChallenges, challengeProgress,
@@ -827,7 +832,8 @@ function AppContent(){
     setRestoXp(prev=>{
       const maxXp=RESTO_LVL[RESTO_LVL.length-1].xpNeeded;
       if(prev>=maxXp) return prev;
-      const next=Math.min(maxXp,prev+xp);
+      const boosted=xp>0?Math.round(xp*(1+prestige*0.10)):xp;
+      const next=Math.min(maxXp,prev+boosted);
       const before=restoLv(prev);
       const after=restoLv(next);
       if(after.l>before.l){
@@ -871,9 +877,26 @@ function AppContent(){
       }
       return next;
     });
-  },[addToast]);
+  },[addToast,prestige]);
 
-
+  const doPrestige=useCallback(()=>{
+    const nextP=prestige+1;
+    const cashBonus=5000*nextP;
+    setPrestige(nextP);
+    setRestoXp(0);
+    setCash(c=>+(c+cashBonus).toFixed(2));
+    addTx("revenu",`Prestige ${nextP}`,cashBonus);
+    setObjStats(s=>Object.fromEntries(Object.keys(s).map(k=>[k,0])));
+    setCompletedIds([]);
+    setTimeout(()=>addToast({
+      icon:PRESTIGE_ICONS[Math.min(nextP-1,PRESTIGE_ICONS.length-1)],
+      title:`Prestige ${nextP} !`,
+      msg:`+${cashBonus.toLocaleString()}€ · +${nextP*10}% XP permanent`,
+      color:"#a060d0",
+      tab:"stats",
+      silent:true,
+    }),50);
+  },[prestige,addTx,addToast]);
 
   const claimObjective=useCallback((id)=>{
     const obj=OBJECTIVES_DEF.find(o=>o.id===id);
@@ -922,7 +945,7 @@ function AppContent(){
         adWatching={adWatching} setAdWatching={setAdWatching}
         setCash={setCash} addTx={addTx} addToast={addToast}
         setShowHelp={setShowHelp} setShowResetModal={setShowResetModal}
-        rl={rl} rlD={rlD} restoXp={restoXp} reputation={reputation}
+        rl={rl} rlD={rlD} restoXp={restoXp} prestige={prestige} reputation={reputation}
         complaints={complaints} setSeenIds={setSeenIds}
         todayChallenges={todayChallenges} challengeProgress={challengeProgress}
         challengeClaimed={challengeClaimed} challengeLostToday={challengeLostToday}
@@ -940,7 +963,7 @@ function AppContent(){
         {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} addDayStat={addDayStat} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} restoLvN={rl.l} bp={bp}/>}
         {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
         {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
-        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} currentGameDay={dailyStats[dailyStats.length-1]?.day??1} bp={bp}/>}
+        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} prestige={prestige} onPrestige={()=>setShowPrestigeModal(true)} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} currentGameDay={dailyStats[dailyStats.length-1]?.day??1} bp={bp}/>}
         </div>
         </TabErrorBoundary>
       </div>
@@ -957,6 +980,7 @@ function AppContent(){
       )}
 
 
+      {showPrestigeModal&&<PrestigeModal prestige={prestige} onConfirm={doPrestige} onClose={()=>setShowPrestigeModal(false)}/>}
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
       {showResetModal&&(
         <div onClick={()=>setShowResetModal(false)} style={{position:"fixed",inset:0,
