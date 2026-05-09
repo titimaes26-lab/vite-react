@@ -427,11 +427,18 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                     <span style={{fontSize:13,fontWeight:800,color:C.ink,fontFamily:F.title}}>
                       {t.name}
                     </span>
-                    <span style={{fontSize:9,background:ph>=0?pC+"18":C.greenP,
-                      color:ph>=0?pC:C.green,borderRadius:20,padding:"1px 7px",
-                      fontWeight:600,fontFamily:F.body}}>
-                      {ph>=0?pIs[ph]+" "+pLs[ph]:tr("tables.status.free")}
-                    </span>
+                    <div style={{display:"flex",alignItems:"center",gap:5}}>
+                      <span style={{fontSize:9,color:C.muted,fontFamily:F.body,
+                        background:C.bg,border:`1px solid ${C.border}`,borderRadius:5,
+                        padding:"1px 5px",fontWeight:600}}>
+                        {t.capacity}p
+                      </span>
+                      <span style={{fontSize:9,background:ph>=0?pC+"18":C.greenP,
+                        color:ph>=0?pC:C.green,borderRadius:20,padding:"1px 7px",
+                        fontWeight:600,fontFamily:F.body}}>
+                        {ph>=0?pIs[ph]+" "+pLs[ph]:tr("tables.status.free")}
+                      </span>
+                    </div>
                   </div>
                   {ph>=0&&<div style={{height:3,background:pC+"22",borderRadius:99,
                     overflow:"hidden",marginBottom:5}}>
@@ -454,6 +461,22 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                   {isMm&&!isEm&&<Btn full v="primary" sm onClick={()=>checkout(t.id)} icon="💰">{tr("tables.checkout",{amount:bl})}</Btn>}
                   {isLm&&myQm.length>0&&aSm.length>0&&<Btn full v="terra" sm onClick={()=>quickPlace(myQm[0])} icon="👥">Placer</Btn>}
                   {isLm&&myQm.length>0&&aSm.length===0&&<Btn full v="secondary" sm onClick={()=>openAssign(myQm[0])} icon="👥">Placer</Btn>}
+                  {isLm&&(t.capLv??0)<2&&(()=>{
+                    const up=CAP_UPGRADES[t.capLv??0];
+                    const canAfford=cash>=up.cost;
+                    return(
+                      <Btn full sm v={canAfford?"navy":"disabled"} disabled={!canAfford}
+                        onClick={()=>{
+                          if(!canAfford)return;
+                          setTables(p=>p.map(x=>x.id!==t.id?x:{...x,capacity:up.newCap,capLv:(t.capLv??0)+1}));
+                          setCash(c=>+(c-up.cost).toFixed(2));
+                          addTx("achat",tr("tables.tableExpand",{name:t.name,cap:up.newCap}),up.cost);
+                          if(onTableUpgrade)onTableUpgrade();
+                        }}>
+                        {tr("tables.expandBtn",{label:up.label,cost:up.cost})}
+                      </Btn>
+                    );
+                  })()}
                 </div>
               );
             })}
