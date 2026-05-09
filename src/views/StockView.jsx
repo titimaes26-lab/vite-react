@@ -244,7 +244,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
             {tl("stock.supply")}
           </div>
           <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-            {SUPPLIERS[supplierMode||"normal"].desc}
+            {(SUPPLIERS[supplierMode]??SUPPLIERS["normal"]).desc}
           </div>
         </div>
         <div style={{display:"flex",gap:5}}>

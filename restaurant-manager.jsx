@@ -352,7 +352,7 @@ function AppContent(){
     setCash(5000);
     setTransactions([{id:0,type:"revenu",label:"Capital de départ",amount:5000,date:Date.now(),gameTime:"08h00"}]);
     setLoan(null);
-    setSupplierMode("premium");
+    setSupplierMode("normal");
     setPendingDeliveries([]);
     const base=MENU0.filter(m=>m.cat!=="Boissons");
     const picks=base.sort(()=>Math.random()-0.5).slice(0,2);
