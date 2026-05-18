@@ -27,6 +27,9 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,
               const secsLeft=isOrdering?Math.max(0,Math.ceil((tLive.svcUntil-now)/1000)):0;
               const myQ=queue.filter(g=>g.size<=tLive.capacity&&tLive.status==="libre");
               const accentColor=isNettoyage?C.amber:isMange?C.green:isOrdering?C.navy:tLive.status==="occupée"?C.terra:C.green;
+              const isCheckoutReady=isMange&&!isEating;
+              const canPlaceD=tLive.status==="libre"&&myQ.length>0&&(activeSrv||[]).length>0;
+              const doPulseD=isCheckoutReady||canPlaceD;
 
               return(
                 <div style={{background:C.surface,border:`1.5px solid ${accentColor}44`,
@@ -42,12 +45,16 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,
                           {tLive.name}
                           {tLive.group?.isVIP&&<span style={{marginLeft:6}}>🎩</span>}
                         </div>
-                        <div style={{fontSize:11,color:accentColor,fontWeight:600,
-                          fontFamily:F.body,marginTop:3}}>
-                          {isNettoyage?tr("tables.status.cleaning"):isMange&&isEating?tr("tables.status.eating"):
-                            isMange?tr("tables.status.readyCheckout"):isOrdering?tr("tables.status.ordering"):
-                            tLive.status==="occupée"?tr("tables.status.kitchen"):tr("tables.status.free")}
-                        </div>
+                        <span style={{display:"inline-block",fontSize:11,
+                          color:accentColor,fontWeight:700,fontFamily:F.body,
+                          marginTop:4,padding:"2px 10px",borderRadius:20,
+                          background:accentColor+"22",
+                          border:`1.5px solid ${accentColor}88`,
+                          animation:doPulseD?"pulse 1.2s ease-in-out infinite":"none"}}>
+                          {isNettoyage?("🧹 "+tr("tables.status.cleaning")):isMange&&isEating?("🍴 "+tr("tables.status.eating")):
+                            isMange?("💰 "+tr("tables.status.readyCheckout")):isOrdering?("🛎 "+tr("tables.status.ordering")):
+                            tLive.status==="occupée"?("🔥 "+tr("tables.status.kitchen")):canPlaceD?("✓ "+tr("tables.status.free")):tr("tables.status.free")}
+                        </span>
                         {isNettoyage&&(
                           <div style={{fontSize:11,color:accentColor,fontFamily:F.body,marginTop:2}}>
                             {cleanSrvDetail

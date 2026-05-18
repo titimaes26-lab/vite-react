@@ -410,17 +410,22 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
               const myQm=queue.filter(g=>g.size<=t.capacity&&isLm);
               const aSm=servers.filter(s=>s.status==="actif"&&(s.moral??100)>10&&(!s.shift||isOnShift(s.shift,absMin)));
               const ph=isOm?0:isCm?1:isMm?2:isNm?3:-1;
-              const pCs=["#3a5f8a","#e07a45","#4a9e78","#f5a623"];
+              const pCs=[C.navy,C.terra,C.green,C.amber];
               const pIs=["🛎","🔥","🍴","🧹"];const pLs=[tr("tables.phaseOrder"),tr("tables.phaseKitchen"),tr("tables.phaseEating"),tr("tables.phaseCleaning")];
               const pC=ph>=0?pCs[ph]:C.green;
+              const needsCheckout=isMm&&!isEm;
+              const canPlace=isLm&&myQm.length>0&&aSm.length>0;
+              const doPulse=needsCheckout||canPlace;
+              const badgePc=needsCheckout?C.green:ph>=0?pC:canPlace?C.green:C.muted;
+              const badgeText=needsCheckout?("💰 "+tr("tables.status.readyCheckout")):ph>=0?(pIs[ph]+" "+pLs[ph]):(canPlace?("✓ "+tr("tables.status.free")):tr("tables.status.free"));
               const ckT=kitchen.cooking.filter(d=>d.tableId===t.id);
               const slw=ckT.length>0?ckT.reduce((a,b)=>(b.startedAt+b.timerMax*1000)>(a.startedAt+a.timerMax*1000)?b:a):null;
               const pc=ph===0?Math.min(100,Math.round((1-(Math.max(0,(t.svcUntil-now))/((t.svcUntil-t.placedAt)||1)))*100)):ph===1?(slw?Math.min(100,Math.round(((now-slw.startedAt)/(slw.timerMax*1000))*100)):0):ph===2?(isEm?Math.min(100,Math.round(((t.eatDur*1000-(t.eatUntil-now))/(t.eatDur*1000))*100)):100):ph===3?(t.cleanUntil?Math.min(100,Math.round(((t.cleanDur*1000-(t.cleanUntil-now))/(t.cleanDur*1000))*100)):0):0;
               const bl=isMm?+t.order.reduce((s,o)=>s+o.price*o.qty,0).toFixed(2):0;
               return(
                 <div key={t.id} style={{background:C.surface,
-                  border:`1.5px solid ${ph>=0?pC+"55":C.border}`,
-                  borderLeft:`4px solid ${ph>=0?pC:C.green}`,
+                  border:`1.5px solid ${ph>=0?pC+"55":canPlace?C.green+"55":C.border}`,
+                  borderLeft:`4px solid ${ph>=0?pC:canPlace?C.green:C.border}`,
                   borderRadius:11,padding:"9px 11px",marginBottom:7}}>
                   <div style={{display:"flex",justifyContent:"space-between",
                     alignItems:"center",marginBottom:4}}>
@@ -433,10 +438,13 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
                         padding:"1px 5px",fontWeight:600}}>
                         {t.capacity}p
                       </span>
-                      <span style={{fontSize:9,background:ph>=0?pC+"18":C.greenP,
-                        color:ph>=0?pC:C.green,borderRadius:20,padding:"1px 7px",
-                        fontWeight:600,fontFamily:F.body}}>
-                        {ph>=0?pIs[ph]+" "+pLs[ph]:tr("tables.status.free")}
+                      <span style={{fontSize:10,background:badgePc+"22",
+                        color:badgePc,borderRadius:20,padding:"2px 9px",
+                        fontWeight:700,fontFamily:F.body,
+                        border:`1.5px solid ${badgePc}88`,
+                        display:"inline-block",
+                        animation:doPulse?"pulse 1.2s ease-in-out infinite":"none"}}>
+                        {badgeText}
                       </span>
                     </div>
                   </div>
