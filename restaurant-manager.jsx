@@ -899,7 +899,8 @@ function AppContent(){
   },[addTx,addRestoXp,addToast]);
 
   /* ── Dérivés (calculés à chaque render) ─────────────── */
-  const sAlerts    = stock.filter(s => s.qty <= s.alert).length;
+  const _sAlertIds = new Set(menu.filter(d=>(d.unlockLevel??0)<=rl.l).flatMap(d=>(Array.isArray(d.ingredients)?d.ingredients:[]).map(i=>i.stockId)));
+  const sAlerts    = stock.filter(s=>_sAlertIds.has(s.id)&&s.qty<=s.alert).length;
   const nCompl     = complaints.filter(c => c.status === "nouveau" && !seenIds.has(c.id)).length;
   const nPending   = pendingClaim.length;
   const repTier    = getRepTier(reputation);

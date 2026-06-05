@@ -42,7 +42,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
   /* ── Calcul prédictif : portions restantes par ingrédient ── */
   const portionsPerIngredient=(stockId)=>{
     // Calcule combien de fois cet ingrédient peut être utilisé selon les recettes actives
-    const uses=menu.filter(m=>m.enabled!==false)
+    const uses=menu.filter(m=>m.enabled!==false&&(m.unlockLevel??0)<=restoLvN)
       .flatMap(m=>(m.ingredients||[]).filter(i=>i.stockId===stockId));
     if(!uses.length)return null;
     const item=stock.find(s=>s.id===stockId);
@@ -107,14 +107,8 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
     if(doAdd)setStock(p=>p.map(s=>s.id===id?( v>0 ? addLot(s,v) : {...s,qty:Math.max(0,+(s.qty+v).toFixed(3))} ):s));
     setAdjId(null);setAdjV("");
   };
-  const quickAmounts=unit=>{
-    if(["kg","L"].includes(unit))return[0.5,1,5];
-    if(["btl","pcs","bottes"].includes(unit))return[1,6,12];
-    if(unit==="u")return[6,12,24];
-    return[1,5,10];
-  };
   const restockAll=()=>{
-    const toOrder=visibleStock.filter(s=>s.qty<=s.alert);
+    const toOrder=alerts;
     if(!toOrder.length) return;
     const itemCap=(s)=>(s.alert>0?s.alert*6:Math.max(s.qty*2,10))*storageMult;
     const itemTarget=(s)=>Math.min(s.alert*2, itemCap(s));
