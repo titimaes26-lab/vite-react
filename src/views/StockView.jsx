@@ -498,7 +498,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
       {viewMode==="cartes"&&cats.map(cat=>{
         const items=visibleStock.filter(s=>s.cat===cat);
         const collapsed=collapsedCats[cat];
-        const catAlerts=items.filter(s=>s.qty<=s.alert).length;
+        const catAlerts=alerts.filter(s=>s.cat===cat).length;
         return(
           <div key={cat} style={{marginBottom:20}}>
             {/* Accordion header */}

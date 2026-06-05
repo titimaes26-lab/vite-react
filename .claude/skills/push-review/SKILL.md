@@ -32,8 +32,6 @@ Exécute le skill `/code-review` sur le diff ci-dessus (high effort, tous les an
 
 ### Étape 4 — Pousse le code
 
-Exécute dans cet ordre exact (trois commandes séparées) :
+Exécute cette commande unique (la variable `CLAUDE_PUSH_REVIEWED=1` sert de jeton d'autorisation reconnu par le hook) :
 
-1. `touch /tmp/.claude_push_reviewed`
-2. `git push -u origin $(git branch --show-current)`
-3. `rm -f /tmp/.claude_push_reviewed`
+`CLAUDE_PUSH_REVIEWED=1 git push -u origin $(git branch --show-current)`
