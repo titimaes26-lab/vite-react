@@ -11,10 +11,16 @@ import { quickAmounts, addLot, getLots } from "../utils/orderUtils";
 
 export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat,kitchen,supplierMode,setSupplierMode,pendingDeliveries,setPendingDeliveries,menu=[],restoLvN=0,bp={}}){
   const storageMult=1+(kitchen?.upgrades?.stockage||0);
-  // Ingrédients utilisés par au moins un plat débloqué
+  const decodedIngredients=(d)=>Array.isArray(d.ingredients)?d.ingredients:[];
+  // Tous les plats débloqués (actifs ou non) → pour les alertes de stock
+  const alertStockIds=new Set(
+    menu.filter(d=>(d.unlockLevel??0)<=restoLvN)
+        .flatMap(d=>decodedIngredients(d).map(i=>i.stockId))
+  );
+  // Plats débloqués et actifs → pour la grille d'affichage (exclut les plats désactivés)
   const unlockedStockIds=new Set(
     menu.filter(d=>d.enabled!==false&&(d.unlockLevel??0)<=restoLvN)
-        .flatMap(d=>(Array.isArray(d.ingredients)?d.ingredients:[]).map(i=>i.stockId))
+        .flatMap(d=>decodedIngredients(d).map(i=>i.stockId))
   );
   const visibleStock=stock.filter(s=>unlockedStockIds.has(s.id));
   const [inlineAlertId, setInlineAlertId] = useState(null);
@@ -26,7 +32,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
   const [sortMode,setSortMode]=useState("urgence"); // "urgence"|"alpha"|"cat"
   const { t: tl } = useLang();
 
-  const alerts=visibleStock.filter(s=>s.qty<=s.alert);
+  const alerts=stock.filter(s=>alertStockIds.has(s.id)&&s.qty<=s.alert);
   const staleItems=visibleStock.filter(s=>(s.freshness??100)<20&&s.qty>0);
 
   const freshnessColor=(f)=>f<=0?"#7f0000":f<20?C.red:f<60?C.amber:C.green;

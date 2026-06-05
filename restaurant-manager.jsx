@@ -102,12 +102,12 @@ class TabErrorBoundary extends Component {
   }
   componentDidUpdate(prevProps) {
     if (this.state.error && prevProps.tab !== this.props.tab && this.state.erroredTab !== this.props.tab) {
-      this.setState({ error: null });
+      this.setState({ error: null, erroredTab: null });
     }
   }
   retry() { this.setState({ error: null, erroredTab: null }); }
   render() {
-    if (this.state.error || this.state.erroredTab === this.props.tab) {
+    if (this.state.error) {
       return (
         <div style={{padding:24,color:"#c0392b",fontFamily:"monospace",background:"#fff8f8",border:"1px solid #c0392b",borderRadius:8,margin:16}}>
           <strong>Erreur dans cet onglet</strong>
