@@ -123,7 +123,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
     if(!form.name.trim()||!form.price)return;
     const item={name:form.name,cat:form.cat,price:parseFloat(form.price),prepTime:parseInt(form.prepTime)||60,ingredients:ingLines};
     if(editId)setMenu(p=>p.map(m=>m.id===editId?{...m,...item}:m));
-    else setMenu(p=>[...p,{id:Date.now(),orderCount:0,enabled:true,...item}]);
+    else setMenu(p=>[...p,{id:Date.now(),orderCount:0,enabled:true,unlockLevel:0,...item}]);
     setModal(false);
   };
 

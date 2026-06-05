@@ -90,14 +90,29 @@ import { StatsView }      from "./src/views/StatsView.jsx";
 import { ObjectivesView } from "./src/views/ObjectivesView.jsx";
 
 class TabErrorBoundary extends Component {
-  constructor(props) { super(props); this.state = { error: null }; }
+  constructor(props) {
+    super(props);
+    this.state = { error: null, erroredTab: null };
+    this.retry = this.retry.bind(this);
+  }
   static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) {
+    this.setState(s => ({ ...s, erroredTab: this.props.tab }));
+    console.error("[TabErrorBoundary] Crash dans l'onglet '" + this.props.tab + "':", error, info.componentStack);
+  }
+  componentDidUpdate(prevProps) {
+    if (this.state.error && prevProps.tab !== this.props.tab && this.state.erroredTab !== this.props.tab) {
+      this.setState({ error: null });
+    }
+  }
+  retry() { this.setState({ error: null, erroredTab: null }); }
   render() {
-    if (this.state.error) {
+    if (this.state.error || this.state.erroredTab === this.props.tab) {
       return (
         <div style={{padding:24,color:"#c0392b",fontFamily:"monospace",background:"#fff8f8",border:"1px solid #c0392b",borderRadius:8,margin:16}}>
-          <strong>Erreur dans l'onglet — veuillez recharger la page</strong>
+          <strong>Erreur dans cet onglet</strong>
           <pre style={{marginTop:8,fontSize:11,whiteSpace:"pre-wrap"}}>{String(this.state.error)}</pre>
+          <button onClick={this.retry} style={{marginTop:12,padding:"4px 12px",cursor:"pointer",borderRadius:4}}>Réessayer</button>
         </div>
       );
     }
@@ -927,7 +942,7 @@ function AppContent(){
 
       {/* Content */}
       <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
-        <TabErrorBoundary key={tab}>
+        <TabErrorBoundary tab={tab}>
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
         {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} restoLvN={rl.l} stock={stock} formulas={formulas} bp={bp}/>}
         {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} kitchen={kitchen} setKitchen={setKitchen} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp}/>}
