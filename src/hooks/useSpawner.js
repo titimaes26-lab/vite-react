@@ -14,22 +14,13 @@
 import { useEffect, useRef } from "react";
 import { rMood, rName, rSize } from "../utils/randomUtils.js";
 import { useLang } from "../i18n/index.jsx";
+import { SPAWNER, spawnInterval } from "../config/gameConfig.js";
 
-/* ── Constantes ─────────────────────────────────────── */
-const MAX_QUEUE        = 4;       // B — max groupes en file
-const BASE_INTERVAL    = 35_000;  // C — intervalle de base (niveau 0)
-const MIN_INTERVAL     =  7_000;  // C — intervalle minimum  (niveau 49)
-const MAX_LEVEL        = 49;      // C — niveau maximum du restaurant
-const WAVE_CHANCE      = 0.05;    // D — 5 % de chance de vague
-const IDLE_FORCE_SPAWN = 60_000;  // F — force spawn si salle vide > 60s
-
-/* ── Intervalle selon niveau (C) ────────────────────── */
-// Courbe racine carrée : progression rapide en début, plus lente en fin.
-// Lv 0 → 35 s · Lv 10 → ~22 s · Lv 25 → ~15 s · Lv 49 → 7 s
-const intervalForLevel = (lvl) => {
-  const curve = Math.sqrt(Math.min(lvl, MAX_LEVEL) / MAX_LEVEL);
-  return Math.round(BASE_INTERVAL - curve * (BASE_INTERVAL - MIN_INTERVAL));
-};
+/* ── Aliases locaux pour rétrocompatibilité interne ─── */
+const MAX_QUEUE        = SPAWNER.maxQueue;
+const WAVE_CHANCE      = SPAWNER.waveChance;
+const IDLE_FORCE_SPAWN = SPAWNER.idleForceMs;
+const intervalForLevel = spawnInterval;
 
 /* ── Créer un groupe ────────────────────────────────── */
 /**

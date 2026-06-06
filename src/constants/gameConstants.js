@@ -8,6 +8,7 @@
               FORMULA_PRESETS, MORAL_PAUSE_GAIN, getRepTier
 ═══════════════════════════════════════════════════════ */
 import { C } from "./gameData.js";
+import { MORALE } from "../config/gameConfig.js";
 
 /* ─── Réputation restaurant (0–100) ──────────────────── */
 export const REP_THRESHOLDS = [
@@ -51,8 +52,7 @@ export const REP_DELTA = {
 };
 
 /* ─── Moral des serveurs ─────────────────────────────── */
-/** Gain de moral par tick (50ms) quand le serveur est en pause */
-export const MORAL_PAUSE_GAIN = 3;
+export const MORAL_PAUSE_GAIN = MORALE.pauseGain;
 
 /* ─── Formules de menu (menus fixes à prix réduit) ───── */
 export const FORMULA_PRESETS = [

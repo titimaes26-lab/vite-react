@@ -18,12 +18,10 @@
 
 import { useEffect } from "react";
 import { useLang } from "../i18n/index.jsx";
+import { MORALE } from "../config/gameConfig.js";
 
-/** Gain de moral par tick (5 min) quand le serveur est en pause */
-const MORAL_PAUSE_GAIN    = 3;
-
-/** Intervalle entre chaque tick de moral — 5 minutes réelles */
-const MORAL_DRAIN_INTERVAL = 300_000;
+const MORAL_PAUSE_GAIN     = MORALE.pauseGain;
+const MORAL_DRAIN_INTERVAL = MORALE.drainInterval;
 
 /**
  * @param {{
