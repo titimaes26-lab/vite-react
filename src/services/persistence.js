@@ -15,11 +15,7 @@ const saveToLocalStorage = (state) => {
     const payload = JSON.stringify({ ...state, saveVersion: SAVE_VERSION, savedAt: Date.now() });
     window.localStorage.setItem(SAVE_KEY, payload);
   } catch (error) {
-    if (error.name === "QuotaExceededError") {
-      alert("Espace de stockage saturé sur la tablette !");
-    } else {
-      console.warn("Erreur de sauvegarde :", error);
-    }
+    console.error("Erreur de sauvegarde :", error);
   }
 };
 
