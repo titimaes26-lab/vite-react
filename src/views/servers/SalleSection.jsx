@@ -1,4 +1,5 @@
 import { useState, useCallback, memo } from "react";
+import { useClockNow } from "../../contexts/ClockContext.jsx";
 import { C, F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL, STAFF_QUALITY_REQ } from "../../constants/gameData.js";
 import { SRV_SPECIALTIES, TRAINING_CATALOG, getMaxMoral } from "../../constants/serverConstants.js";
 import { Badge, Card, Btn, Modal, XpBar } from "../../components/ui/index.js";
@@ -241,8 +242,9 @@ const ServerCard = memo(function ServerCard({
   );
 });
 
-export function SalleSection({ servers, setServers, tables, clockNow, restoLvN, cash, setCash, addTx, addToast, candidatePool, setCandidatePool, candidateDate, setCandidateDate, bp }) {
+export function SalleSection({ servers, setServers, tables, restoLvN, cash, setCash, addTx, addToast, candidatePool, setCandidatePool, candidateDate, setCandidateDate, bp }) {
   const { t: tr } = useLang();
+  const clockNow = useClockNow();
 
   /* ── État salle ────────────────────────────────────── */
   const [modal,setModal]=useState(false);

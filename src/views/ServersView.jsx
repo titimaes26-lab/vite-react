@@ -48,7 +48,7 @@ const _candidateSpecRate = (lv) => lv<5?0.10:lv<10?0.25:lv<20?0.40:0.60;
 
 
 
-export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast,candidatePool=[],setCandidatePool,candidateDate="",setCandidateDate,kitchen,setKitchen,commisPool=[],setCommisPool=()=>{},commisPoolDate="",setCommisPoolDate=()=>{},bp={}}){
+export function ServersView({servers,setServers,tables,restoLvN,cash,setCash,addTx,addToast,candidatePool=[],setCandidatePool,candidateDate="",setCandidateDate,kitchen,setKitchen,commisPool=[],setCommisPool=()=>{},commisPoolDate="",setCommisPoolDate=()=>{},bp={}}){
   const { t: tr, lang } = useLang();
 
   /* ── État chef / commis ────────────────────────────── */
@@ -433,7 +433,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
         </>
       )}
 
-      {staffFilter==="salle"&&<SalleSection servers={servers} setServers={setServers} tables={tables} clockNow={clockNow} restoLvN={restoLvN} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
+      {staffFilter==="salle"&&<SalleSection servers={servers} setServers={setServers} tables={tables} restoLvN={restoLvN} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
       {/* ══ MODAL : Confirmation licenciement commis ══ */}
       {commisConfirmSlot!==null&&(()=>{
         const cm=kitchen?.commis?.[commisConfirmSlot];

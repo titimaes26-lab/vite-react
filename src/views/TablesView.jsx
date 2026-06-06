@@ -10,6 +10,7 @@ import { REP_DELTA } from "../constants/gameConstants.js";
 import { isOnShift } from "../hooks/useGameClock.js";
 import { Badge, Btn, Sel, Modal, XpBar, Lbl, Inp } from "../components/ui/index.js";
 import { useLang } from "../i18n/index.jsx";
+import { useClockNow } from "../contexts/ClockContext.jsx";
 import { srvLv, calcRating, ratingColor, ratingStars, calcTip, restoXpFromCheckout, srvXpFromCheckout, SRV_MAX_XP } from "../utils/levelUtils.js";
 import { generateOrderWithFormulas } from "../utils/randomUtils.js";
 import { buildKitchenTickets, svcDuration, eatDuration, calcBill } from "../utils/orderUtils.js";
@@ -17,10 +18,10 @@ import { DetailPanel } from "./tables/DetailPanel.jsx";
 import { SvgFloorPlan } from "./tables/SvgFloorPlan.jsx";
 
 
-export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,clockNow,gameTime,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,formulas=[],stock=[],bp={}}) {
+export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,gameTime,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,formulas=[],stock=[],bp={}}) {
 
   const { t: tr } = useLang();
-  const now = clockNow;
+  const now = useClockNow();
 
   const [selectedTable, setSelectedTable] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
