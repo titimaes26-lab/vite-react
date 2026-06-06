@@ -3,10 +3,10 @@
    Extrait du monolithe restaurant-manager.jsx
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, memo, useMemo } from "react";
 import { useLang } from "../i18n/index.jsx";
 import { C, F, SUPPLIERS } from "../constants/gameData";
-import { Btn, Inp, Sel } from "../components/ui";
+import { Btn, Inp } from "../components/ui";
 import { quickAmounts, addLot, getLots } from "../utils/orderUtils";
 
 /* ─── Module-level helpers ───────────────────────────── */
@@ -153,11 +153,10 @@ const StockCard = memo(function StockCard({ it, storageMult, portions, pendingQt
       {/* Quick add */}
       {adjActive?(
         <div style={{display:"flex",gap:5,alignItems:"center"}} onClick={e=>e.stopPropagation()}>
-          <input type="number" value={adjV} onChange={e=>setAdjV(e.target.value)}
-            placeholder="+/-"
-            style={{flex:1,fontSize:11,padding:"4px 7px",border:`1.5px solid ${C.border}`,borderRadius:6,fontFamily:F.body}}/>
-          <button onClick={applyAdj} style={{padding:"4px 10px",fontSize:11,fontWeight:700,background:C.navy,border:"none",borderRadius:6,color:"#fff",cursor:"pointer"}}>OK</button>
-          <button onClick={()=>setAdjActive(false)} style={{padding:"4px 8px",fontSize:11,background:"transparent",border:`1px solid ${C.border}`,borderRadius:6,cursor:"pointer"}}>✕</button>
+          <Inp type="number" value={adjV} onChange={e=>setAdjV(e.target.value)}
+            placeholder="+/-" style={{flex:1,fontSize:11,padding:"4px 7px"}}/>
+          <Btn sm v="primary" onClick={applyAdj}>OK</Btn>
+          <Btn sm v="ghost" onClick={()=>setAdjActive(false)}>✕</Btn>
         </div>
       ):(
         <div style={{display:"flex",gap:3}} onClick={e=>e.stopPropagation()}>
@@ -210,7 +209,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
   const alerts=stock.filter(s=>alertStockIds.has(s.id)&&s.qty<=s.alert);
   const staleItems=visibleStock.filter(s=>(s.freshness??100)<20&&s.qty>0);
 
-  const sup=SUPPLIERS[supplierMode]??SUPPLIERS["normal"];
+  const sup=useMemo(()=>SUPPLIERS[supplierMode]??SUPPLIERS["normal"],[supplierMode]);
 
   /* ── Calcul prédictif : portions restantes par ingrédient ── */
   const portionsPerIngredient=(stockId)=>{
