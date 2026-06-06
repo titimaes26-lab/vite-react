@@ -21,6 +21,7 @@ import { useLang } from "../i18n/index.jsx";
 import { MORALE } from "../config/gameConfig.js";
 
 const MORAL_PAUSE_GAIN     = MORALE.pauseGain;
+const MORAL_DRAIN_AMOUNT   = MORALE.drainAmount;
 const MORAL_DRAIN_INTERVAL = MORALE.drainInterval;
 
 /**
@@ -37,7 +38,7 @@ export const useServerMoral = ({ setServers, addToast, pausedRef }) => {
       setServers(prev =>
         prev.map(s => {
           if (s.status === "actif" || s.status === "service") {
-            const newMoral = Math.max(0, (s.moral ?? 100) - 1);
+            const newMoral = Math.max(0, (s.moral ?? 100) - MORAL_DRAIN_AMOUNT);
 
             // Alerte burnout — toast unique quand moral atteint 10
             if (newMoral === 10) {

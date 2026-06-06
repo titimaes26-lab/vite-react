@@ -59,10 +59,3 @@ export const MORALE = {
   drainAmount   : 1,        // points perdus par tick en service
   pauseGain     : 3,        // points récupérés par tick en pause
 };
-
-/* ─── Économie — production et revenus ─────────────── */
-export const ECONOMY = {
-  tipBaseRate   : 0.10,     // pourboire de base = 10 % de l'addition
-  xpPerTable    : 10,       // XP restaurant par table servie
-  xpPerStarBonus: 2,        // XP bonus par étoile au-dessus de 3 ★
-};
