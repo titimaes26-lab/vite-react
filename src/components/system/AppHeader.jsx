@@ -80,7 +80,7 @@ export function AppHeader({
             }} style={{
               background:C.terraP,border:`1.5px solid ${C.terra}28`,borderRadius:8,
               padding:"7px 9px",fontSize:10,color:C.terra,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",
-              boxShadow:`0 1px 4px ${C.terra}18`,minHeight:44,display:"flex",alignItems:"center",
+              fontFamily:F.body,boxShadow:`0 1px 4px ${C.terra}18`,minHeight:44,display:"flex",alignItems:"center",
             }}>
               💬 {nCompl}
             </button>
