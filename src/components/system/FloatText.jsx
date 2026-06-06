@@ -8,12 +8,20 @@
      const spawnFloat = (text, color) =>
        setFloats(f => [...f, { id: Date.now() + Math.random(), text, color }]);
 
-     <FloatLayer floats={floats} onExpire={id =>
-       setFloats(f => f.filter(x => x.id !== id))} />
+     // onExpire MUST be stable (useCallback) — an inline arrow resets
+     // the 900 ms timer on every parent render.
+     const handleExpire = useCallback(
+       id => setFloats(f => f.filter(x => x.id !== id)), []);
+
+     // Parent container MUST have position:relative so the absolute
+     // spans anchor to it and not a distant ancestor.
+     <div style={{ position: "relative" }}>
+       <FloatLayer floats={floats} onExpire={handleExpire} />
+     </div>
 
    Props FloatLayer:
      floats   {Array<{id, text, color?}>}
-     onExpire {(id) => void}
+     onExpire {(id) => void}  — must be a stable reference (useCallback)
 ═══════════════════════════════════════════════════════ */
 import { useEffect } from "react";
 import { F } from "../ui/theme.js";
@@ -24,7 +32,9 @@ const FloatItem = ({ id, text, color = "#1e5c38", onExpire }) => {
   useEffect(() => {
     const t = setTimeout(() => onExpire(id), DURATION_MS);
     return () => clearTimeout(t);
-  }, [id, onExpire]);
+  // onExpire excluded: it's often recreated by the parent; id is the stable key.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   return (
     <span style={{
@@ -53,9 +63,3 @@ export const FloatLayer = ({ floats, onExpire }) => (
   </>
 );
 
-export const FLOAT_KEYFRAMES = `
-  @keyframes floatUp {
-    0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
-    100% { opacity: 0; transform: translateX(-50%) translateY(-32px); }
-  }
-`;

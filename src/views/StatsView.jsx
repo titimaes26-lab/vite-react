@@ -411,7 +411,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
               </div>
               <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
                 <div style={{height:"100%",borderRadius:99,background:repTier.color,
-                  width:"100%",transformOrigin:"left center",transform:`scaleX(${Math.max(0,Math.round(((reputation-repTier.min)/(nextRepTier.min-repTier.min))*100))/100})`,
+                  width:"100%",transformOrigin:"left center",transform:`scaleX(${Math.max(0,(reputation-repTier.min)/(nextRepTier.min-repTier.min))})`,
                   transition:"transform 0.8s"}}/>
               </div>
             </>
@@ -468,7 +468,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
           </div>
           <div style={{height:7,width:150,background:C.border,borderRadius:99,overflow:"hidden"}}>
             <div style={{height:"100%",borderRadius:99,background:C.amber,
-              width:`${Math.max(2,100-loan.remaining/(loan.amount*(1+loan.rate))*100)}%`}}/>
+              width:"100%",transformOrigin:"left center",transform:`scaleX(${Math.max(0.02,1-loan.remaining/(loan.amount*(1+loan.rate)))})`}}/>
           </div>
         </div>
       )}
@@ -518,7 +518,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                       <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}11`}}>
                         <div style={{display:"flex",alignItems:"center",gap:5}}>
                           <div style={{width:40,height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                            <div style={{height:"100%",width:`${moral}%`,background:moralC,borderRadius:99}}/>
+                            <div style={{height:"100%",width:"100%",background:moralC,borderRadius:99,transformOrigin:"left center",transform:`scaleX(${moral/100})`}}/>
                           </div>
                           <span style={{fontSize:10,fontWeight:700,color:moralC}}>{moral}%</span>
                         </div>
@@ -591,7 +591,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                     <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
                       <div style={{display:"flex",alignItems:"center",gap:7}}>
                         <div style={{width:55,height:6,background:C.border,borderRadius:4,overflow:"hidden"}}>
-                          <div style={{height:"100%",width:`${rate}%`,background:rc,borderRadius:4}}/>
+                          <div style={{height:"100%",width:"100%",background:rc,borderRadius:4,transformOrigin:"left center",transform:`scaleX(${rate/100})`}}/>
                         </div>
                         <span style={{fontSize:10,fontWeight:700,color:rc}}>{total>0?`${rate}%`:"—"}</span>
                       </div>

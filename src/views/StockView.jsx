@@ -613,7 +613,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
                     <td style={{padding:"7px 12px",borderBottom:`1px solid ${C.border}11`}}>
                       <div style={{display:"flex",alignItems:"center",gap:6}}>
                         <div style={{width:60,height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                          <div style={{height:"100%",width:`${pct}%`,background:barColor,borderRadius:99}}/>
+                          <div style={{height:"100%",width:"100%",background:barColor,borderRadius:99,transformOrigin:"left center",transform:`scaleX(${pct/100})`}}/>
                         </div>
                         <span style={{fontSize:11,fontWeight:700,color:low?C.red:C.ink,whiteSpace:"nowrap"}}>
                           {+(it.qty).toFixed(2)} {it.unit}

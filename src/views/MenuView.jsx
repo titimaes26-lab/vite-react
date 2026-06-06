@@ -540,7 +540,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                         <td style={{padding:"8px 10px",borderBottom:`1px solid ${C.border}11`}}>
                           <div style={{display:"flex",alignItems:"center",gap:5}}>
                             <div style={{width:36,height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                              <div style={{height:"100%",width:`${Math.min(100,mg)}%`,background:marginColor(mg),borderRadius:99}}/>
+                              <div style={{height:"100%",width:"100%",background:marginColor(mg),borderRadius:99,transformOrigin:"left center",transform:`scaleX(${Math.min(1,mg/100)})`}}/>
                             </div>
                             <span style={{fontSize:10,fontWeight:700,color:marginColor(mg)}}>{mg}%</span>
                           </div>

@@ -60,9 +60,9 @@ export const Btn = ({
         alignItems    : "center",
         justifyContent: "center",
         gap           : 6,
-        transform     : active && !disabled ? "scale(0.97)" : "scale(1)",
-        transition    : "opacity 0.12s, transform 0.1s",
         ...style,
+        transform     : active ? "scale(0.97)" : "scale(1)",
+        transition    : "opacity 0.12s, transform 0.1s",
       }}
     >
       {icon && <span>{icon}</span>}
