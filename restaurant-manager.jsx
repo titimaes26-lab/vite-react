@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, Component } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, Component } from "react";
 import { LangProvider, useLang } from "./src/i18n/index.jsx";
 import { LanguageSelect } from "./src/components/LanguageSelect.jsx";
 
@@ -852,7 +852,7 @@ function AppContent(){
 
   const rl=restoLv(restoXp);
   const rlD=rl.d;
-  const activeTables=tables.slice(0,rlD.tables);
+  const activeTables=useMemo(()=>tables.slice(0,rlD.tables),[tables,rlD.tables]);
 
   const addRestoXp=useCallback((xp)=>{
     setRestoXp(prev=>{
@@ -926,6 +926,8 @@ function AppContent(){
   const repTier    = getRepTier(reputation);
 
 
+  const handleTableUpgrade = useCallback(() => setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1})), []);
+
   if (!lang) return <LanguageSelect />;
 
   return(
@@ -966,7 +968,7 @@ function AppContent(){
       <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
         <TabErrorBoundary tab={tab}>
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
-        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} restoLvN={rl.l} stock={stock} formulas={formulas} bp={bp}/>}
+        {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} gameTime={gameTime} onTableUpgrade={handleTableUpgrade} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} restoLvN={rl.l} stock={stock} formulas={formulas} bp={bp}/>}
         {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} kitchen={kitchen} setKitchen={setKitchen} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp}/>}
         {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} restoLvN={rl.l} bp={bp}/>}
         {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} dailyStats={dailyStats} restoLvN={rl.l} bp={bp}/>}
