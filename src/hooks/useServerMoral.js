@@ -40,8 +40,8 @@ export const useServerMoral = ({ setServers, addToast, pausedRef }) => {
           if (s.status === "actif" || s.status === "service") {
             const newMoral = Math.max(0, (s.moral ?? 100) - MORAL_DRAIN_AMOUNT);
 
-            // Alerte burnout — toast unique quand moral atteint 10
-            if (newMoral === 10) {
+            // Alerte burnout — toast unique lors du passage sous 10 (robuste quelle que soit drainAmount)
+            if ((s.moral ?? 100) > 10 && newMoral <= 10) {
               setTimeout(() =>
                 addToast({
                   icon  : "😓",
