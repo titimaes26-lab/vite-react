@@ -10,7 +10,9 @@
      disabled  {boolean}
      full      {boolean}   width: 100%
      icon      {ReactNode?} affiché avant le label
+     style     {object?}   surcharge CSS
 ═══════════════════════════════════════════════════════ */
+import { useState } from "react";
 import { C, F } from "./theme.js";
 
 const VARIANTS = {
@@ -26,13 +28,22 @@ const VARIANTS = {
 
 export const Btn = ({
   children, onClick, v = "primary",
-  sm = false, disabled = false, full = false, icon,
+  sm = false, disabled = false, full = false, icon, style = {},
 }) => {
+  const [hovered, setHovered] = useState(false);
+  const [active,  setActive]  = useState(false);
   const vv = VARIANTS[v] ?? VARIANTS.primary;
+
+  const opacity = disabled ? 0.45 : active ? 0.75 : hovered ? 0.85 : 1;
+
   return (
     <button
       onClick={onClick}
       disabled={disabled}
+      onMouseEnter={() => !disabled && setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setActive(false); }}
+      onMouseDown={()  => !disabled && setActive(true)}
+      onMouseUp={()    => setActive(false)}
       style={{
         background    : vv.bg,
         color         : vv.fg,
@@ -42,14 +53,16 @@ export const Btn = ({
         fontSize      : sm ? 11 : 13,
         fontWeight    : 600,
         cursor        : disabled ? "not-allowed" : "pointer",
-        opacity       : disabled ? 0.45 : 1,
+        opacity,
         fontFamily    : F.body,
         width         : full ? "100%" : undefined,
         display       : "inline-flex",
         alignItems    : "center",
         justifyContent: "center",
         gap           : 6,
-        transition    : "opacity 0.15s",
+        transform     : active && !disabled ? "scale(0.97)" : "scale(1)",
+        transition    : "opacity 0.12s, transform 0.1s",
+        ...style,
       }}
     >
       {icon && <span>{icon}</span>}

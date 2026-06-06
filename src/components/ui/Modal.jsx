@@ -8,9 +8,12 @@
      onClose {Function} appelé au clic sur ×
      children {ReactNode}
 ═══════════════════════════════════════════════════════ */
+import { useState } from "react";
 import { C, F } from "./theme.js";
 
-export const Modal = ({ title, onClose, children }) => (
+export const Modal = ({ title, onClose, children }) => {
+  const [closeHovered, setCloseHovered] = useState(false);
+  return (
   <div style={{
     position      : "fixed",
     inset         : 0,
@@ -50,18 +53,21 @@ export const Modal = ({ title, onClose, children }) => (
         </h3>
         <button
           onClick={onClose}
+          onMouseEnter={() => setCloseHovered(true)}
+          onMouseLeave={() => setCloseHovered(false)}
           style={{
-            background  : C.bg,
-            border      : `1px solid ${C.border}`,
-            borderRadius: 8,
-            color       : C.muted,
-            fontSize    : 20,
-            cursor      : "pointer",
-            width       : 32,
-            height      : 32,
-            display     : "flex",
-            alignItems  : "center",
+            background    : closeHovered ? C.border : C.bg,
+            border        : `1px solid ${C.border}`,
+            borderRadius  : 8,
+            color         : closeHovered ? C.ink : C.muted,
+            fontSize      : 20,
+            cursor        : "pointer",
+            width         : 32,
+            height        : 32,
+            display       : "flex",
+            alignItems    : "center",
             justifyContent: "center",
+            transition    : "background 0.15s, color 0.15s",
           }}
         >
           ×
@@ -70,4 +76,5 @@ export const Modal = ({ title, onClose, children }) => (
       {children}
     </div>
   </div>
-);
+  );
+};

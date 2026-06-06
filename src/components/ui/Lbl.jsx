@@ -4,10 +4,11 @@
 
    Props :
      children {ReactNode}
+     style    {object?} surcharge CSS
 ═══════════════════════════════════════════════════════ */
 import { C, F } from "./theme.js";
 
-export const Lbl = ({ children }) => (
+export const Lbl = ({ children, style = {} }) => (
   <div style={{
     fontSize      : 11,
     color         : C.muted,
@@ -16,6 +17,7 @@ export const Lbl = ({ children }) => (
     textTransform : "uppercase",
     marginBottom  : 7,
     fontFamily    : F.body,
+    ...style,
   }}>
     {children}
   </div>

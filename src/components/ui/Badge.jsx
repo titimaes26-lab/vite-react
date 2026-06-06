@@ -7,11 +7,12 @@
      color    {string}  couleur du texte et de la bordure
      bg       {string?} couleur de fond (défaut: color+"1a")
      sm       {boolean} taille réduite (défaut: false)
+     style    {object?} surcharge CSS
      children {ReactNode}
 ═══════════════════════════════════════════════════════ */
 import { C, F } from "./theme.js";
 
-export const Badge = ({ color, bg, children, sm = false }) => (
+export const Badge = ({ color, bg, children, sm = false, style = {} }) => (
   <span style={{
     background   : bg ?? color + "1a",
     color,
@@ -23,6 +24,7 @@ export const Badge = ({ color, bg, children, sm = false }) => (
     letterSpacing: "0.03em",
     whiteSpace   : "nowrap",
     fontFamily   : F.body,
+    ...style,
   }}>
     {children}
   </span>
