@@ -233,8 +233,8 @@ export const ServersView = memo(function ServersView({servers,setServers,tables,
                   <span style={{fontWeight:700,color:brigMoraleColor}}>{brigMorale}/100</span>
                 </div>
                 <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${brigMorale}%`,background:brigMoraleColor,
-                    borderRadius:99,transition:"width 0.5s ease"}}/>
+                  <div style={{height:"100%",width:"100%",background:brigMoraleColor,
+                    borderRadius:99,transformOrigin:"left center",transform:`scaleX(${brigMorale/100})`,transition:"transform 0.5s ease"}}/>
                 </div>
                 {brigMorale>=70&&<span style={{fontSize:9,color:C.green,fontFamily:F.body,fontWeight:600,marginTop:3,display:"block"}}>{tr("kitchen.speedBoost")}</span>}
                 {brigMorale<30&&<span style={{fontSize:9,color:C.red,fontFamily:F.body,fontWeight:600,marginTop:3,display:"block"}}>{tr("kitchen.speedPenalty")}</span>}

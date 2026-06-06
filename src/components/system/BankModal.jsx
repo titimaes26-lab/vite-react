@@ -55,8 +55,10 @@ export function BankModal({onClose,cash,loan,setLoan,setCash,addTx,addToast}){
             </div>
             <div style={{height:8,background:C.border,borderRadius:99,overflow:"hidden",marginBottom:12}}>
               <div style={{height:"100%",borderRadius:99,background:C.amber,
-                width:`${Math.max(0,100-(loan.remaining/loan.amount/(1+loan.rate))*100)}%`,
-                transition:"width 0.4s"}}/>
+                width:"100%",
+                transformOrigin:"left center",
+                transform:`scaleX(${Math.max(0,100-(loan.remaining/loan.amount/(1+loan.rate))*100)/100})`,
+                transition:"transform 0.4s"}}/>
             </div>
             <Btn full v="primary" onClick={repayNow}
               icon={cash>=loan.remaining?"💸":"🔒"}>

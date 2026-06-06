@@ -359,8 +359,8 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                       </div>
                     </div>
                     <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:`${pct}%`,background:color,
-                        borderRadius:99,transition:"width 0.6s ease"}}/>
+                      <div style={{height:"100%",width:"100%",background:color,
+                        borderRadius:99,transformOrigin:"left center",transform:`scaleX(${pct/100})`,transition:"transform 0.6s ease"}}/>
                     </div>
                   </div>
                 );
@@ -411,8 +411,8 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
               </div>
               <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
                 <div style={{height:"100%",borderRadius:99,background:repTier.color,
-                  width:`${Math.max(0,Math.round(((reputation-repTier.min)/(nextRepTier.min-repTier.min))*100))}%`,
-                  transition:"width 0.8s"}}/>
+                  width:"100%",transformOrigin:"left center",transform:`scaleX(${Math.max(0,Math.round(((reputation-repTier.min)/(nextRepTier.min-repTier.min))*100))/100})`,
+                  transition:"transform 0.8s"}}/>
               </div>
             </>
           )}
@@ -429,7 +429,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                 <span style={{fontSize:11,fontWeight:700,color:rlD.color,fontFamily:F.body}}>N{rlD.l}</span>
               </div>
               <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden",marginTop:5}}>
-                <div style={{height:"100%",width:`${rl.pct||0}%`,background:rlD.color,borderRadius:99,transition:"width 0.8s"}}/>
+                <div style={{height:"100%",width:"100%",background:rlD.color,borderRadius:99,transformOrigin:"left center",transform:`scaleX(${(rl.pct||0)/100})`,transition:"transform 0.8s"}}/>
               </div>
               <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:2}}>
                 {rl.l<RESTO_LVL.length-1?`${restoXp||0} / ${nextRl.xpNeeded} XP`:tl("stats.maxLevel")}
@@ -445,7 +445,7 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
                 <span style={{fontSize:11,fontWeight:700,color:clD.color,fontFamily:F.body}}>N{cl.l}</span>
               </div>
               <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden",marginTop:5}}>
-                <div style={{height:"100%",width:`${cl.l<CHEF_LVL.length-1?Math.min(100,Math.round(cl.r/cl.n*100)):100}%`,background:clD.color,borderRadius:99,transition:"width 0.8s"}}/>
+                <div style={{height:"100%",width:"100%",background:clD.color,borderRadius:99,transformOrigin:"left center",transform:`scaleX(${(cl.l<CHEF_LVL.length-1?Math.min(100,Math.round(cl.r/cl.n*100)):100)/100})`,transition:"transform 0.8s"}}/>
               </div>
               <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:2}}>
                 {cl.l<CHEF_LVL.length-1?`${cl.r} / ${cl.n} XP`:tl("stats.maxLevel")} · ⚡×{clD.speed}

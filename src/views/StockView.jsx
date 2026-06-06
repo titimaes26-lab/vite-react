@@ -75,7 +75,7 @@ const StockCard = memo(function StockCard({ it, storageMult, portions, pendingQt
       {/* Gauge */}
       <div style={{marginBottom:5}}>
         <div style={{height:20,background:C.bg,border:`1px solid ${C.border}`,borderRadius:7,overflow:"hidden",position:"relative"}}>
-          <div style={{position:"absolute",top:0,left:0,bottom:0,width:`${pct}%`,background:barColor,borderRadius:6,transition:"width 0.4s ease",opacity:0.9}}/>
+          <div style={{position:"absolute",top:0,left:0,bottom:0,width:"100%",background:barColor,borderRadius:6,transition:"transform 0.4s ease",opacity:0.9,transformOrigin:"left center",transform:`scaleX(${pct/100})`}}/>
           <div style={{position:"absolute",top:0,bottom:0,left:`${alertPct}%`,width:2,background:C.red+"99"}}/>
           <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",
             fontSize:10,fontWeight:700,fontFamily:F.body,color:pct>25?C.surface:C.ink,
@@ -141,8 +141,8 @@ const StockCard = memo(function StockCard({ it, storageMult, portions, pendingQt
           </span>
         </div>
         <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
-          <div style={{height:"100%",width:`${Math.max(0,f)}%`,
-            background:fc,borderRadius:99,transition:"width 1s"}}/>
+          <div style={{height:"100%",width:"100%",transformOrigin:"left center",transform:`scaleX(${Math.max(0,f)/100})`,
+            background:fc,borderRadius:99,transition:"transform 1s"}}/>
         </div>
       </div>
 
@@ -388,8 +388,8 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
                       </span>
                     </div>
                     <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:`${pct}%`,background:urgencyColor,
-                        borderRadius:99,transition:"width 0.4s"}}/>
+                      <div style={{height:"100%",width:"100%",background:urgencyColor,
+                        borderRadius:99,transformOrigin:"left center",transform:`scaleX(${pct/100})`,transition:"transform 0.4s"}}/>
                     </div>
                   </div>
                   <div style={{fontSize:10,color:C.muted,fontFamily:F.body,flexShrink:0}}>
@@ -449,7 +449,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
               <div key={d.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
                 <div style={{flex:1,fontSize:10,color:C.navy,fontFamily:F.body,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.labels}</div>
                 <div style={{width:70,height:4,background:C.border,borderRadius:99,overflow:"hidden",flexShrink:0}}>
-                  <div style={{height:"100%",background:C.navy,width:`${pct}%`,transition:"width 1s linear",borderRadius:99}}/>
+                  <div style={{height:"100%",background:C.navy,width:"100%",transformOrigin:"left center",transform:`scaleX(${pct/100})`,transition:"transform 1s linear",borderRadius:99}}/>
                 </div>
                 <span style={{fontSize:9,color:C.navy,fontWeight:700,fontFamily:F.body,flexShrink:0,minWidth:28}}>{timeLabel}</span>
               </div>
@@ -534,8 +534,8 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
                   <div style={{flex:1,position:"relative",height:18,background:C.bg,
                     border:`1px solid ${C.border}`,borderRadius:5,overflow:"hidden"}}>
                     <div style={{position:"absolute",top:0,left:0,bottom:0,
-                      width:`${pct}%`,background:barColor,opacity:0.85,
-                      transition:"width 0.4s ease"}}/>
+                      width:"100%",background:barColor,opacity:0.85,
+                      transformOrigin:"left center",transform:`scaleX(${pct/100})`,transition:"transform 0.4s ease"}}/>
                     {/* Alert line */}
                     <div style={{position:"absolute",top:0,bottom:0,
                       left:`${alertPct}%`,width:1.5,background:C.red+"88"}}/>

@@ -217,9 +217,12 @@ export function AppHeader({
               <div style={{display:"flex",flexDirection:"column",gap:2,minWidth:60}}>
                 <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
                   <div style={{height:"100%",
-                    width:`${reputation}%`,
+                    width:"100%",
                     background:tier.color,
-                    borderRadius:99,transition:"width 0.6s ease"}}/>
+                    borderRadius:99,
+                    transformOrigin:"left center",
+                    transform:`scaleX(${reputation/100})`,
+                    transition:"transform 0.6s ease"}}/>
                 </div>
                 <div style={{fontSize:11,color:tier.color,fontWeight:700,
                   fontFamily:F.body,whiteSpace:"nowrap",lineHeight:1}}>

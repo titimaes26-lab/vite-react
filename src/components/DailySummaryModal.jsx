@@ -76,8 +76,8 @@ export function DailySummaryModal({ onClose, dailyStats, objStats, servers, tran
               <span style={{fontWeight:700,color:rateColor}}>{rate}%</span>
             </div>
             <div style={{height:8,background:C.border,borderRadius:99,overflow:"hidden"}}>
-              <div style={{height:"100%",width:`${rate}%`,background:rateColor,
-                borderRadius:99,transition:"width 1s ease"}}/>
+              <div style={{height:"100%",width:"100%",background:rateColor,
+                borderRadius:99,transformOrigin:"left center",transform:`scaleX(${rate/100})`,transition:"transform 1s ease"}}/>
             </div>
           </div>
 

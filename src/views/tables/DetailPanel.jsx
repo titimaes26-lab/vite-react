@@ -170,7 +170,7 @@ function DetailPanel({t,tables,servers,kitchen,queue,now,cash,
                               <div style={{height:8,background:C.border,borderRadius:99,overflow:"hidden",position:"relative"}}>
                                 {activeP.pct===null
                                   ?<div style={{position:"absolute",inset:0,background:`linear-gradient(90deg,transparent,${activeP.color}77,transparent)`,backgroundSize:"200% 100%",animation:"shimmerBar 1.6s ease-in-out infinite"}}/>
-                                  :<div style={{width:`${activeP.pct}%`,height:"100%",background:`linear-gradient(90deg,${activeP.color}cc,${activeP.color})`,borderRadius:99,transition:"width 0.5s linear",position:"relative",overflow:"hidden"}}>
+                                  :<div style={{width:"100%",height:"100%",background:`linear-gradient(90deg,${activeP.color}cc,${activeP.color})`,borderRadius:99,transformOrigin:"left center",transform:`scaleX(${activeP.pct/100})`,transition:"transform 0.5s linear",position:"relative",overflow:"hidden"}}>
                                     <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.28),transparent)",backgroundSize:"200% 100%",animation:"shimmerBar 2s ease-in-out infinite"}}/>
                                   </div>
                                 }

@@ -160,8 +160,8 @@ const ServerCard = memo(function ServerCard({
           <span style={{fontWeight:700,color:mc}}>{moral}/100</span>
         </div>
         <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden"}}>
-          <div style={{height:"100%",width:`${moral}%`,background:mc,
-            borderRadius:99,transition:"width 0.5s ease"}}/>
+          <div style={{height:"100%",width:"100%",background:mc,
+            borderRadius:99,transformOrigin:"left center",transform:`scaleX(${moral/100})`,transition:"transform 0.5s ease"}}/>
         </div>
         {isBurnout&&(
           <div style={{fontSize:9,color:C.red,fontWeight:700,fontFamily:F.body,marginTop:3,

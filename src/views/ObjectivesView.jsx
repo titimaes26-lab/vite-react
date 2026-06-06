@@ -73,7 +73,7 @@ export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,today
                     <div style={{flex:1,height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
                       <div style={{height:"100%",borderRadius:99,
                         background:claimed?C.green:done?C.purple:C.amber,
-                        width:`${pct}%`,transition:"width 0.4s"}}/>
+                        width:"100%",transformOrigin:"left center",transform:`scaleX(${pct/100})`,transition:"transform 0.4s"}}/>
                     </div>
                     <span style={{fontSize:10,color:done?C.purple:C.muted,
                       fontWeight:done?700:400,fontFamily:F.body,flexShrink:0}}>
@@ -165,7 +165,7 @@ export function ObjectivesView({objStats,completedIds,onClaim,pendingClaim,today
               <div style={{fontSize:22,fontWeight:800,color:col,fontFamily:F.title}}>{done}/{all.length}</div>
               <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:8}}>{SERIES_LABELS[s]}</div>
               <div style={{background:C.border,borderRadius:99,height:5}}>
-                <div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:99,transition:"width 0.4s"}}/>
+                <div style={{width:"100%",height:"100%",background:col,borderRadius:99,transformOrigin:"left center",transform:`scaleX(${pct/100})`,transition:"transform 0.4s"}}/>
               </div>
             </div>
           );

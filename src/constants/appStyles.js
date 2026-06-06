@@ -31,7 +31,8 @@ export const APP_STYLES = `
         @keyframes breathe      { 0%,100%{box-shadow:0 0 0 0 rgba(30,92,56,0)} 50%{box-shadow:0 0 0 7px rgba(30,92,56,0.16)} }
         @keyframes breatheAmber { 0%,100%{box-shadow:0 0 0 0 rgba(160,108,8,0)} 50%{box-shadow:0 0 0 6px rgba(160,108,8,0.20)} }
         @keyframes bankPulse    { 0%,100%{box-shadow:0 2px 10px rgba(160,108,8,0.4);transform:scale(1)} 50%{box-shadow:0 2px 18px rgba(160,108,8,0.7);transform:scale(1.04)} }
-        @keyframes toastBar     { from{width:100%} to{width:0%} }
+        @keyframes toastBar     { from{transform:scaleX(1)} to{transform:scaleX(0)} }
+        @keyframes floatUp      { 0%{opacity:1;transform:translateX(-50%) translateY(0)} 100%{opacity:0;transform:translateX(-50%) translateY(-32px)} }
         @keyframes ledPulse     { 0%,100%{opacity:1} 50%{opacity:0.35} }
         @keyframes shimmer      { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
         @keyframes shimmerBar   {

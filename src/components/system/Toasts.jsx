@@ -81,9 +81,11 @@ export const Toasts = ({ list, onDismiss, onNavigate }) => (
           overflow  : "hidden",
         }}>
           <div style={{
-            height    : "100%",
-            background: t.color ?? C.green,
-            animation : "toastBar 4s linear forwards",
+            height         : "100%",
+            width          : "100%",
+            background     : t.color ?? C.green,
+            transformOrigin: "left center",
+            animation      : "toastBar 4s linear forwards",
           }} />
         </div>
       </div>

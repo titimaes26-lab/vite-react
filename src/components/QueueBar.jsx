@@ -159,10 +159,12 @@ export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
                 }}>
                   <div style={{
                     height: "100%",
-                    width: `${pct}%`,
+                    width: "100%",
                     background: barColor,
                     borderRadius: 99,
-                    transition: "width 0.25s linear, background 0.5s ease",
+                    transformOrigin: "left center",
+                    transform: `scaleX(${pct/100})`,
+                    transition: "transform 0.25s linear, background 0.5s ease",
                   }} />
                 </div>
 

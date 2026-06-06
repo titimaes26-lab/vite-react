@@ -207,9 +207,9 @@ export const TablesView = memo(function TablesView({tables,setTables,servers,set
           <div style={{display:"flex",alignItems:"center",gap:5,marginLeft:"auto"}}>
             <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>{tr("tables.repLabel")}</span>
             <div style={{width:48,height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
-              <div style={{height:"100%",width:`${reputation}%`,
+              <div style={{height:"100%",width:"100%",
                 background:reputation>=60?C.green:reputation>=30?C.amber:C.red,
-                borderRadius:99,transition:"width 0.5s"}}/>
+                borderRadius:99,transformOrigin:"left center",transform:`scaleX(${reputation/100})`,transition:"transform 0.5s"}}/>
             </div>
           </div>
         )}
@@ -276,7 +276,7 @@ export const TablesView = memo(function TablesView({tables,setTables,servers,set
                             </div>
                           </div>
                           <div style={{height:3,background:col+"22",borderRadius:99,overflow:"hidden",marginBottom:5}}>
-                            <div style={{height:"100%",width:`${pct*100}%`,background:col,borderRadius:99,transition:"width 0.3s"}}/>
+                            <div style={{height:"100%",width:"100%",background:col,borderRadius:99,transformOrigin:"left center",transform:`scaleX(${pct})`,transition:"transform 0.3s"}}/>
                           </div>
                           {isSelected?(
                             <div style={{display:"flex",flexDirection:"column",gap:4}}>
@@ -435,8 +435,8 @@ export const TablesView = memo(function TablesView({tables,setTables,servers,set
                   </div>
                   {ph>=0&&<div style={{height:3,background:pC+"22",borderRadius:99,
                     overflow:"hidden",marginBottom:5}}>
-                    <div style={{height:"100%",width:`${pc}%`,background:pC,
-                      borderRadius:99,transition:"width 0.5s"}}/>
+                    <div style={{height:"100%",width:"100%",background:pC,
+                      borderRadius:99,transformOrigin:"left center",transform:`scaleX(${pc/100})`,transition:"transform 0.5s"}}/>
                   </div>}
                   {t.group&&<div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:5}}>
                     {t.group.mood.e} {t.group.name} · {t.group.size}p{t.server?" · 👔 "+t.server:""}
@@ -520,8 +520,8 @@ export const TablesView = memo(function TablesView({tables,setTables,servers,set
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:4}}>
                     <div style={{height:3,flex:1,background:C.terra+"22",borderRadius:99,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:`${pct}%`,
-                        background:done?C.green:C.terra,borderRadius:99,transition:"width 0.3s"}}/>
+                      <div style={{height:"100%",width:"100%",
+                        background:done?C.green:C.terra,borderRadius:99,transformOrigin:"left center",transform:`scaleX(${pct/100})`,transition:"transform 0.3s"}}/>
                     </div>
                     {d.tableName&&<span style={{fontSize:9,color:C.muted,fontFamily:F.body,flexShrink:0}}>
                       {d.tableName}
