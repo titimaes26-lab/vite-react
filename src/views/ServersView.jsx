@@ -3,7 +3,7 @@
    Extrait du monolithe restaurant-manager.jsx
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { C, F, CHEF_LVL, COMMIS_LVL, CHEF_TRAININGS, KITCHEN_UPGRADES, COMMIS_SPECIALTIES } from "../constants/gameData.js";
 import { Badge, Card, Btn, Modal, XpBar } from "../components/ui/index.js";
 import { useLang } from "../i18n/index.jsx";
@@ -48,7 +48,7 @@ const _candidateSpecRate = (lv) => lv<5?0.10:lv<10?0.25:lv<20?0.40:0.60;
 
 
 
-export function ServersView({servers,setServers,tables,restoLvN,cash,setCash,addTx,addToast,candidatePool=[],setCandidatePool,candidateDate="",setCandidateDate,kitchen,setKitchen,commisPool=[],setCommisPool=()=>{},commisPoolDate="",setCommisPoolDate=()=>{},bp={}}){
+export const ServersView = memo(function ServersView({servers,setServers,tables,restoLvN,cash,setCash,addTx,addToast,candidatePool=[],setCandidatePool,candidateDate="",setCandidateDate,kitchen,setKitchen,commisPool=[],setCommisPool=()=>{},commisPoolDate="",setCommisPoolDate=()=>{},bp={}}){
   const { t: tr, lang } = useLang();
 
   /* ── État chef / commis ────────────────────────────── */
@@ -659,7 +659,7 @@ export function ServersView({servers,setServers,tables,restoLvN,cash,setCash,add
       )}
     </div>
   );
-}
+});
 
 /* ═══════════════════════════════════════════════════════
    KITCHEN VIEW

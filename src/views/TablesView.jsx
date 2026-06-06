@@ -3,7 +3,7 @@
    Extrait du monolithe restaurant-manager.jsx
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { C, F, CAP_UPGRADES, SRV_LVL, GAME_EVENTS, RESTO_LVL } from "../constants/gameData.js";
 import { getRepTier } from "../constants/gameConstants.js";
 import { REP_DELTA } from "../constants/gameConstants.js";
@@ -18,7 +18,7 @@ import { DetailPanel } from "./tables/DetailPanel.jsx";
 import { SvgFloorPlan } from "./tables/SvgFloorPlan.jsx";
 
 
-export function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,gameTime,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,formulas=[],stock=[],bp={}}) {
+export const TablesView = memo(function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,gameTime,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,formulas=[],stock=[],bp={}}) {
 
   const { t: tr } = useLang();
   const now = useClockNow();
@@ -680,4 +680,4 @@ export function TablesView({tables,setTables,servers,setServers,menu,setMenu,set
       )}
     </div>
   );
-}
+});
