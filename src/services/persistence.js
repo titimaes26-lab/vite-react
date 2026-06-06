@@ -3,7 +3,8 @@
    Sauvegarde et chargement via localStorage.
 ═══════════════════════════════════════════════════════ */
 
-export const SAVE_KEY = "resto_save_v1";
+export const SAVE_KEY     = "resto_save_v1";
+export const SAVE_VERSION = 2;
 
 const saveToLocalStorage = (state) => {
   if (!window.localStorage) {
@@ -11,7 +12,7 @@ const saveToLocalStorage = (state) => {
     return;
   }
   try {
-    const payload = JSON.stringify({ ...state, savedAt: Date.now() });
+    const payload = JSON.stringify({ ...state, saveVersion: SAVE_VERSION, savedAt: Date.now() });
     window.localStorage.setItem(SAVE_KEY, payload);
   } catch (error) {
     if (error.name === "QuotaExceededError") {

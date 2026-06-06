@@ -526,6 +526,25 @@ function AppContent(){
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[isLoaded]);
 
+  // Sauvegarde immédiate lors des actions critiques de fermeture
+  useEffect(()=>{
+    if(!isLoaded) return;
+    const flush = () => {
+      if(isDirtyRef.current) {
+        isDirtyRef.current = false;
+        saveGame(gdSyncStateRef.current);
+      }
+    };
+    const onVisibility = () => { if(document.visibilityState === "hidden") flush(); };
+    window.addEventListener("beforeunload", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("beforeunload", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[isLoaded]);
+
   /* ── GDevelop : écoute du message d'initialisation ─── */
   useEffect(()=>{
     const handler = (event) => {

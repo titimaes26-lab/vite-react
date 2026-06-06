@@ -169,10 +169,28 @@ export const buildGDevelopPayload = ({
   };
 };
 
+/**
+ * Applique les migrations nécessaires selon la version de la sauvegarde.
+ * Ajouter une entrée ici pour chaque nouvelle version du schéma.
+ */
+const migrateSave = (save) => {
+  let s = { ...save };
+  const v = s.saveVersion ?? 1;
+
+  // v1 → v2 : repayPerHour renommé repayPerDay
+  if (v < 2 && s.loan && s.loan.repayPerHour != null && s.loan.repayPerDay == null) {
+    s = { ...s, loan: { ...s.loan, repayPerDay: s.loan.repayPerHour } };
+    delete s.loan.repayPerHour;
+  }
+
+  return s;
+};
+
 /** Nettoie les états liés aux timers qui ne sont plus valides après un rechargement */
 export const sanitizeSave = (save) => {
+  const s = migrateSave(save);
   const now = Date.now();
-  const savedTables = (save.tables || []).map(t => {
+  const savedTables = (s.tables || []).map(t => {
     if (t.status === "nettoyage") {
       if (t.cleanUntil && now >= t.cleanUntil)
         return { ...t, status: "libre", server: null, cleanUntil: null, cleanDur: null, cleanServer: null, freedAt: now };
@@ -183,36 +201,31 @@ export const sanitizeSave = (save) => {
     return t;
   });
   const tables  = TABLES0.map(t0 => savedTables.find(t => t.id === t0.id) || t0);
-  const servers = (save.servers || []).map(s =>
-    (s.status === "service" || s.status === "nettoyage")
-      ? { ...s, status: "actif", serviceUntil: null, cleanUntil: null }
-      : s
+  const servers = (s.servers || []).map(srv =>
+    (srv.status === "service" || srv.status === "nettoyage")
+      ? { ...srv, status: "actif", serviceUntil: null, cleanUntil: null }
+      : srv
   );
-  const kitchen = save.kitchen ? {
-    ...save.kitchen,
-    queue: [...(save.kitchen.queue || []), ...(save.kitchen.cooking || []).map(d => ({
+  const kitchen = s.kitchen ? {
+    ...s.kitchen,
+    queue: [...(s.kitchen.queue || []), ...(s.kitchen.cooking || []).map(d => ({
       ...d, startedAt: undefined, timerMax: undefined,
     }))],
     cooking: [],
-    done: save.kitchen.done || [],
+    done: s.kitchen.done || [],
   } : null;
-  const stock = (save.stock || STOCK0).map(item => {
+  const stock = (s.stock || STOCK0).map(item => {
     const freshness = item.freshness ?? 100;
     const lots = item.lots?.length > 0
       ? item.lots
       : [{ qty: item.qty ?? 0, freshness, boughtAt: 0 }];
     return { ...item, freshness: lots[0]?.freshness ?? freshness, lots };
   });
-  // Migration : anciens saves utilisaient repayPerHour → repayPerDay
-  let loan = save.loan ?? null;
-  if (loan && loan.repayPerHour != null && loan.repayPerDay == null) {
-    loan = { ...loan, repayPerDay: loan.repayPerHour };
-    delete loan.repayPerHour;
-  }
+  const loan = s.loan ?? null;
 
   return {
-    ...save, tables, servers, kitchen, stock, loan, queue: [],
-    candidatePool: save.candidatePool || [],
-    candidateDate: save.candidateDate || "",
+    ...s, tables, servers, kitchen, stock, loan, queue: [],
+    candidatePool: s.candidatePool || [],
+    candidateDate: s.candidateDate || "",
   };
 };
