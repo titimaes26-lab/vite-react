@@ -169,6 +169,8 @@ export function useGameClock({
         const dur = now - pausedAtRef.current;
         setDayStart(ds => ds + dur);
         pausedAtRef.current = null;
+        // Force sync immédiate pour que clockNow et dayStart soient cohérents
+        lastSyncRef.current = now - 250;
       }
 
       // Synchronise React 4×/s — en phase avec l'œil humain
@@ -185,8 +187,10 @@ export function useGameClock({
   }, [pausedRef]);
 
   const resetDay = useCallback(() => {
+    const now = Date.now();
     pausedAtRef.current = null;
-    setDayStart(Date.now());
+    lastSyncRef.current = now - 250;
+    setDayStart(now);
   }, []);
 
   const realDayMs     = (dayEndAbs - dayStartAbs) * 1_000;
