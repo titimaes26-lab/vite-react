@@ -16,7 +16,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
-/* ─── Bornes par défaut (journée complète) ───────────── */
+/* ─── Bornes par défaut (journée complète) ────────────── */
 const DEFAULT_DAY_START_ABS = 7 * 60;   // 07:00
 const DEFAULT_DAY_END_ABS   = 23 * 60;  // 23:00
 
@@ -149,24 +149,39 @@ export function useGameClock({
   dayStartAbs = DEFAULT_DAY_START_ABS,
   dayEndAbs   = DEFAULT_DAY_END_ABS,
 } = {}) {
-  const [clockNow,   setClockNow]  = useState(() => Date.now());
-  const [dayStart,   setDayStart]  = useState(() => Date.now());
+  const [clockNow, setClockNow] = useState(() => Date.now());
+  const [dayStart, setDayStart] = useState(() => Date.now());
   const pausedAtRef = useRef(null);
+  const lastSyncRef = useRef(Date.now());
+  const rafIdRef    = useRef(null);
 
   useEffect(() => {
-    const iv = setInterval(() => {
+    function tick() {
+      const now = Date.now();
+
       if (pausedRef?.current) {
-        if (pausedAtRef.current === null) pausedAtRef.current = Date.now();
+        if (pausedAtRef.current === null) pausedAtRef.current = now;
+        rafIdRef.current = requestAnimationFrame(tick);
         return;
       }
+
       if (pausedAtRef.current !== null) {
-        const dur = Date.now() - pausedAtRef.current;
+        const dur = now - pausedAtRef.current;
         setDayStart(ds => ds + dur);
         pausedAtRef.current = null;
       }
-      setClockNow(Date.now());
-    }, 250);
-    return () => clearInterval(iv);
+
+      // Synchronise React 4×/s — en phase avec l'œil humain
+      if (now - lastSyncRef.current >= 250) {
+        lastSyncRef.current = now;
+        setClockNow(now);
+      }
+
+      rafIdRef.current = requestAnimationFrame(tick);
+    }
+
+    rafIdRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafIdRef.current);
   }, [pausedRef]);
 
   const resetDay = useCallback(() => {
