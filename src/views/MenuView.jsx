@@ -569,8 +569,8 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
             <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:12,alignItems:"end"}}>
               <div><Lbl>{tl("menu.dishName")}</Lbl><Inp value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))}/></div>
-              <div style={{width:90}}><Lbl>{tl("menu.colPrice")} (€)</Lbl><Inp type="number" value={form.price} onChange={e=>setForm(p=>({...p,price:e.target.value}))}/></div>
-              <div style={{width:100}}><Lbl>{tl("menu.prepTime")}</Lbl><Inp type="number" value={form.prepTime} placeholder="60" onChange={e=>setForm(p=>({...p,prepTime:e.target.value}))}/></div>
+              <div style={{minWidth:80}}><Lbl>{tl("menu.colPrice")} (€)</Lbl><Inp type="number" value={form.price} onChange={e=>setForm(p=>({...p,price:e.target.value}))}/></div>
+              <div style={{minWidth:90}}><Lbl>{tl("menu.prepTime")}</Lbl><Inp type="number" value={form.prepTime} placeholder="60" onChange={e=>setForm(p=>({...p,prepTime:e.target.value}))}/></div>
             </div>
             <div><Lbl>{tl("menu.category")}</Lbl>
               <Sel value={form.cat} onChange={e=>setForm(p=>({...p,cat:e.target.value}))}>
@@ -592,7 +592,7 @@ export function MenuView({menu,setMenu,stock,formulas,setFormulas,dailyStats,res
                           style={{width:70,background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,padding:"4px 7px",fontSize:12,fontFamily:F.body,color:C.ink,textAlign:"right"}}/>
                         <span style={{fontSize:11,color:C.muted,fontFamily:F.body,minWidth:24}}>{s?.unit}</span>
                         {!enough&&<span style={{fontSize:10,color:C.red}}>⚠</span>}
-                        <button onClick={()=>removeIng(ing.stockId)} style={{background:C.redP,border:`1px solid ${C.red}22`,borderRadius:6,color:C.red,cursor:"pointer",width:24,height:24,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+                        <button onClick={()=>removeIng(ing.stockId)} style={{background:C.redP,border:`1px solid ${C.red}22`,borderRadius:6,color:C.red,cursor:"pointer",width:36,height:36,fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>×</button>
                       </div>
                     );
                   })}

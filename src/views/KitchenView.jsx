@@ -393,13 +393,15 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
                     <div style={{display:"flex",alignItems:"center",gap:5}}>
                       <div style={{display:"flex",flexDirection:"column",gap:1}}>
                         <button onClick={()=>moveTicket(tblQ.tableId,-1)} disabled={tIdx===0}
-                          style={{width:14,height:12,fontSize:7,border:`1px solid ${tc}33`,borderRadius:2,
+                          style={{width:22,height:20,fontSize:9,border:`1px solid ${tc}33`,borderRadius:3,
                             background:tIdx===0?"transparent":tc+"14",color:tIdx===0?C.muted:tc,
-                            cursor:tIdx===0?"not-allowed":"pointer",lineHeight:1}}>▲</button>
+                            cursor:tIdx===0?"not-allowed":"pointer",lineHeight:1,
+                            display:"flex",alignItems:"center",justifyContent:"center"}}>▲</button>
                         <button onClick={()=>moveTicket(tblQ.tableId,+1)} disabled={tIdx===arr.length-1}
-                          style={{width:14,height:12,fontSize:7,border:`1px solid ${tc}33`,borderRadius:2,
+                          style={{width:22,height:20,fontSize:9,border:`1px solid ${tc}33`,borderRadius:3,
                             background:tIdx===arr.length-1?"transparent":tc+"14",color:tIdx===arr.length-1?C.muted:tc,
-                            cursor:tIdx===arr.length-1?"not-allowed":"pointer",lineHeight:1}}>▼</button>
+                            cursor:tIdx===arr.length-1?"not-allowed":"pointer",lineHeight:1,
+                            display:"flex",alignItems:"center",justifyContent:"center"}}>▼</button>
                       </div>
                       <div style={{width:17,height:17,borderRadius:"50%",background:tc,color:"#fff",
                         display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800}}>{tIdx+1}</div>

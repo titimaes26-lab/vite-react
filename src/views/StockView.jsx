@@ -525,7 +525,7 @@ export function StockView({stock,setStock,cash,setCash,addTx,addToast,addDayStat
               const portions=portionsPerIngredient(it.id);
               return(
                 <div key={it.id} style={{display:"flex",alignItems:"center",gap:10,padding:"4px 0"}}>
-                  <div style={{width:130,fontSize:11,fontFamily:F.body,color:low?C.red:C.ink,
+                  <div style={{minWidth:80,maxWidth:130,fontSize:11,fontFamily:F.body,color:low?C.red:C.ink,
                     fontWeight:low?700:400,flexShrink:0,textAlign:"right",
                     overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
                     title={it.name}>

@@ -28,7 +28,8 @@ export function LedgerModal({ onClose, cash, transactions }) {
           </div>
           <button onClick={onClose} style={{
             background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,
-            width:32,height:32,cursor:"pointer",fontSize:16,color:C.muted}}>✕</button>
+            width:44,height:44,cursor:"pointer",fontSize:18,color:C.muted,
+            display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
         </div>
         {/* Summary row */}
         {(()=>{

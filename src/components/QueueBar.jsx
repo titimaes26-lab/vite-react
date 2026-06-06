@@ -132,6 +132,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
                   border: `1px solid ${isUrgent ? C.red + "55" : C.border}`,
                   borderRadius: 8,
                   padding: "4px 8px",
+                  minHeight: 44,
                   flexShrink: 0,
                   cursor: "pointer",
                   animation: isUrgent ? "queuePulse 1s ease-in-out infinite" : "none",

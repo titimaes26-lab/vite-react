@@ -35,13 +35,13 @@ export function HelpModal({onClose}){
             </div>
           </div>
           <button onClick={onClose} style={{background:C.border,border:"none",borderRadius:8,
-            width:32,height:32,cursor:"pointer",fontSize:16,color:C.muted,
+            width:44,height:44,cursor:"pointer",fontSize:18,color:C.muted,
             display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
         </div>
 
         <div style={{display:"flex",flex:1,overflow:"hidden"}}>
           {/* Sidebar */}
-          <div style={{width:170,borderRight:`1px solid ${C.border}`,padding:"12px 8px",
+          <div style={{minWidth:130,maxWidth:170,borderRight:`1px solid ${C.border}`,padding:"12px 8px",
             display:"flex",flexDirection:"column",gap:3,flexShrink:0,overflowY:"auto",
             background:C.bg}}>
             {HELP_SECTIONS.map((hs,i)=>(

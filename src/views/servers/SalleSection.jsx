@@ -622,7 +622,7 @@ export function SalleSection({ servers, setServers, tables, restoLvN, cash, setC
                 </div>
                 <button onClick={()=>{setModal(false);setTrainId(null);}}
                   style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,
-                    width:32,height:32,cursor:"pointer",fontSize:16,color:C.muted,
+                    width:44,height:44,cursor:"pointer",fontSize:18,color:C.muted,
                     display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
               </div>
 

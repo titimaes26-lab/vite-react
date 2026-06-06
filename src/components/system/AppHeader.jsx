@@ -74,16 +74,16 @@ export function AppHeader({
             </div>
           )}
           {nCompl>0&&tab!=="complaints"&&(
-            <div onClick={()=>{
+            <button onClick={()=>{
               setTab("complaints");
               setSeenIds(p=>new Set([...p,...complaints.filter(c=>c.status==="nouveau").map(c=>c.id)]));
             }} style={{
               background:C.terraP,border:`1.5px solid ${C.terra}28`,borderRadius:8,
-              padding:"3px 9px",fontSize:10,color:C.terra,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",
-              boxShadow:`0 1px 4px ${C.terra}18`,
+              padding:"7px 9px",fontSize:10,color:C.terra,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",
+              boxShadow:`0 1px 4px ${C.terra}18`,minHeight:44,display:"flex",alignItems:"center",
             }}>
               💬 {nCompl}
-            </div>
+            </button>
           )}
           {queue.length>=5&&(
             <div style={{
@@ -111,7 +111,7 @@ export function AppHeader({
             background:loan?C.amber:C.navy,
             border:"none",borderRadius:8,color:"#fff",cursor:"pointer",
             fontFamily:F.body,display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap",
-            flexShrink:0,
+            flexShrink:0,minHeight:44,
             boxShadow:loan?`0 2px 8px ${C.amber}55`:`0 2px 8px ${C.navy}33`,
             animation:loan?"bankPulse 2s ease-in-out infinite":"none"}}>
             🏦{!bp.isSmall&&<span>{tl("bank.title")}</span>}
@@ -119,9 +119,9 @@ export function AppHeader({
           {/* Historique notifications */}
           <div style={{position:"relative",flexShrink:0}}>
             <button onClick={()=>{setShowToastHistory(true);setToastUnread(0);}} title="Historique des notifications" style={{
-              width:30,height:30,borderRadius:"50%",
+              width:44,height:44,borderRadius:"50%",
               border:`1.5px solid ${C.amber}44`,
-              background:C.amberP,cursor:"pointer",fontSize:15,
+              background:C.amberP,cursor:"pointer",fontSize:18,
               color:C.amber,display:"flex",alignItems:"center",justifyContent:"center",
               boxShadow:`0 2px 7px ${C.amber}20`,
             }}>🔔</button>
@@ -153,7 +153,7 @@ export function AppHeader({
             title="+1 000€ en regardant une pub"
             style={{
               display:"flex",alignItems:"center",gap:4,flexShrink:0,
-              padding:"4px 9px",borderRadius:7,
+              padding:"4px 9px",borderRadius:7,minHeight:44,
               background: adWatching ? C.amberP : C.greenP,
               border:`1.5px solid ${adWatching ? C.amber : C.green}55`,
               cursor: adWatching ? "not-allowed" : "pointer",
@@ -168,17 +168,17 @@ export function AppHeader({
             </span>
           </button>
           <button onClick={()=>setShowHelp(true)} title="Guide utilisateur" style={{
-            width:30,height:30,borderRadius:"50%",
+            width:44,height:44,borderRadius:"50%",
             border:`1.5px solid ${C.green}44`,
-            background:C.greenP,cursor:"pointer",fontSize:14,
+            background:C.greenP,cursor:"pointer",fontSize:16,
             color:C.green,display:"flex",alignItems:"center",justifyContent:"center",
             flexShrink:0,fontWeight:800,
             boxShadow:`0 2px 7px ${C.green}20`,
           }}>?</button>
           <button onClick={()=>setShowResetModal(true)} title="Nouvelle partie" style={{
-            width:30,height:30,borderRadius:"50%",
+            width:44,height:44,borderRadius:"50%",
             border:`1.5px solid ${C.red}33`,
-            background:C.redP,cursor:"pointer",fontSize:13,
+            background:C.redP,cursor:"pointer",fontSize:15,
             color:C.red,display:"flex",alignItems:"center",justifyContent:"center",
             flexShrink:0,fontWeight:800,opacity:0.65,
           }}>↺</button>
@@ -268,7 +268,7 @@ export function AppHeader({
             cursor:"pointer",fontFamily:F.body,
             display:"flex",alignItems:"center",gap:6,
             whiteSpace:"nowrap",
-            position:"relative",
+            position:"relative",minHeight:44,
           }}>
             <span style={{fontSize:15,lineHeight:1}}>{t.icon}</span>
             <span>{tl("tabs."+t.id)||t.label}</span>
@@ -319,7 +319,7 @@ export function AppHeader({
             cursor:"pointer",position:"relative",
             borderBottom:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
             gap:3,
-            transition:"background 0.15s",
+            transition:"background 0.15s",minHeight:44,
           }}>
             <div style={{
               width:34,height:26,
