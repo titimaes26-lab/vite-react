@@ -1,4 +1,4 @@
-export const tables = {
+export const dining = {
   tables: {
     freeStatus: "✅ {current}/{total} free",
     waiting: "🚶 {count} waiting",

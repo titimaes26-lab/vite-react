@@ -1,7 +1,9 @@
 import { base } from './base.js';
-import { tables } from './tables.js';
+import { dining } from './dining.js';
 import { management } from './management.js';
+import { statsTranslations } from './stats.js';
 import { feedback } from './feedback.js';
 import { dialog } from './dialog.js';
 
-export const en = { ...base, ...tables, ...management, ...feedback, ...dialog };
+// All top-level keys must be unique across the six modules.
+export const en = { ...base, ...dining, ...management, ...statsTranslations, ...feedback, ...dialog };

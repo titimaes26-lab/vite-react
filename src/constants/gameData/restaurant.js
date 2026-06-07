@@ -1,3 +1,4 @@
+// Import from ./theme.js directly — importing from ./index.js would be circular
 import { C, _mkT } from './theme.js';
 
 export const RESTO_LVL = [
@@ -55,7 +56,7 @@ export const RESTO_LVL = [
   { l: 46, name: "Palais Gastronomique",    icon: "👑",   tables: 30, xpNeeded:5_183_000, color: C.terra  },
   { l: 47, name: "Monument Culinaire",      icon: "🗿",   tables: 30, xpNeeded:5_640_000, color: C.terra  },
   { l: 48, name: "Anthologie Gastro.",      icon: "📜",   tables: 30, xpNeeded:6_126_000, color: C.amber  },
-  { l: 49, name: "Olympe",                  icon: "🌠",   tables: 30, xpNeeded:6_642_000, color: C.purple },
+  { l: 49, name: "Olympe",                  icon: "🌠",   tables: 30, xpNeeded:6_642_000, color: C.amber  },
 ];
 
 export const CAP_UPGRADES = [
@@ -106,4 +107,22 @@ export const TABLES0 = [
 
 export const SERVERS0 = [
   { id: 1, name: "Marie Dupont", status: "actif", totalXp: 320, rating: 4.8, salary: 14, moral: 90, specialty: null, shift: null },
+];
+
+export const COMPLAINTS0 = [
+  {
+    id: 1, date: "2026-03-10", table: 3, server: "Pierre Martin",
+    type: "Qualité plat",      desc: "Entrecôte trop cuite",
+    status: "résolu",          prio: "haute",
+  },
+  {
+    id: 2, date: "2026-03-11", table: 6, server: "Lucas Petit",
+    type: "Délai service",     desc: "Attente de 40 min pour les entrées",
+    status: "en cours",        prio: "moyenne",
+  },
+  {
+    id: 3, date: "2026-03-11", table: 5, server: "Sophie Bernard",
+    type: "Facture incorrecte",desc: "Erreur sur l'addition",
+    status: "nouveau",         prio: "basse",
+  },
 ];

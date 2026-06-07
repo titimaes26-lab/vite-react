@@ -1,22 +1,5 @@
+// Import from ./theme.js directly — importing from ./index.js would be circular
 import { C } from './theme.js';
-
-export const COMPLAINTS0 = [
-  {
-    id: 1, date: "2026-03-10", table: 3, server: "Pierre Martin",
-    type: "Qualité plat",      desc: "Entrecôte trop cuite",
-    status: "résolu",          prio: "haute",
-  },
-  {
-    id: 2, date: "2026-03-11", table: 6, server: "Lucas Petit",
-    type: "Délai service",     desc: "Attente de 40 min pour les entrées",
-    status: "en cours",        prio: "moyenne",
-  },
-  {
-    id: 3, date: "2026-03-11", table: 5, server: "Sophie Bernard",
-    type: "Facture incorrecte",desc: "Erreur sur l'addition",
-    status: "nouveau",         prio: "basse",
-  },
-];
 
 export const LOAN_OPTIONS = [
   { id: "small",  label: "Petit prêt",    amount: 1500, rate: 0.06,  monthly: 90,  icon: "💳" },
@@ -82,7 +65,7 @@ export const GAME_EVENTS = [
           desc: `${alerts} infractions relevées — amende ${fine}€`,
           status: "nouveau", prio: "haute",
         }, ...p]);
-        addToast({ icon: "🚨", title: "Inspection — Amende !", msg: `${alerts} infractions · −${fine}€`, color: "#c0392b", tab: "plaintes" });
+        addToast({ icon: "🚨", title: "Inspection — Amende !", msg: `${alerts} infractions · −${fine}€`, color: "#c0392b", tab: "complaints" });
         return "fail";
       } else {
         const bonus = 100;

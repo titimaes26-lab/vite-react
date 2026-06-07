@@ -1,3 +1,4 @@
+// Import from ./theme.js directly — importing from ./index.js would be circular
 import { C } from './theme.js';
 
 export const SRV_LVL = [
