@@ -1,186 +1,48 @@
-/* ═══════════════════════════════════════════════════════
-   src/views/StatsView.jsx
-   Extrait du monolithe restaurant-manager.jsx
-   Dépendances déclarées dans les imports ci-dessous.
-═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F, RESTO_LVL, CHEF_LVL, OBJECTIVES_DEF, SRV_LVL } from "../constants/gameData.js";
+import { C, F, CHEF_LVL, OBJECTIVES_DEF } from "../constants/gameData.js";
 import { REP_THRESHOLDS, getRepTier } from "../constants/gameConstants.js";
-import { srvLv } from "../utils/levelUtils.js";
 import { restoLv, chefLv } from "../utils/levelUtils.js";
 import { useLang } from "../i18n/index.jsx";
+import { LineChart } from "./stats/LineChart.jsx";
+import { FinancialPanel } from "./stats/FinancialPanel.jsx";
+import { ServerPerfTable } from "./stats/ServerPerfTable.jsx";
+import { DailyTable } from "./stats/DailyTable.jsx";
+import { ReputationPanel } from "./stats/ReputationPanel.jsx";
 
-export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,reputation=50,transactions=[],menu=[],currentGameDay=1,bp={}}){
+export function StatsView({ dailyStats, loan, objStats, restoXp, kitchen, servers, reputation=50, transactions=[], menu=[], currentGameDay=1, bp={} }) {
   const { t: tl, lang } = useLang();
-  const [period,setPeriod]=useState(7);   // 5, 7 or 15 game-days
-  const [hovRevIdx,setHovRevIdx]=useState(null);
-  const [hovCliIdx,setHovCliIdx]=useState(null);
-  const [hovRepIdx,setHovRepIdx]=useState(null);
+  const [period, setPeriod] = useState(7);
+  const [hovRevIdx, setHovRevIdx] = useState(null);
+  const [hovCliIdx, setHovCliIdx] = useState(null);
+  const [hovRepIdx, setHovRepIdx] = useState(null);
 
-  const days=[...dailyStats].slice(-period).reverse(); // most recent first → reverse for chart left→right
-  const chartDays=[...dailyStats].slice(-period);      // chronological for charts
+  const chartDays = [...dailyStats].slice(-period);
+  const days = [...chartDays].reverse();
+  const locale = lang==="en"?"en-US":"fr-FR";
 
-  const rl=restoLv(restoXp||0);
-  const rlD=rl.d;
-  const nextRl=rl.next;
-  const cl=chefLv(kitchen?.chef?.totalXp||0);
-  const clD=CHEF_LVL[Math.min(cl.l,CHEF_LVL.length-1)];
-  const repTier=getRepTier(reputation);
-  const nextRepTier=REP_THRESHOLDS.find(t=>t.min>reputation);
-  const nextObj=OBJECTIVES_DEF.find(o=>!o.condition(objStats||{}));
+  const rl = restoLv(restoXp||0);
+  const rlD = rl.d;
+  const nextRl = rl.next;
+  const cl = chefLv(kitchen?.chef?.totalXp||0);
+  const clD = CHEF_LVL[Math.min(cl.l, CHEF_LVL.length-1)];
+  const repTier = getRepTier(reputation);
+  const nextRepTier = REP_THRESHOLDS.find(t=>t.min>reputation);
 
-  // ── Trend helpers ──────────────────────────────────────
-  const trend=(arr,key)=>{
-    if(arr.length<2)return null;
-    const last=arr[arr.length-1][key]||0;
-    const prev=arr[arr.length-2][key]||0;
-    if(prev===0)return null;
+  const trend = (arr,key) => {
+    if(arr.length<2) return null;
+    const last=arr[arr.length-1][key]||0, prev=arr[arr.length-2][key]||0;
+    if(prev===0) return null;
     return Math.round(((last-prev)/prev)*100);
   };
-  const revTrend=trend(chartDays,"revenue");
-  const srvTrend=trend(chartDays,"served");
+  const revTrend = trend(chartDays,"revenue");
+  const srvTrend = trend(chartDays,"served");
+  const repHistory = chartDays.map(d=>Math.min(100,Math.max(0,40+((d.ratingAvg||((objStats?.totalRating||0)/(objStats?.ratingCount||1))))*10)));
+  const avgBasket = objStats?.totalRevenue ? +(objStats.totalRevenue/(objStats?.totalServed||1)).toFixed(2) : 0;
 
-  // ── SVG Line Chart helper ───────────────────────────────
-  const LineChart=({data,color,label,unit="",hov,setHov,height=110,fillOpacity=0.15})=>{
-    const W=320,H=height,PAD=20,BOTTOM=22;
-    const vals=data.map(d=>d||0);
-    const maxV=Math.max(...vals,1);
-    const pts=vals.map((v,i)=>[
-      PAD+(i/(vals.length-1||1))*(W-PAD*2),
-      H-BOTTOM-((v/maxV)*(H-BOTTOM-8))
-    ]);
-    // Smooth bezier path
-    const path=pts.length<2?"":[
-      `M ${pts[0][0]} ${pts[0][1]}`,
-      ...pts.slice(1).map((p,i)=>{
-        const prev=pts[i];
-        const cp1x=prev[0]+(p[0]-prev[0])/3;
-        const cp2x=p[0]-(p[0]-prev[0])/3;
-        return `C ${cp1x} ${prev[1]} ${cp2x} ${p[1]} ${p[0]} ${p[1]}`;
-      })
-    ].join(" ");
-    const fillPath=path+` L ${pts[pts.length-1][0]} ${H-BOTTOM} L ${pts[0][0]} ${H-BOTTOM} Z`;
-
-    return(
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{overflow:"visible"}} onMouseLeave={()=>setHov(null)}>
-        {/* Grid lines */}
-        {[0.25,0.5,0.75,1].map(f=>(
-          <line key={f} x1={PAD} y1={H-BOTTOM-(f*(H-BOTTOM-8))} x2={W-PAD} y2={H-BOTTOM-(f*(H-BOTTOM-8))}
-            stroke={C.border} strokeWidth="0.8" strokeDasharray="4 3"/>
-        ))}
-        {/* Baseline */}
-        <line x1={PAD} y1={H-BOTTOM} x2={W-PAD} y2={H-BOTTOM} stroke={C.border} strokeWidth="1"/>
-        {/* Fill area */}
-        {pts.length>=2&&<path d={fillPath} fill={color} opacity={fillOpacity}/>}
-        {/* Line */}
-        {pts.length>=2&&<path d={path} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>}
-        {/* Points */}
-        {pts.map(([x,y],i)=>(
-          <g key={i} onMouseEnter={()=>setHov(i)} style={{cursor:"pointer"}}>
-            <circle cx={x} cy={y} r={hov===i?6:4} fill={color} stroke="#fff" strokeWidth="2"
-              opacity={hov===i||hov===null?1:0.6}
-              style={{transition:"r 0.15s,opacity 0.15s"}}/>
-            {/* Tooltip */}
-            {hov===i&&(
-              <g>
-                <rect x={x-36} y={y-32} width={72} height={22} rx="6"
-                  fill={C.ink} opacity="0.9"/>
-                <text x={x} y={y-17} textAnchor="middle" fontSize="10" fontWeight="700"
-                  fill="#fff" fontFamily="sans-serif">
-                  {vals[i].toFixed(unit==="€"?0:0)}{unit}
-                </text>
-              </g>
-            )}
-          </g>
-        ))}
-        {/* X labels */}
-        {chartDays.map((d,i)=>(
-          <text key={i} x={pts[i]?.[0]||0} y={H-5} textAnchor="middle"
-            fontSize="8" fill={i===chartDays.length-1?color:C.muted}
-            fontFamily="sans-serif" fontWeight={i===chartDays.length-1?"700":"400"}>
-            {`J${d.day??""}`}
-          </text>
-        ))}
-      </svg>
-    );
-  };
-
-  // ── Financial analysis ─────────────────────────────────
-  // Revenue by category from today's transactions
-  const locale=lang==="en"?"en-US":"fr-FR";
-  const todayTx=transactions.filter(t=>t.type==="revenu"&&t.gameDay===currentGameDay);
-  const totalRevToday=todayTx.reduce((s,t)=>s+t.amount,0);
-  const expTodayTx=transactions.filter(t=>t.type!=="revenu"&&t.gameDay===currentGameDay);
-  const totalExpToday=expTodayTx.reduce((s,t)=>s+t.amount,0);
-  const netToday=+(totalRevToday-totalExpToday).toFixed(2);
-  // Group expenses by type for detailed breakdown
-  const expByType={};
-  expTodayTx.forEach(t=>{if(!expByType[t.type])expByType[t.type]=0;expByType[t.type]+=t.amount;});
-  const expTypeInfo={
-    achat:{l:tl("stats.expPurchase"),icon:"🛒",c:"#e07b39"},
-    salaire:{l:tl("stats.expSalary"),icon:"💼",c:C.navy},
-    remboursement:{l:tl("stats.expLoan"),icon:"🏦",c:C.purple},
-    dépense:{l:tl("stats.expEquipment"),icon:"🔧",c:C.muted},
-  };
-
-  // Salary costs per hour (active staff)
-  const chefSalary=kitchen?.chef?.salary||0;
-  const commissSalary=(kitchen?.commis||[]).filter(c=>c.status==="actif").reduce((s,c)=>s+(c.salary||0),0);
-  const serverSalary=(servers||[]).filter(s=>s.status==="actif").reduce((s,sv)=>s+(sv.salary||0),0);
-  const totalSalaryPerHour=chefSalary+commissSalary+serverSalary;
-
-  // Revenue breakdown by menu category (current day only)
-  const catRevenue={Entrées:0,Plats:0,Desserts:0,Boissons:0,Formules:0};
-  menu.forEach(m=>{
-    const cat=m.cat;
-    if(catRevenue[cat]!==undefined)
-      catRevenue[cat]+=m.price*(m.dayOrderCount||0);
-    catRevenue.Formules+=m.dayFormulaRevenue||0;
-  });
-  const totalCatRev=Object.values(catRevenue).reduce((s,v)=>s+v,0)||1;
-  const catColors2={Entrées:C.green,Plats:C.terra,Desserts:C.purple,Boissons:C.navy,Formules:C.amber};
-
-  // Average basket
-  const totalServed=objStats?.totalServed||1;
-  const avgBasket=objStats?.totalRevenue?+(objStats.totalRevenue/totalServed).toFixed(2):0;
-
-  // Pie chart SVG
-  const PieChart=({data,size=100})=>{
-    const cx=size/2,cy=size/2,r=size/2-8;
-    let cumAngle=-Math.PI/2;
-    const slices=data.filter(d=>d.value>0);
-    const total=slices.reduce((s,d)=>s+d.value,0)||1;
-    return(
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {slices.map((d,i)=>{
-          const angle=(d.value/total)*2*Math.PI;
-          const x1=cx+r*Math.cos(cumAngle);
-          const y1=cy+r*Math.sin(cumAngle);
-          cumAngle+=angle;
-          const x2=cx+r*Math.cos(cumAngle);
-          const y2=cy+r*Math.sin(cumAngle);
-          const largeArc=angle>Math.PI?1:0;
-          return(
-            <path key={i}
-              d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`}
-              fill={d.color} stroke="#fff" strokeWidth="1.5" opacity="0.9"/>
-          );
-        })}
-        <circle cx={cx} cy={cy} r={r*0.52} fill={C.surface}/>
-      </svg>
-    );
-  };
-
-  // Reputation history (approximate from dailyStats rating)
-  const repHistory=chartDays.map((d,i)=>{
-    const r=d.ratingAvg||((objStats?.totalRating||0)/(objStats?.ratingCount||1));
-    return Math.min(100,Math.max(0,40+r*10));
-  });
-
-  return(
+  return (
     <div style={{maxWidth:960,margin:"0 auto",padding:"10px 0"}}>
 
-      {/* ── Période + KPIs ── */}
+      {/* Period picker + KPIs */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
         <div style={{display:"flex",gap:5}}>
           {[5,7,15].map(p=>(
@@ -197,12 +59,11 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           {[
             {k:"totalRevenue", v:(objStats?.totalRevenue||0).toFixed(0)+"€", c:C.amber},
-            {k:"clients",      v:objStats?.totalServed||0,                    c:C.green},
-            {k:"avgBasket",    v:avgBasket+"€",                               c:C.terra},
+            {k:"clients",      v:objStats?.totalServed||0,                   c:C.green},
+            {k:"avgBasket",    v:avgBasket+"€",                              c:C.terra},
             {k:"avgRating",    v:objStats?.ratingCount>0?((objStats.totalRating||0)/objStats.ratingCount).toFixed(1)+" ★":"—", c:C.purple},
           ].map(s=>(
-            <div key={s.k} style={{background:s.c+"12",border:`1px solid ${s.c}22`,
-              borderRadius:10,padding:"7px 13px",textAlign:"center",minWidth:90}}>
+            <div key={s.k} style={{background:s.c+"12",border:`1px solid ${s.c}22`,borderRadius:10,padding:"7px 13px",textAlign:"center",minWidth:90}}>
               <div style={{fontSize:15,fontWeight:800,color:s.c,fontFamily:F.title,lineHeight:1}}>{s.v}</div>
               <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:2}}>{tl("stats."+s.k)}</div>
             </div>
@@ -210,445 +71,40 @@ export function StatsView({dailyStats,loan,objStats,restoXp,kitchen,servers,repu
         </div>
       </div>
 
-      {/* ══ GRAPHIQUES SVG ══ */}
+      {/* SVG line charts */}
       <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":bp.isTablet?"1fr 1fr":"1fr 1fr 1fr",gap:bp.isMobile?10:12,marginBottom:20}}>
-        {/* Revenue */}
         <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"14px 16px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>{"💶 "+tl("stats.revenue")}</span>
-            {revTrend!==null&&(
-              <span style={{fontSize:11,fontWeight:700,color:revTrend>=0?C.green:C.red,fontFamily:F.body}}>
-                {revTrend>=0?"↗":"↘"} {Math.abs(revTrend)}%
-              </span>
-            )}
+            {revTrend!==null&&<span style={{fontSize:11,fontWeight:700,color:revTrend>=0?C.green:C.red,fontFamily:F.body}}>{revTrend>=0?"↗":"↘"} {Math.abs(revTrend)}%</span>}
           </div>
-          <LineChart data={chartDays.map(d=>d.revenue)} color={C.amber} unit="€"
-            hov={hovRevIdx} setHov={setHovRevIdx}/>
+          <LineChart data={chartDays.map(d=>d.revenue)} color={C.amber} unit="€" hov={hovRevIdx} setHov={setHovRevIdx} chartDays={chartDays}/>
         </div>
-
-        {/* Clients */}
         <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"14px 16px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>{"👥 "+tl("stats.clientsServed")}</span>
-            {srvTrend!==null&&(
-              <span style={{fontSize:11,fontWeight:700,color:srvTrend>=0?C.green:C.red,fontFamily:F.body}}>
-                {srvTrend>=0?"↗":"↘"} {Math.abs(srvTrend)}%
-              </span>
-            )}
+            {srvTrend!==null&&<span style={{fontSize:11,fontWeight:700,color:srvTrend>=0?C.green:C.red,fontFamily:F.body}}>{srvTrend>=0?"↗":"↘"} {Math.abs(srvTrend)}%</span>}
           </div>
-          <LineChart data={chartDays.map(d=>d.served)} color={C.green} unit={" "+tl("stats.clients")}
-            hov={hovCliIdx} setHov={setHovCliIdx}/>
+          <LineChart data={chartDays.map(d=>d.served)} color={C.green} unit={" "+tl("stats.clients")} hov={hovCliIdx} setHov={setHovCliIdx} chartDays={chartDays}/>
         </div>
-
-        {/* Réputation estimée */}
         <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"14px 16px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>
-              {repTier.icon} {tl("stats.reputation")}
-            </span>
-            <span style={{fontSize:11,fontWeight:700,color:repTier.color,fontFamily:F.body}}>
-              {Math.round(reputation)}/100
-            </span>
+            <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.title}}>{repTier.icon} {tl("stats.reputation")}</span>
+            <span style={{fontSize:11,fontWeight:700,color:repTier.color,fontFamily:F.body}}>{Math.round(reputation)}/100</span>
           </div>
-          <LineChart data={repHistory} color={repTier.color} unit="/100"
-            hov={hovRepIdx} setHov={setHovRepIdx} fillOpacity={0.12}/>
+          <LineChart data={repHistory} color={repTier.color} unit="/100" hov={hovRepIdx} setHov={setHovRepIdx} chartDays={chartDays} fillOpacity={0.12}/>
         </div>
       </div>
 
-      {/* ══ ANALYSE FINANCIÈRE ══ */}
-      <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":"1fr 1fr",gap:bp.isMobile?10:12,marginBottom:20}}>
+      <FinancialPanel transactions={transactions} currentGameDay={currentGameDay} menu={menu}
+        kitchen={kitchen} servers={servers} bp={bp} avgBasket={avgBasket}/>
 
-        {/* Compte de résultat du jour */}
-        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"18px 20px"}}>
-          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:14,
-            display:"flex",alignItems:"center",gap:7}}>
-            <span>📊</span> {tl("stats.dayResult")}
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {/* Revenus */}
-            <div style={{display:"flex",justifyContent:"space-between",
-              alignItems:"center",padding:"8px 12px",
-              background:C.green+"08",borderRadius:9,
-              border:`1px solid ${C.green}18`}}>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:14}}>📈</span>
-                <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>{tl("stats.revenueDay")}</span>
-              </div>
-              <span style={{fontSize:14,fontWeight:800,color:C.green,fontFamily:F.title}}>+{totalRevToday.toFixed(2)}€</span>
-            </div>
-            {/* Dépenses détaillées */}
-            <div style={{background:C.red+"06",borderRadius:9,border:`1px solid ${C.red}18`,overflow:"hidden"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",borderBottom:Object.keys(expByType).length>0?`1px solid ${C.red}10`:"none"}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:14}}>📉</span>
-                  <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>{tl("stats.expensesDay")}</span>
-                </div>
-                <span style={{fontSize:14,fontWeight:800,color:C.red,fontFamily:F.title}}>−{totalExpToday.toFixed(2)}€</span>
-              </div>
-              {Object.entries(expByType).map(([type,amt])=>{
-                const info=expTypeInfo[type]||{l:type,icon:"💳",c:C.muted};
-                return(
-                  <div key={type} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 12px 5px 28px"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:11}}>{info.icon}</span>
-                      <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>{info.l}</span>
-                    </div>
-                    <span style={{fontSize:11,fontWeight:700,color:info.c,fontFamily:F.title}}>−{amt.toFixed(2)}€</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{borderTop:`2px solid ${C.border}`,paddingTop:10,marginTop:4,
-              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:12,fontWeight:700,color:C.ink,fontFamily:F.body}}>{"⚖️ "+tl("stats.netResult")}</span>
-              <span style={{fontSize:20,fontWeight:800,
-                color:netToday>=0?C.green:C.red,fontFamily:F.title}}>
-                {netToday>=0?"+":""}{netToday.toFixed(2)}€
-              </span>
-            </div>
-          </div>
+      <ReputationPanel reputation={reputation} repTier={repTier} nextRepTier={nextRepTier}
+        rl={rl} rlD={rlD} nextRl={nextRl} cl={cl} clD={clD} restoXp={restoXp} loan={loan}/>
 
-          {/* Masse salariale */}
-          <div style={{marginTop:14,padding:"10px 12px",background:C.navyP,
-            borderRadius:9,border:`1px solid ${C.navy}22`}}>
-            <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:5}}>
-              {"💸 "+tl("stats.payroll")}
-            </div>
-            <div style={{display:"flex",gap:bp.isMobile?7:10,flexWrap:"wrap"}}>
-              {[
-                {k:"chef",v:chefSalary},
-                {k:"commis",v:commissSalary},
-                {k:"waiters",v:serverSalary},
-              ].map(r=>(
-                <div key={r.k} style={{flex:1,textAlign:"center"}}>
-                  <div style={{fontSize:13,fontWeight:700,color:C.navy,fontFamily:F.title}}>{r.v}€/h</div>
-                  <div style={{fontSize:9,color:C.muted,fontFamily:F.body}}>{tl("stats."+r.k)}</div>
-                </div>
-              ))}
-              <div style={{flex:1,textAlign:"center",borderLeft:`1px solid ${C.navy}22`,paddingLeft:8}}>
-                <div style={{fontSize:13,fontWeight:700,color:C.navy,fontFamily:F.title}}>{totalSalaryPerHour}€/h</div>
-                <div style={{fontSize:9,color:C.navy,fontFamily:F.body,fontWeight:600}}>{tl("stats.total")}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <ServerPerfTable servers={servers}/>
 
-        {/* Répartition revenus par catégorie */}
-        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"18px 20px"}}>
-          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:14,
-            display:"flex",alignItems:"center",gap:7}}>
-            <span>🥧</span> {tl("stats.revenueByCat")}
-          </div>
-          <div style={{display:"flex",gap:16,alignItems:"center"}}>
-            <PieChart data={Object.entries(catRevenue).map(([k,v])=>({color:catColors2[k]||C.navy,value:v,label:k}))} size={110}/>
-            <div style={{flex:1,display:"flex",flexDirection:"column",gap:7}}>
-              {Object.entries(catRevenue).map(([cat,rev])=>{
-                const pct=totalCatRev>0?Math.round((rev/totalCatRev)*100):0;
-                const color=catColors2[cat]||C.navy;
-                return(
-                  <div key={cat}>
-                    <div style={{display:"flex",justifyContent:"space-between",
-                      fontSize:10,fontFamily:F.body,marginBottom:3}}>
-                      <div style={{display:"flex",alignItems:"center",gap:5}}>
-                        <div style={{width:8,height:8,borderRadius:2,background:color,flexShrink:0}}/>
-                        <span style={{color:C.ink,fontWeight:600}}>{cat}</span>
-                      </div>
-                      <div style={{display:"flex",gap:6}}>
-                        <span style={{color:C.muted}}>{rev.toFixed(0)}€</span>
-                        <span style={{color:color,fontWeight:700}}>{pct}%</span>
-                      </div>
-                    </div>
-                    <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:"100%",background:color,
-                        borderRadius:99,transformOrigin:"left center",transform:`scaleX(${pct/100})`,transition:"transform 0.6s ease"}}/>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div style={{marginTop:14,padding:"8px 12px",background:C.greenP,
-            borderRadius:9,border:`1px solid ${C.green}22`,
-            display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span style={{fontSize:11,color:C.muted,fontFamily:F.body}}>{"🛒 "+tl("stats.avgBasketClient")}</span>
-            <span style={{fontSize:16,fontWeight:800,color:C.green,fontFamily:F.title}}>{avgBasket}€</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Réputation + Progression ── */}
-      <div style={{display:"grid",gridTemplateColumns:bp.isMobile?"1fr":"1fr 1fr",gap:12,marginBottom:20}}>
-        {/* Réputation hero */}
-        <div style={{background:`linear-gradient(135deg,${repTier.color}14,${C.surface})`,
-          border:`2px solid ${repTier.color}33`,borderRadius:14,padding:"16px 18px"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
-            <div style={{position:"relative",width:64,height:64,flexShrink:0}}>
-              <svg width={64} height={64} style={{transform:"rotate(-90deg)"}}>
-                <circle cx={32} cy={32} r={26} fill="none" stroke={C.border} strokeWidth={7}/>
-                <circle cx={32} cy={32} r={26} fill="none" stroke={repTier.color} strokeWidth={7}
-                  strokeDasharray={`${2*Math.PI*26}`}
-                  strokeDashoffset={`${2*Math.PI*26*(1-reputation/100)}`}
-                  strokeLinecap="round" style={{transition:"stroke-dashoffset 0.8s"}}/>
-              </svg>
-              <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-                <span style={{fontSize:18}}>{repTier.icon}</span>
-                <span style={{fontSize:9,fontWeight:800,color:repTier.color,fontFamily:F.title}}>{Math.round(reputation)}</span>
-              </div>
-            </div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:16,fontWeight:800,color:repTier.color,fontFamily:F.title}}>{repTier.label}</div>
-              <div style={{display:"flex",gap:6,marginTop:5,flexWrap:"wrap"}}>
-                <span style={{fontSize:10,background:repTier.tipMult>=1?C.greenP:C.redP,color:repTier.tipMult>=1?C.green:C.red,border:`1px solid ${repTier.tipMult>=1?C.green:C.red}22`,borderRadius:5,padding:"1px 7px",fontFamily:F.body,fontWeight:600}}>💸 ×{repTier.tipMult}</span>
-                <span style={{fontSize:10,background:repTier.spawnMult>=1?C.greenP:C.redP,color:repTier.spawnMult>=1?C.green:C.red,border:`1px solid ${repTier.spawnMult>=1?C.green:C.red}22`,borderRadius:5,padding:"1px 7px",fontFamily:F.body,fontWeight:600}}>🚶 ×{repTier.spawnMult}</span>
-              </div>
-            </div>
-          </div>
-          {nextRepTier&&(
-            <>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:C.muted,fontFamily:F.body,marginBottom:4}}>
-                <span>→ {nextRepTier.icon} {nextRepTier.label}</span>
-                <span style={{color:repTier.color,fontWeight:700}}>{Math.round(nextRepTier.min-reputation)} pts</span>
-              </div>
-              <div style={{height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                <div style={{height:"100%",borderRadius:99,background:repTier.color,
-                  width:"100%",transformOrigin:"left center",transform:`scaleX(${Math.max(0,(reputation-repTier.min)/(nextRepTier.min-repTier.min))})`,
-                  transition:"transform 0.8s"}}/>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Restaurant + Chef progression */}
-        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}>
-          {/* Restaurant */}
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-            <div style={{width:36,height:36,background:rlD.color+"18",border:`2px solid ${rlD.color}33`,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{rlD.icon}</div>
-            <div style={{flex:1}}>
-              <div style={{display:"flex",justifyContent:"space-between"}}>
-                <span style={{fontSize:12,fontWeight:700,color:rlD.color,fontFamily:F.title}}>{rlD.name}</span>
-                <span style={{fontSize:11,fontWeight:700,color:rlD.color,fontFamily:F.body}}>N{rlD.l}</span>
-              </div>
-              <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden",marginTop:5}}>
-                <div style={{height:"100%",width:"100%",background:rlD.color,borderRadius:99,transformOrigin:"left center",transform:`scaleX(${(rl.pct||0)/100})`,transition:"transform 0.8s"}}/>
-              </div>
-              <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                {rl.l<RESTO_LVL.length-1?`${restoXp||0} / ${nextRl.xpNeeded} XP`:tl("stats.maxLevel")}
-              </div>
-            </div>
-          </div>
-          {/* Chef */}
-          <div style={{display:"flex",alignItems:"center",gap:10,borderTop:`1px solid ${C.border}`,paddingTop:10}}>
-            <div style={{width:36,height:36,background:clD.color+"18",border:`2px solid ${clD.color}33`,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{clD.icon}</div>
-            <div style={{flex:1}}>
-              <div style={{display:"flex",justifyContent:"space-between"}}>
-                <span style={{fontSize:12,fontWeight:700,color:clD.color,fontFamily:F.title}}>{clD.name}</span>
-                <span style={{fontSize:11,fontWeight:700,color:clD.color,fontFamily:F.body}}>N{cl.l}</span>
-              </div>
-              <div style={{height:6,background:C.border,borderRadius:99,overflow:"hidden",marginTop:5}}>
-                <div style={{height:"100%",width:"100%",background:clD.color,borderRadius:99,transformOrigin:"left center",transform:`scaleX(${(cl.l<CHEF_LVL.length-1?Math.min(100,Math.round(cl.r/cl.n*100)):100)/100})`,transition:"transform 0.8s"}}/>
-              </div>
-              <div style={{fontSize:9,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                {cl.l<CHEF_LVL.length-1?`${cl.r} / ${cl.n} XP`:tl("stats.maxLevel")} · ⚡×{clD.speed}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Prêt bancaire ── */}
-      {loan&&(
-        <div style={{background:C.amberP,border:`1.5px solid ${C.amber}44`,borderRadius:12,
-          padding:"12px 18px",marginBottom:16,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
-          <span style={{fontSize:18}}>🏦</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:11,fontWeight:700,color:C.amber,fontFamily:F.title}}>{tl("stats.loan")+" "+loan.label}</div>
-            <div style={{fontSize:10,color:C.ink,fontFamily:F.body,marginTop:1}}>
-              {tl("stats.remaining")} <strong>{loan.remaining.toFixed(2)} €</strong> · {loan.repayPerDay} {tl("stats.perDay")}
-            </div>
-          </div>
-          <div style={{height:7,width:150,background:C.border,borderRadius:99,overflow:"hidden"}}>
-            <div style={{height:"100%",borderRadius:99,background:C.amber,
-              width:"100%",transformOrigin:"left center",transform:`scaleX(${Math.max(0.02,1-loan.remaining/(loan.amount*(1+loan.rate)))})`}}/>
-          </div>
-        </div>
-      )}
-
-      {/* ── Performance serveurs ── */}
-      {servers?.length>0&&(
-        <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,overflow:"hidden",marginBottom:20}}>
-          <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:7}}>
-            <span style={{fontSize:14}}>👔</span>
-            <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>{tl("stats.serverPerf")}</span>
-          </div>
-          <div style={{overflowX:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:520}}>
-              <thead>
-                <tr style={{background:C.bg}}>
-                  {[tl("stats.serverName"),tl("stats.serverLevel"),tl("stats.serverMoral"),tl("stats.serverRating"),tl("stats.serverCheckouts"),tl("stats.serverCovers"),tl("stats.serverRevenue")].map(h=>(
-                    <th key={h} style={{padding:"8px 12px",fontSize:10,fontWeight:700,color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[...servers].sort((a,b)=>(b.dayRevenue||0)-(a.dayRevenue||0)).map((sv,i)=>{
-                  const sl=srvLv(sv.totalXp||0);
-                  const slD=SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
-                  const moral=sv.moral??100;
-                  const moralC=moral>=70?C.green:moral>=40?C.amber:C.red;
-                  const rating=sv.rating??0;
-                  const ratingC=rating>=4?C.green:rating>=3?C.amber:C.red;
-                  const isActive=sv.status==="actif";
-                  return(
-                    <tr key={sv.id} style={{background:i%2===0?C.card:C.bg,opacity:isActive?1:0.5}}>
-                      <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}11`}}>
-                        <div style={{display:"flex",alignItems:"center",gap:7}}>
-                          <div style={{width:28,height:28,borderRadius:"50%",background:slD.color+"22",
-                            border:`1.5px solid ${slD.color}44`,display:"flex",alignItems:"center",
-                            justifyContent:"center",fontSize:14,flexShrink:0}}>{slD.icon}</div>
-                          <div>
-                            <div style={{fontSize:11,fontWeight:700,color:C.ink}}>{sv.name}</div>
-                            {!isActive&&<div style={{fontSize:9,color:C.muted}}>{sv.status}</div>}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}11`}}>
-                        <span style={{fontSize:11,fontWeight:700,color:slD.color}}>N{sl.l}</span>
-                        <span style={{fontSize:9,color:C.muted,marginLeft:4}}>{slD.name}</span>
-                      </td>
-                      <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}11`}}>
-                        <div style={{display:"flex",alignItems:"center",gap:5}}>
-                          <div style={{width:40,height:5,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                            <div style={{height:"100%",width:"100%",background:moralC,borderRadius:99,transformOrigin:"left center",transform:`scaleX(${moral/100})`}}/>
-                          </div>
-                          <span style={{fontSize:10,fontWeight:700,color:moralC}}>{moral}%</span>
-                        </div>
-                      </td>
-                      <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}11`}}>
-                        <span style={{fontSize:11,fontWeight:700,color:ratingC}}>{"★".repeat(Math.round(rating))}{"☆".repeat(5-Math.round(rating))}</span>
-                        <span style={{fontSize:9,color:C.muted,marginLeft:4}}>{rating.toFixed(1)}</span>
-                      </td>
-                      <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}11`,textAlign:"center"}}>
-                        <span style={{fontSize:12,fontWeight:700,color:(sv.dayCheckouts||0)>0?C.navy:C.muted}}>
-                          {sv.dayCheckouts||0}
-                        </span>
-                      </td>
-                      <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}11`,textAlign:"center"}}>
-                        <span style={{fontSize:12,fontWeight:700,color:(sv.dayCovers||0)>0?C.green:C.muted}}>
-                          {sv.dayCovers||0}
-                        </span>
-                      </td>
-                      <td style={{padding:"9px 12px",borderBottom:`1px solid ${C.border}11`}}>
-                        <span style={{fontSize:12,fontWeight:700,color:(sv.dayRevenue||0)>0?C.amber:C.muted}}>
-                          {(sv.dayRevenue||0)>0?`${(sv.dayRevenue||0).toFixed(0)} €`:"—"}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ── Tableau journalier ── */}
-      <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
-        <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:7}}>
-          <span style={{fontSize:14}}>📅</span>
-          <span style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title}}>{period+" "+tl("stats.days")}</span>
-        </div>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontFamily:F.body,minWidth:840}}>
-            <thead>
-              <tr style={{background:C.bg}}>
-                {[tl("stats.day"),"✅ "+tl("stats.served"),"😤 "+tl("stats.lost"),tl("stats.rate"),"💶 "+tl("stats.revenue"),"📦 "+tl("stats.stocks"),"🏦 "+tl("stats.loanRepay"),"💸 "+tl("stats.salaries")+" ("+tl("stats.estimated")+")","⚖️ "+tl("stats.net")+" ("+tl("stats.estimated")+")"].map(h=>(
-                  <th key={h} style={{padding:"9px 14px",fontSize:10,fontWeight:700,color:C.muted,textAlign:"left",borderBottom:`1px solid ${C.border}`}}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {days.map((d,i)=>{
-                const total=d.served+d.lost;
-                const rate=total>0?Math.round((d.served/total)*100):0;
-                const rc=rate>=80?C.green:rate>=50?C.amber:C.red;
-                const estSalary=+(totalSalaryPerHour*18).toFixed(0);
-                const actualSalary=d.salary??0;
-                const actualStock=+(d.stock||0);
-                const actualLoan=+(d.loan||0);
-                const net=+(d.revenue-actualSalary-actualStock-actualLoan).toFixed(2);
-                const estNet=+(d.revenue-estSalary-actualStock-actualLoan).toFixed(2);
-                return(
-                  <tr key={d.day??i} style={{background:i===0?C.greenP:i%2===0?C.card:C.bg}}>
-                    <td style={{padding:"9px 14px",fontSize:12,fontWeight:i===0?700:500,color:C.ink,borderBottom:`1px solid ${C.border}11`}}>
-                      {tl("stats.day")+" "+(d.day??"")}{i===0&&<span style={{marginLeft:5,fontSize:8,background:C.green,color:"#fff",borderRadius:3,padding:"1px 5px",fontWeight:700}}>{tl("stats.inProgress")}</span>}
-                    </td>
-                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
-                      <span style={{fontSize:12,fontWeight:700,color:C.green}}>{d.served}</span>
-                    </td>
-                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
-                      <span style={{fontSize:12,fontWeight:700,color:d.lost>0?C.red:C.muted}}>{d.lost}</span>
-                    </td>
-                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
-                      <div style={{display:"flex",alignItems:"center",gap:7}}>
-                        <div style={{width:55,height:6,background:C.border,borderRadius:4,overflow:"hidden"}}>
-                          <div style={{height:"100%",width:"100%",background:rc,borderRadius:4,transformOrigin:"left center",transform:`scaleX(${rate/100})`}}/>
-                        </div>
-                        <span style={{fontSize:10,fontWeight:700,color:rc}}>{total>0?`${rate}%`:"—"}</span>
-                      </div>
-                    </td>
-                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
-                      <span style={{fontSize:12,fontWeight:700,color:C.amber}}>
-                        {d.revenue.toLocaleString(locale,{minimumFractionDigits:2})} €
-                      </span>
-                    </td>
-                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
-                      <span style={{fontSize:12,fontWeight:700,color:actualStock>0?C.terra:C.muted}}>
-                        {actualStock>0?`−${actualStock.toFixed(2)} €`:"—"}
-                      </span>
-                    </td>
-                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
-                      <div style={{display:"flex",flexDirection:"column",gap:1}}>
-                        <span style={{fontSize:12,fontWeight:700,color:actualLoan>0?C.purple:C.muted}}>
-                          {actualLoan>0?`−${actualLoan.toFixed(2)} €`:"—"}
-                        </span>
-                        {loan?.repayPerDay>0&&(
-                          <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-                            {"(−"+loan.repayPerDay.toFixed(0)+" €)"}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
-                      <div style={{display:"flex",flexDirection:"column",gap:1}}>
-                        <span style={{fontSize:12,fontWeight:700,color:C.navy}}>
-                          {actualSalary>0?`−${actualSalary.toFixed(0)} €`:"—"}
-                        </span>
-                        {estSalary>0&&(
-                          <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-                            {"(−"+estSalary+" €)"}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}11`}}>
-                      <div style={{display:"flex",flexDirection:"column",gap:1}}>
-                        <span style={{fontSize:12,fontWeight:800,color:net>=0?C.green:C.red}}>
-                          {net>=0?"+":""}{net.toLocaleString(locale,{minimumFractionDigits:2})} €
-                        </span>
-                        {estSalary>0&&(
-                          <span style={{fontSize:10,color:estNet>=0?C.green:C.red,fontFamily:F.body}}>
-                            {"("+(estNet>=0?"+":"")+estNet.toLocaleString(locale,{minimumFractionDigits:2})+" €)"}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DailyTable days={days} period={period} loan={loan} kitchen={kitchen} servers={servers} locale={locale}/>
     </div>
   );
 }
