@@ -21,7 +21,7 @@ export const SvgTable = memo(function SvgTable({
   const fill = queueStale?"#e03030":isNettoyage?"#f5d878":isMange?"#4a9e78":isOrdering?"#3a5f8a":
     t.status==="occupée"?"#e07a45":myQ.length>0?"#5ab88a":"#c8e6d8";
 
-  const bill = isMange?t.order.reduce((s,o)=>s+o.price*o.qty,0):0;
+  const bill = isMange?(t.order||[]).reduce((s,o)=>s+o.price*o.qty,0):0;
   const themedBill = +bill.toFixed(2);
   const isEating = isMange&&t.eatUntil&&now<t.eatUntil;
   const eatPct = isEating

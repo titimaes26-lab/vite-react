@@ -1,3 +1,4 @@
+import { C } from "../../constants/gameData.js";
 import { HeaderTop } from "./HeaderTop.jsx";
 import { NavDesktop } from "./NavDesktop.jsx";
 import { NavMobile } from "./NavMobile.jsx";
@@ -21,7 +22,7 @@ export function AppHeader({
   };
 
   return (
-    <div style={{position:"sticky",top:0,zIndex:1000,background:"#faf7f0"}}>
+    <div style={{position:"sticky",top:0,zIndex:1000,background:C.surface}}>
       <HeaderTop
         bp={bp} sAlerts={sAlerts} nCompl={nCompl} queue={queue}
         phase={phase} gameTime={gameTime} loan={loan} openBank={openBank}
@@ -29,7 +30,7 @@ export function AppHeader({
         adWatching={adWatching} setAdWatching={setAdWatching} setCash={setCash} addTx={addTx} addToast={addToast}
         setShowHelp={setShowHelp} setShowResetModal={setShowResetModal}
         rl={rl} rlD={rlD} restoXp={restoXp} reputation={reputation}
-        complaints={complaints} setSeenIds={setSeenIds} setTab={setTab}
+        complaints={complaints} setSeenIds={setSeenIds} setTab={setTab} tab={tab}
         activeTables={activeTables}/>
       <NavDesktop {...navProps}/>
       <NavMobile {...navProps}/>

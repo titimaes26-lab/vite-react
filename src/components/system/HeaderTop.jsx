@@ -11,7 +11,7 @@ export const HeaderTop = memo(function HeaderTop({
   adWatching, setAdWatching, setCash, addTx, addToast,
   setShowHelp, setShowResetModal,
   rl, rlD, restoXp, reputation,
-  complaints, setSeenIds, setTab, activeTables,
+  complaints, setSeenIds, setTab, tab, activeTables,
 }) {
   const { t: tl } = useLang();
   return (
@@ -40,7 +40,7 @@ export const HeaderTop = memo(function HeaderTop({
               ⚠ {sAlerts}
             </div>
           )}
-          {nCompl>0&&(
+          {nCompl>0&&tab!=="complaints"&&(
             <button onClick={()=>{setTab("complaints");setSeenIds(p=>new Set([...p,...complaints.filter(c=>c.status==="nouveau").map(c=>c.id)]));}} style={{background:C.terraP,border:`1.5px solid ${C.terra}28`,borderRadius:8,padding:"7px 9px",fontSize:10,color:C.terra,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",fontFamily:F.body,boxShadow:`0 1px 4px ${C.terra}18`,minHeight:44,display:"flex",alignItems:"center"}}>
               💬 {nCompl}
             </button>

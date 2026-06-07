@@ -23,7 +23,7 @@ export const PhaseTimeline = memo(function PhaseTimeline({
   const phases = [
     { id:"commande", icon:"🛎", label:tr("tables.phaseOrder"), color:C.navy,
       done:!isOrdering&&(isCooking||isMange||isNettoyage), active:isOrdering,
-      pct:isOrdering?Math.min(100,Math.round((1-secsLeft/((tLive.svcUntil-tLive.placedAt)/1000||30))*100)):100,
+      pct:isOrdering?Math.min(100,Math.max(0,Math.round((1-secsLeft/((tLive.svcUntil-tLive.placedAt)/1000||30))*100))):100,
       timer:isOrdering?secsLeft:null },
     { id:"cuisine", icon:"🔥", label:tr("tables.phaseKitchen"), color:C.terra,
       done:isMange||isNettoyage, active:isCooking, pct:panelCookPct, timer:panelCookRemaining },

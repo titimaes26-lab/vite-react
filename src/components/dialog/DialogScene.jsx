@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { F } from "../../constants/gameData.js";
 import { useLang } from "../../i18n/index.jsx";
 import { SPEAKERS_FR, SPEAKERS_EN } from "../../constants/dialogData.js";
@@ -38,12 +38,13 @@ export function DialogScene({ dialogData, ctaLabel = "OK", onDone }) {
   const isLast = line.isLast || step === dialogData.length - 1;
   const nextSp = !isLast ? SPEAKERS[dialogData[step + 1]?.speaker] : null;
 
-  const next = () => {
+  const next = useCallback(() => {
     if (isLast) { setVisible(false); setTimeout(onDone, 350); return; }
     if (dialogData[step + 1].speaker !== line.speaker) setImgKey(k => k + 1);
     setStep(s => s + 1);
-  };
+  }, [isLast, onDone, dialogData, step, line.speaker]);
 
+  const onNext = useCallback((e) => { e.stopPropagation(); next(); }, [next]);
   const skip = (e) => { e.stopPropagation(); setVisible(false); setTimeout(onDone, 350); };
 
   return (
@@ -66,7 +67,7 @@ export function DialogScene({ dialogData, ctaLabel = "OK", onDone }) {
           dialogData={dialogData} SPEAKERS={SPEAKERS}
           step={step} sp={sp} nextSp={nextSp}
           isLast={isLast} ctaLabel={ctaLabel}
-          onNext={e=>{e.stopPropagation();next();}}/>
+          onNext={onNext}/>
       </div>
 
       <style>{`

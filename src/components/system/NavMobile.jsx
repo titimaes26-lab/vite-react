@@ -12,7 +12,9 @@ export const NavMobile = memo(function NavMobile({
     <div className="mobile-nav" style={{background:C.surface,borderBottom:`1px solid ${C.border}`,boxShadow:"0 2px 8px rgba(23,18,14,0.07)",justifyContent:"space-around",alignItems:"stretch",paddingTop:"env(safe-area-inset-top,0px)"}}>
       {TABS.map(t=>{
         const readyChallenges=(todayChallenges||[]).filter(ch=>{
-          const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):(challengeProgress[ch.key]||0);
+          const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):
+            ch.key==="fullHouse"||ch.key==="vip"?(challengeProgress[ch.key]||0):
+            (challengeProgress[ch.key]||0);
           return val>=ch.target&&!(challengeClaimed||{})[ch.id];
         }).length;
         const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:t.id==="cuisine"?kitchen.queue.length:0;

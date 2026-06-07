@@ -49,7 +49,7 @@ export const DailyChallengesSection = memo(function DailyChallengesSection({
                   </div>
                   <span style={{fontSize:10,color:done?C.purple:C.muted,fontWeight:done?700:400,fontFamily:F.body,flexShrink:0}}>
                     {ch.key==="noLoss"?(challengeLostToday?"✗":"✓"):
-                     ch.key==="fullHouse"||ch.key==="vip"?(val>=1?"✓":tl("objectives.waiting")):
+                     ch.key==="fullHouse"||ch.key==="vip"?(val>=ch.target?"✓":tl("objectives.waiting")):
                      `${typeof val==="number"&&ch.key==="revenue"?val.toFixed(0):val}/${ch.target}`}
                   </span>
                 </div>
