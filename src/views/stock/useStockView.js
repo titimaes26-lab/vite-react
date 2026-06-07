@@ -4,52 +4,56 @@ import { addLot, stockCap } from "../../utils/orderUtils.js";
 
 export const catIcon = {Viandes:"🥩",Poissons:"🐟",Fins:"⭐",Légumes:"🥦","Légumes & Herbes":"🌿",Herbes:"🌿",Laitiers:"🧈",Épicerie:"🫙",Boissons:"🍷"};
 
+// Fix #8: module scope — no closure over hook state
+const dec = (d) => Array.isArray(d.ingredients)?d.ingredients:[];
+
 export function useStockView({ stock, setStock, cash, setCash, addTx, addToast, addDayStat, kitchen, supplierMode, setSupplierMode, pendingDeliveries, setPendingDeliveries, menu, restoLvN }) {
   const storageMult = 1+(kitchen?.upgrades?.stockage||0);
-  const dec = (d) => Array.isArray(d.ingredients)?d.ingredients:[];
 
-  // Fix #2+#8: single memoized Set — enabled filter consistent with visibleStock
-  const unlockedIds = useMemo(()=>new Set(
+  // Fix #8+#9: single useMemo builds both unlockedIds and menuUsageMap in one menu pass
+  const { unlockedIds, menuUsageMap } = useMemo(()=>{
+    const unlockedIds = new Set();
+    const menuUsageMap = new Map();
     menu.filter(d=>d.enabled!==false&&(d.unlockLevel??0)<=restoLvN)
-      .flatMap(d=>dec(d).map(i=>i.stockId))
-  ),[menu,restoLvN]);
+      .forEach(d=>dec(d).forEach(ing=>{
+        unlockedIds.add(ing.stockId);
+        const prev = menuUsageMap.get(ing.stockId);
+        menuUsageMap.set(ing.stockId, prev===undefined?ing.qty:Math.min(prev,ing.qty));
+      }));
+    return { unlockedIds, menuUsageMap };
+  },[menu,restoLvN]);
 
-  // Fix #8: memoized derived arrays
   const visibleStock = useMemo(()=>stock.filter(s=>unlockedIds.has(s.id)),[stock,unlockedIds]);
 
   const [viewMode, setViewMode] = useState("cartes");
   const [collapsedCats, setCollapsedCats] = useState({});
   const [sortMode, setSortMode] = useState("urgence");
 
-  // Fix #4+#8: alert>0 guard prevents silent no-op when alert===0
   const alerts = useMemo(()=>stock.filter(s=>s.alert>0&&unlockedIds.has(s.id)&&s.qty<=s.alert),[stock,unlockedIds]);
   const staleItems = useMemo(()=>visibleStock.filter(s=>(s.freshness??100)<20&&s.qty>0),[visibleStock]);
 
   const sup = useMemo(()=>SUPPLIERS[supplierMode]??SUPPLIERS["normal"],[supplierMode]);
 
-  // Fix #5: useCallback so React.memo children don't re-render on identity churn
+  // Fix #9: O(1) lookup per call — menu is pre-indexed by menuUsageMap
   const portionsPerIngredient = useCallback((stockId)=>{
-    const uses = menu.filter(m=>m.enabled!==false&&(m.unlockLevel??0)<=restoLvN)
-      .flatMap(m=>(m.ingredients||[]).filter(i=>i.stockId===stockId));
-    if(!uses.length) return null;
+    const minUse = menuUsageMap.get(stockId);
+    if(minUse===undefined) return null;
     const item = stock.find(s=>s.id===stockId);
     if(!item) return null;
-    const minUse = Math.min(...uses.map(u=>u.qty));
-    return minUse>0?Math.floor(item.qty/minUse):null;
-  },[menu,restoLvN,stock]);
+    return minUse>0 ? Math.floor(item.qty/minUse) : null;
+  },[menuUsageMap,stock]);
 
-  // Fix #7: memoized to avoid O(N×M) scan on every render
+  // Fix #7: iterate visibleStock only — non-unlocked items return null anyway
   const criticalIngredients = useMemo(()=>
-    [...stock]
+    [...visibleStock]
       .map(it=>({...it,portions:portionsPerIngredient(it.id)}))
       .filter(it=>it.portions!==null&&it.portions<10)
       .sort((a,b)=>(a.portions??999)-(b.portions??999))
       .slice(0,3),
-  [stock,portionsPerIngredient]);
+  [visibleStock,portionsPerIngredient]);
 
   const inventoryValue = useMemo(()=>visibleStock.reduce((sum,s)=>sum+(s.qty*(s.price||0)),0),[visibleStock]);
 
-  // Fix #6: useCallback + null guard on pendingDeliveries
   const pendingQty = useCallback((stockId)=>(pendingDeliveries??[]).reduce((sum,d)=>{
     const found = d.items.find(i=>i.stockId===stockId);
     return sum+(found?found.qty:0);
@@ -90,10 +94,11 @@ export function useStockView({ stock, setStock, cash, setCash, addTx, addToast, 
     setStock(p=>p.map(s=>s.id===id?{...s,alert:val}:s));
   },[setStock]);
 
-  // Fix #3+#10: storageMult applied to target; wrapped in useCallback
+  // Fix #2+#10: alert>0 guard prevents silent no-op; stockCap used directly (no ×6 duplication)
   const orderByForecast = useCallback(()=>{
     criticalIngredients.forEach(it=>{
-      const qty = +(it.alert*6*storageMult-it.qty-pendingQty(it.id)).toFixed(3);
+      if(it.alert<=0) return;
+      const qty = +(stockCap(it,storageMult)-it.qty-pendingQty(it.id)).toFixed(3);
       if(qty>0){
         const inst = deductCost(it,qty);
         if(inst) setStock(p=>p.map(s=>s.id===it.id?addLot(s,qty):s));
@@ -101,7 +106,6 @@ export function useStockView({ stock, setStock, cash, setCash, addTx, addToast, 
     });
   },[criticalIngredients,storageMult,pendingQty,deductCost,setStock]);
 
-  // Fix #9+#10: uses stockCap; wrapped in useCallback
   const restockAll = useCallback(()=>{
     if(!alerts.length) return;
     const itemTarget = (s)=>Math.min(s.alert*2, stockCap(s,storageMult));
@@ -124,9 +128,10 @@ export function useStockView({ stock, setStock, cash, setCash, addTx, addToast, 
     });
   },[alerts,storageMult,sup,cash,addToast,deductCost,setStock]);
 
-  // Fix #8: cats and sortedStock memoized
   const cats = useMemo(()=>[...new Set(visibleStock.map(s=>s.cat))],[visibleStock]);
-  const toggleCat = (cat)=>setCollapsedCats(p=>({...p,[cat]:!p[cat]}));
+
+  // Fix #3: useCallback — was the only non-memoized handler, busting StockCardsView memo
+  const toggleCat = useCallback((cat)=>setCollapsedCats(p=>({...p,[cat]:!p[cat]})),[]);
 
   const sortedStock = useMemo(()=>[...visibleStock].sort((a,b)=>{
     if(sortMode==="urgence"){

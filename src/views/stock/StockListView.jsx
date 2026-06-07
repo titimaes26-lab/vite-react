@@ -23,7 +23,7 @@ export const StockListView = memo(function StockListView({ sortedStock, storageM
             const low = it.qty<=it.alert;
             const cap = stockCap(it,storageMult);
             const pct = cap>0?Math.min(100,(it.qty/cap)*100):0;
-            const barColor = getBarColor(it,storageMult);
+            const barColor = getBarColor(it,storageMult,cap);
             const portions = portionsPerIngredient(it.id);
             const amounts = quickAmounts(it.unit).slice(0,2);
             return(
@@ -69,7 +69,11 @@ export const StockListView = memo(function StockListView({ sortedStock, storageM
                         <button key={n} onClick={()=>{
                           if(wouldExceed) return;
                           const inst = deductCost(it,n);
-                          if(inst) setStock(p=>p.map(s=>s.id===it.id?addLot(s,n):s));
+                          if(inst) setStock(p=>p.map(s=>{
+                            if(s.id!==it.id) return s;
+                            const safeN = Math.max(0,Math.min(n,stockCap(s,storageMult)-s.qty));
+                            return safeN>0?addLot(s,safeN):s;
+                          }));
                         }} disabled={wouldExceed} style={{
                           padding:"3px 8px",fontSize:10,fontWeight:700,borderRadius:5,
                           background:wouldExceed?C.bg:C.greenP,color:wouldExceed?C.muted:C.green,

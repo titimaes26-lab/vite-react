@@ -17,7 +17,7 @@ export const StockChartView = memo(function StockChartView({ sortedStock, storag
           const cap = stockCap(it,storageMult);
           const pct = cap>0?Math.min(100,(it.qty/cap)*100):0;
           const alertPct = cap>0?Math.min(100,(it.alert/cap)*100):0;
-          const barColor = getBarColor(it,storageMult);
+          const barColor = getBarColor(it,storageMult,cap);
           const low = it.qty<=it.alert;
           const portions = portionsPerIngredient(it.id);
           return(
