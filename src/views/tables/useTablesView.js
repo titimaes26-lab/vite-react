@@ -85,7 +85,7 @@ export function useTablesView({
     const t = tables.find(x=>x.id===tid); if (!t?.group) return;
     const bill = +t.order.reduce((s,o)=>s+o.price*o.qty,0).toFixed(2);
     const hasStale = t.order.some(o=>{
-      const mi=menu.find(m=>m.id===o.id); if(!mi) return false;
+      const mi=menu.find(m=>m.id===o.menuId); if(!mi) return false;
       return (mi.ingredients||[]).some(ing=>{const si=stock.find(s=>s.id===ing.stockId);return si&&(si.freshness??100)<20;});
     });
     const r = Math.max(1, calcRating(t.patienceLeftRatio??0.5, t.group.mood.b)-(hasStale?0.5:0));
@@ -110,7 +110,10 @@ export function useTablesView({
   };
 
   const quickPlace = (g) => { const ft=freeTbl(g)[0],sv=activeSrv[0]; if(ft&&sv) openKitchen(g,ft,sv); };
-  const openAssign = (g) => setModal(g);
+  const openAssign = (g) => {
+    setPreview(generateOrderWithFormulas(g, menu, formulas, restoLvN));
+    setModal(g);
+  };
   const toggleSelectClient = (g) => { setSelectedClient(prev=>prev?.id===g.id?null:g); setSelectedTable(null); };
   const placeClientAtTable = (g, table) => {
     const sv = activeSrv[0];

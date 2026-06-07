@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { C, F, CHEF_LVL, OBJECTIVES_DEF } from "../constants/gameData.js";
+import { C, F, CHEF_LVL } from "../constants/gameData.js";
 import { REP_THRESHOLDS, getRepTier } from "../constants/gameConstants.js";
 import { restoLv, chefLv } from "../utils/levelUtils.js";
 import { useLang } from "../i18n/index.jsx";

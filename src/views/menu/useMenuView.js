@@ -37,18 +37,17 @@ export function useMenuView({ menu, setMenu, stock, formulas, setFormulas, resto
     })));
   }, [stock]);
 
+  const maxOrders = useMemo(() => Math.max(...menu.map(m=>m.orderCount||0), 1), [menu]);
+
   const perfScore = useCallback((m) => {
     const mg = dishMargin(m)||0;
-    const maxOrd = Math.max(...menu.map(x=>x.orderCount||0), 1);
-    const pop = Math.min(100, ((m.orderCount||0)/maxOrd)*100);
-    const avail = portionsLeft(m)>=5?100:portionsLeft(m)*20;
-    return Math.round(mg*0.4+pop*0.4+avail*0.2);
-  }, [dishMargin, portionsLeft, menu]);
+    const pop = Math.min(100, ((m.orderCount||0)/maxOrders)*100);
+    const pl = portionsLeft(m);
+    return Math.round(mg*0.4+pop*0.4+(pl>=5?100:pl*20)*0.2);
+  }, [dishMargin, portionsLeft, maxOrders]);
 
   const marginColor = useCallback((mg) => mg>=60?C.green:mg>=40?C.amber:C.red, []);
   const marginBg = useCallback((mg) => mg>=60?C.greenP:mg>=40?C.amberP:C.redP, []);
-
-  const maxOrders = useMemo(() => Math.max(...menu.map(m=>m.orderCount||0), 1), [menu]);
 
   const { sorted, locked } = useMemo(() => {
     const base = catFilter==="Tout" ? menu : menu.filter(m=>m.cat===catFilter);

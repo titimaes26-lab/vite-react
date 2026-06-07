@@ -11,7 +11,7 @@ import { QueuePanel } from "./tables/QueuePanel.jsx";
 import { KitchenBar } from "./tables/KitchenBar.jsx";
 import { AssignModal } from "./tables/AssignModal.jsx";
 
-export const TablesView = memo(function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,gameTime,onTableUpgrade,setComplaints,dailySpecials,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,formulas=[],stock=[],bp={}}) {
+export const TablesView = memo(function TablesView({tables,setTables,servers,setServers,menu,setMenu,setKitchen,kitchen,addToast,addRestoXp,cash,setCash,addTx,queue,setQueue,waitlist,setWaitlist,addDayStat,gameTime,onTableUpgrade,activeEvent,setChallengeProgress,reputation,updateReputation,restoLvN=0,formulas=[],stock=[],bp={}}) {
   const { t: tr } = useLang();
   const {
     now, selectedTable, setSelectedTable, selectedClient, setSelectedClient,

@@ -3,7 +3,7 @@ import { C, F } from "../../constants/gameData.js";
 import { useLang } from "../../i18n/index.jsx";
 import { PieChart } from "./PieChart.jsx";
 
-const CAT_COLORS = { Entrées:C.green, Plats:C.terra, Desserts:C.purple, Boissons:C.navy, Formules:C.amber };
+const CAT_COLORS = { "Petit Déjeuner":C.amber, Entrées:C.green, Plats:C.terra, Desserts:C.purple, Boissons:C.navy, Formules:C.amber };
 
 export const FinancialPanel = memo(function FinancialPanel({ transactions, currentGameDay, menu, kitchen, servers, bp, avgBasket }) {
   const { t: tl } = useLang();
@@ -22,7 +22,7 @@ export const FinancialPanel = memo(function FinancialPanel({ transactions, curre
     dépense:       { l:tl("stats.expEquipment"),  icon:"🔧", c:C.muted   },
   };
 
-  const catRevenue = { Entrées:0, Plats:0, Desserts:0, Boissons:0, Formules:0 };
+  const catRevenue = { "Petit Déjeuner":0, Entrées:0, Plats:0, Desserts:0, Boissons:0, Formules:0 };
   menu.forEach(m=>{
     if(catRevenue[m.cat]!==undefined) catRevenue[m.cat] += m.price*(m.dayOrderCount||0);
     catRevenue.Formules += m.dayFormulaRevenue||0;

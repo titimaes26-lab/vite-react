@@ -49,14 +49,14 @@ export function useServersView({ kitchen, setKitchen, cash, setCash, addTx, addT
     const today=new Date().toLocaleDateString("fr-FR");
     if(commisPoolDate===today&&commisPool.length>0)return;
     setCommisPool(buildCommisPool(today)); setCommisPoolDate(today);
-  },[commisHireSlot]);
+  },[commisHireSlot, commisPoolDate, commisPool]);
 
   useEffect(()=>{
     if(chefHireIdx===null)return;
     const today=new Date().toLocaleDateString("fr-FR");
     if(chefPoolDate===today&&chefPool.length>0)return;
     setChefPool(buildAdditionalChefPool(today)); setChefPoolDate(today);
-  },[chefHireIdx]);
+  },[chefHireIdx, chefPoolDate, chefPool]);
 
   const hireCommis = (cand) => {
     if(cash<cand.hireCost)return;
