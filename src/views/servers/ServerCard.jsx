@@ -1,9 +1,9 @@
 import { memo } from "react";
 import { C, F, SRV_LVL } from "../../constants/gameData.js";
-import { TRAINING_CATALOG } from "../../constants/serverConstants.js";
-import { Badge, Card, Btn, XpBar } from "../../components/ui/index.js";
+import { Badge, Card, XpBar } from "../../components/ui/index.js";
 import { useLang } from "../../i18n/index.jsx";
 import { srvLv, TIER_UNLOCK_LV } from "../../utils/levelUtils.js";
+import { ServerActions } from "./ServerActions.jsx";
 
 const moralIcon  = (m) => m>=70?"😊":m>=40?"😐":m>=20?"😓":"💀";
 const moralKey   = (m) => m>=70?"moralFine":m>=40?"moralTired":m>=20?"moralExhausted":"moralBurnout";
@@ -55,8 +55,6 @@ export const ServerCard = memo(function ServerCard({
   const isBurnout   = moral<=10;
   const isExhausted = moral<=20;
   const sp          = sv.specialty;
-  const primeCost   = 50;
-  const canAffordPrime = cash>=primeCost;
 
   return(
     <Card accent={isBurnout?C.red+"66":slD.color+"44"}>
@@ -158,60 +156,14 @@ export const ServerCard = memo(function ServerCard({
       <div style={{fontSize:11,color:C.muted,marginBottom:12,fontFamily:F.body}}>
         <div>{asgn.length>0?"📍 "+asgn.map(t=>t.name).join(", "):tr("servers.noTable")}</div>
         <div style={{marginTop:2}}>{tr("servers.xpInfo",{xp:sv.totalXp,salary:(sv.salary||0).toFixed(0)})}</div>
-        {Object.keys(sv.trainings||{}).length>0&&(
-          <div style={{marginTop:5,display:"flex",gap:4,flexWrap:"wrap"}}>
-            {TRAINING_CATALOG.filter(d=>(sv.trainings||{})[d.id]>0).map(d=>(
-              <span key={d.id} style={{fontSize:9,background:d.color+"14",color:d.color,
-                border:`1px solid ${d.color}22`,borderRadius:5,padding:"1px 6px",
-                fontFamily:F.body,fontWeight:600}}>
-                {d.icon} N{(sv.trainings||{})[d.id]}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
       <ShiftPicker shift={sv.shift??null} onChange={s=>setServers(p=>p.map(x=>x.id===sv.id?{...x,shift:s}:x))}/>
 
-      <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-        {sv.status==="actif"&&!isWorking&&(
-          <Btn sm v="terra" onClick={()=>setServers(p=>p.map(x=>x.id===sv.id?{...x,status:"pause"}:x))}>
-            {tr("servers.pause")}
-          </Btn>
-        )}
-        {sv.status==="pause"&&(
-          <Btn sm v="primary" onClick={()=>setServers(p=>p.map(x=>x.id===sv.id?{...x,status:"actif"}:x))}>
-            {tr("servers.activate")}
-          </Btn>
-        )}
-        {isWorking&&(
-          <span style={{fontSize:11,color:C.amber,fontFamily:F.body,alignSelf:"center"}}>
-            {tr("servers.inService")}
-          </span>
-        )}
-        {moral<60&&!isWorking&&(
-          <Btn sm v={canAffordPrime?"navy":"disabled"} disabled={!canAffordPrime}
-            onClick={()=>{
-              if(!canAffordPrime)return;
-              setCash&&setCash(c=>+(c-primeCost).toFixed(2));
-              addTx&&addTx("achat",`Prime motivation — ${sv.name}`,primeCost);
-              setServers(p=>p.map(x=>x.id!==sv.id?x:{...x,moral:Math.min(100,x.moral+50)}));
-              addToast&&addToast({icon:"🎁",title:tr("servers.incentivePaid",{name:sv.name}),
-                msg:tr("servers.incentiveMsg",{cost:primeCost}),color:C.navy,tab:"servers",silent:true});
-            }}>
-            {tr("servers.incentive",{cost:primeCost})}
-          </Btn>
-        )}
-        {isWorking?(
-          <div style={{fontSize:9,color:C.amber,fontFamily:F.body,fontWeight:600,
-            background:C.amberP,borderRadius:6,padding:"3px 8px",border:`1px solid ${C.amber}33`}}>
-            {tr("servers.inServiceShort")}
-          </div>
-        ):(
-          <Btn sm v="danger" onClick={()=>onFire(sv)}>{tr("servers.fire")}</Btn>
-        )}
-        <Btn sm v="secondary" onClick={()=>onTrain(sv)} icon="🎓">{tr("servers.train")}</Btn>
-      </div>
+      <ServerActions
+        sv={sv} cash={cash} setServers={setServers} setCash={setCash}
+        addTx={addTx} addToast={addToast} onFire={onFire} onTrain={onTrain}
+      />
     </Card>
   );
 });

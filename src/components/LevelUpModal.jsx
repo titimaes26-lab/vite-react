@@ -1,65 +1,6 @@
-/* ═══════════════════════════════════════════════════════
-   src/components/LevelUpModal.jsx
-   Modale de passage de niveau restaurant
-═══════════════════════════════════════════════════════ */
 import { useState, useEffect } from "react";
-import { C, F, RESTO_LVL, SERVER_SLOTS_BY_LEVEL } from "../constants/gameData.js";
-
-/* ─── Calcul dynamique des déblocages ────────────────── */
-const ERA_LABELS = [
-  "Établissements locaux",
-  "Reconnaissance régionale",
-  "Gastronomie étoilée",
-  "Prestige international",
-  "Légende culinaire",
-];
-
-const computeUnlocks = (levelData) => {
-  const l = levelData.l;
-  const prev = RESTO_LVL[Math.max(0, l - 1)];
-  const cur  = levelData;
-  const items = [];
-
-  const isMax = l >= RESTO_LVL.length - 1;
-  const era   = Math.floor(l / 10);
-
-  // Nouvelle ère (tous les 10 niveaux)
-  if (l > 0 && l % 10 === 0) {
-    items.push({ icon: "🌟", text: `Nouvelle ère : ${ERA_LABELS[era] ?? "Légende"}` });
-  }
-
-  // Tables débloquées
-  if (cur.tables > prev.tables) {
-    const diff = cur.tables - prev.tables;
-    const suffix = isMax ? " (maximum)" : ` (+${diff})`;
-    items.push({ icon: "🪑", text: `${cur.tables} tables disponibles${suffix}` });
-  }
-
-  // Slots serveurs
-  const prevSlots = SERVER_SLOTS_BY_LEVEL[Math.max(0, l - 1)] ?? 2;
-  const curSlots  = SERVER_SLOTS_BY_LEVEL[l] ?? 2;
-  if (curSlots > prevSlots) {
-    const suffix = isMax ? " (maximum)" : ` (+${curSlots - prevSlots})`;
-    items.push({ icon: "👥", text: `${curSlots} slots serveurs${suffix}` });
-  }
-
-  // Jalons spéciaux
-  if (l === 2)  items.push({ icon: "⚡", text: "Spécialités serveurs débloquées" });
-  if (l === 2)  items.push({ icon: "🎓", text: "Formations disponibles" });
-  if (l === 5)  items.push({ icon: "🧑‍🍳", text: "2ème commis cuisine débloqué" });
-  if (l === 10) items.push({ icon: "🧑‍🍳", text: "3ème commis cuisine débloqué" });
-  if (l === 20) items.push({ icon: "🍷", text: "Clients VIP plus fréquents" });
-  if (l === 30) items.push({ icon: "🏅", text: "Événements exclusifs débloqués" });
-  if (l === 40) items.push({ icon: "🌐", text: "Réputation internationale" });
-  if (isMax)    items.push({ icon: "🏆", text: "Niveau maximum atteint !" });
-
-  // Fallback si rien de notable
-  if (items.length === 0) {
-    items.push({ icon: "📈", text: "Réputation et attractivité améliorées" });
-  }
-
-  return items;
-};
+import { C, F } from "../constants/gameData.js";
+import { computeUnlocks } from "../utils/levelUpUtils.js";
 
 export function LevelUpModal({ levelData, onClose }) {
   const [visible, setVisible] = useState(false);
@@ -105,14 +46,12 @@ export function LevelUpModal({ levelData, onClose }) {
           cursor: "default",
         }}
       >
-        {/* Header coloré */}
         <div style={{
           background: `linear-gradient(135deg, ${col}, ${col}cc)`,
           padding: "28px 24px 24px",
           textAlign: "center",
           position: "relative",
         }}>
-          {/* Étoiles décoratives */}
           <div style={{
             position: "absolute", inset: 0, overflow: "hidden",
             pointerEvents: "none", opacity: 0.15,
@@ -126,8 +65,6 @@ export function LevelUpModal({ levelData, onClose }) {
               }}>✦</div>
             ))}
           </div>
-
-          {/* Badge niveau */}
           <div style={{
             display: "inline-block",
             background: "rgba(255,255,255,0.2)",
@@ -139,8 +76,6 @@ export function LevelUpModal({ levelData, onClose }) {
           }}>
             Niveau {levelData.l}
           </div>
-
-          {/* Icône */}
           <div style={{
             fontSize: 56, lineHeight: 1,
             marginBottom: 10,
@@ -148,8 +83,6 @@ export function LevelUpModal({ levelData, onClose }) {
           }}>
             {levelData.icon}
           </div>
-
-          {/* Nom du niveau */}
           <div style={{
             fontSize: 26, fontWeight: 800,
             color: "#fff", fontFamily: F.title,
@@ -157,15 +90,11 @@ export function LevelUpModal({ levelData, onClose }) {
           }}>
             {levelData.name}
           </div>
-          <div style={{
-            fontSize: 13, color: "rgba(255,255,255,0.75)",
-            fontFamily: F.body,
-          }}>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", fontFamily: F.body }}>
             Félicitations, Patron !
           </div>
         </div>
 
-        {/* Corps — liste des déblocages */}
         <div style={{ padding: "20px 24px 24px" }}>
           <div style={{
             fontSize: 11, fontWeight: 700,
@@ -175,39 +104,27 @@ export function LevelUpModal({ levelData, onClose }) {
           }}>
             Nouveautés débloquées
           </div>
-
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {unlocks.map((u, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  background: C.bg, borderRadius: 10,
-                  padding: "10px 14px",
-                  border: `1px solid ${C.border}`,
-                  opacity: itemsVisible ? 1 : 0,
-                  transform: itemsVisible ? "translateX(0)" : "translateX(-12px)",
-                  transition: `opacity 0.3s ease ${i * 0.07}s, transform 0.3s ease ${i * 0.07}s`,
-                }}
-              >
+              <div key={i} style={{
+                display: "flex", alignItems: "center", gap: 12,
+                background: C.bg, borderRadius: 10,
+                padding: "10px 14px",
+                border: `1px solid ${C.border}`,
+                opacity: itemsVisible ? 1 : 0,
+                transform: itemsVisible ? "translateX(0)" : "translateX(-12px)",
+                transition: `opacity 0.3s ease ${i * 0.07}s, transform 0.3s ease ${i * 0.07}s`,
+              }}>
                 <span style={{ fontSize: 20, flexShrink: 0 }}>{u.icon}</span>
-                <span style={{
-                  fontSize: 13, fontWeight: 600,
-                  color: "#2a1f14", fontFamily: F.body,
-                }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#2a1f14", fontFamily: F.body }}>
                   {u.text}
                 </span>
-                <span style={{
-                  marginLeft: "auto", flexShrink: 0,
-                  fontSize: 12, color: col, fontWeight: 700,
-                }}>
+                <span style={{ marginLeft: "auto", flexShrink: 0, fontSize: 12, color: col, fontWeight: 700 }}>
                   ✓
                 </span>
               </div>
             ))}
           </div>
-
-          {/* Bouton */}
           <button
             onClick={handleClose}
             style={{
