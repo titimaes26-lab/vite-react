@@ -1,8 +1,11 @@
 import { C, F, SRV_LVL } from "../../constants/gameData.js";
 import { Btn } from "../../components/ui/index.js";
+import { useLang } from "../../i18n/index.jsx";
 import { srvLv } from "../../utils/levelUtils.js";
 
-export function HireModal({ candidatePool, cash, restoLvN, tierCap, servers, maxSlots, tr, onClose, hireCandidate }) {
+export function HireModal({ candidatePool, cash, restoLvN, tierCap, servers, maxSlots, onClose, hireCandidate }) {
+  const { t: tr } = useLang();
+  const shown = candidatePool.slice(0, 3);
   return (
     <div onClick={onClose}
       style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",
@@ -20,7 +23,7 @@ export function HireModal({ candidatePool, cash, restoLvN, tierCap, servers, max
               {tr("servers.candidates")}
             </div>
             <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:3}}>
-              {tr("servers.candidatesInfo",{shown:candidatePool.slice(0,3).length,s:candidatePool.slice(0,3).length>1?"s":"",total:candidatePool.length,hired:servers.length,max:maxSlots})}
+              {tr("servers.candidatesInfo",{shown:shown.length,s:shown.length>1?"s":"",total:candidatePool.length,hired:servers.length,max:maxSlots})}
             </div>
           </div>
           <button onClick={onClose}
@@ -32,7 +35,7 @@ export function HireModal({ candidatePool, cash, restoLvN, tierCap, servers, max
         <div style={{padding:"10px 22px",background:C.bg,borderBottom:`1px solid ${C.border}`,
           display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Solde :</span>
+            <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>{tr("servers.balance")}</span>
             <span style={{fontSize:14,fontWeight:700,color:C.green,fontFamily:F.title}}>
               {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
             </span>
@@ -41,7 +44,7 @@ export function HireModal({ candidatePool, cash, restoLvN, tierCap, servers, max
             background:C.navyP,border:`1px solid ${C.navy}22`,borderRadius:7,padding:"3px 10px"}}>
             <span style={{fontSize:11}}>🎓</span>
             <span style={{fontSize:10,color:C.navy,fontWeight:600,fontFamily:F.body}}>
-              Candidats niv. {restoLvN||0} · Tier max : {SRV_LVL[Math.min(tierCap,SRV_LVL.length-1)].name}
+              {tr("servers.candidateTierBadge",{level:restoLvN||0,tierName:SRV_LVL[Math.min(tierCap,SRV_LVL.length-1)].name})}
             </span>
           </div>
         </div>
@@ -53,7 +56,7 @@ export function HireModal({ candidatePool, cash, restoLvN, tierCap, servers, max
               <div style={{fontSize:13,fontWeight:600}}>{tr("servers.noCandidates")}</div>
               <div style={{fontSize:11,marginTop:4}}>{tr("servers.noCandidatesMsg")}</div>
             </div>
-          ):candidatePool.slice(0,3).map(c=>{
+          ):shown.map(c=>{
             const sl = srvLv(c.totalXp);
             const slD = SRV_LVL[Math.min(sl.l, SRV_LVL.length-1)];
             const canAffordC = cash >= c.hireCost;

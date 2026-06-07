@@ -1,8 +1,10 @@
 import { C, F, SRV_LVL } from "../../constants/gameData.js";
 import { Btn, Modal } from "../../components/ui/index.js";
+import { useLang } from "../../i18n/index.jsx";
 import { srvLv } from "../../utils/levelUtils.js";
 
-export function FireModal({ sv, cash, tables, tr, onClose, doFire }) {
+export function FireModal({ sv, cash, tables, onClose, doFire }) {
+  const { t: tr } = useLang();
   const totalXp        = sv.totalXp  ?? 0;
   const salary         = sv.salary   ?? 12;
   const moral          = sv.moral    ?? 100;

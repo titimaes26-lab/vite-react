@@ -2,6 +2,7 @@ import { memo } from "react";
 import { C, F, SRV_LVL } from "../../constants/gameData.js";
 import { TRAINING_CATALOG } from "../../constants/serverConstants.js";
 import { Badge, Card, Btn, XpBar } from "../../components/ui/index.js";
+import { useLang } from "../../i18n/index.jsx";
 import { srvLv, TIER_UNLOCK_LV } from "../../utils/levelUtils.js";
 
 const moralIcon  = (m) => m>=70?"😊":m>=40?"😐":m>=20?"😓":"💀";
@@ -39,8 +40,9 @@ const sBg    = {actif:C.greenP,pause:C.terraP,repos:C.bg,service:C.amberP,nettoy
 
 export const ServerCard = memo(function ServerCard({
   sv, serviceRemSecs, cleanRemSecs, cleaningTableName, tables,
-  tierCap, cash, tr, setServers, setCash, addTx, addToast, onFire, onTrain,
+  tierCap, cash, setServers, setCash, addTx, addToast, onFire, onTrain,
 }) {
+  const { t: tr } = useLang();
   const sl          = srvLv(sv.totalXp||0);
   const slD         = SRV_LVL[Math.min(sl.l,SRV_LVL.length-1)];
   const asgn        = tables.filter(t=>t.server===sv.name);

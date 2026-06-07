@@ -38,17 +38,13 @@ export function useSalleSection({
 }) {
   const { t: tr } = useLang();
   const [modal,   setModal]   = useState(false);
-  const [form,    setForm]    = useState({name:"",status:"actif",salary:"12"});
-  const [editId,  setEditId]  = useState(null);
   const [fireId,  setFireId]  = useState(null);
   const [trainId, setTrainId] = useState(null);
 
   const maxSlots  = SERVER_SLOTS_BY_LEVEL[restoLvN||0] ?? 2;
-  const hireCost  = parseFloat(form.salary) * 3;
   const tierCap   = srvTierCap(restoLvN||0);
   const activeReq = STAFF_QUALITY_REQ.find(r => (restoLvN||0) >= r.atLv) || null;
   const canHire   = servers.length < maxSlots;
-  const canAfford = cash >= hireCost;
   const nextReq   = STAFF_QUALITY_REQ.find(r => (restoLvN||0) < r.atLv) || null;
   const reqMet    = !activeReq || servers.filter(s => srvLv(s.totalXp||0).l >= activeReq.tier).length >= activeReq.count;
 
@@ -117,23 +113,8 @@ export function useSalleSection({
     if(remaining.length === 0 || servers.length + 1 >= maxSlots) setModal(false);
   };
 
-  const openEdit  = (sv) => { setEditId(sv.id); setForm({name:sv.name,status:sv.status,salary:String(sv.salary||12)}); setModal("edit"); };
   const openTrain = useCallback((sv) => { setTrainId(sv.id); setModal("train"); }, []);
   const openFire  = useCallback((sv) => { setFireId(sv.id);  setModal("fire");  }, []);
-
-  const save = () => {
-    if(!form.name.trim()) return;
-    if(modal==="add"){
-      if(!canAfford){ addToast&&addToast({icon:"❌",title:"Fonds insuffisants",msg:`Recrutement : ${hireCost}€ requis`,color:C.red,tab:"servers"}); return; }
-      setCash&&setCash(c=>+(c-hireCost).toFixed(2));
-      addTx&&addTx("achat",`Recrutement — ${form.name}`,hireCost);
-      setServers(p=>[...p,{id:Date.now(),name:form.name,status:form.status,totalXp:0,rating:4.0,salary:+(form.salary||12)}]);
-      addToast&&addToast({icon:"👔",title:`${form.name} embauché·e !`,msg:`−${hireCost}€ · Salaire ${form.salary}€/h`,color:C.green,tab:"servers",silent:true});
-    } else {
-      setServers(p=>p.map(s=>s.id===editId?{...s,name:form.name,status:form.status,salary:+(form.salary||0)}:s));
-    }
-    setModal(false);
-  };
 
   const doFire = () => {
     const sv = servers.find(s=>s.id===fireId);
@@ -152,8 +133,8 @@ export function useSalleSection({
   };
 
   return {
-    tr, modal, setModal, form, setForm, editId, fireId, trainId, setFireId, setTrainId,
-    maxSlots, hireCost, tierCap, activeReq, canHire, canAfford, nextReq, reqMet,
-    doTrain, openHire, hireCandidate, openEdit, openTrain, openFire, save, doFire,
+    modal, setModal, fireId, trainId, setFireId, setTrainId,
+    maxSlots, tierCap, activeReq, canHire, nextReq, reqMet,
+    doTrain, openHire, hireCandidate, openTrain, openFire, doFire,
   };
 }

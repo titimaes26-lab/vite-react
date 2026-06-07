@@ -1,9 +1,11 @@
 import { C, F, SRV_LVL } from "../../constants/gameData.js";
 import { TRAINING_CATALOG } from "../../constants/serverConstants.js";
 import { Btn } from "../../components/ui/index.js";
+import { useLang } from "../../i18n/index.jsx";
 import { srvLv } from "../../utils/levelUtils.js";
 
-export function TrainModal({ sv, cash, tr, onClose, doTrain }) {
+export function TrainModal({ sv, cash, onClose, doTrain }) {
+  const { t: tr } = useLang();
   const sl  = srvLv(sv.totalXp);
   const slD = SRV_LVL[Math.min(sl.l, SRV_LVL.length-1)];
 

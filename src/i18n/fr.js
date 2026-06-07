@@ -124,6 +124,7 @@ export const fr = {
     teamFull: "Équipe complète",
     hire: "Embaucher un serveur",
     tierMax: "Tier max : {icon} {name}",
+    candidateTierBadge: "Candidats niv. {level} · Tier max : {tierName}",
     tierUnlocks: "{icon} {name} débloqué au restaurant niv. {level}",
     allTiersUnlocked: "Tous les tiers débloqués ✨",
     reqMet: "Exigence remplie",

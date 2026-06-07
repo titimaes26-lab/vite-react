@@ -1,6 +1,7 @@
 import { useClockNow } from "../../contexts/ClockContext.jsx";
 import { C, F, SRV_LVL, RESTO_LVL, SERVER_SLOTS_BY_LEVEL } from "../../constants/gameData.js";
 import { Btn } from "../../components/ui/index.js";
+import { useLang } from "../../i18n/index.jsx";
 import { TIER_UNLOCK_LV } from "../../utils/levelUtils.js";
 import { ServerCard } from "./ServerCard.jsx";
 import { TrainModal } from "./TrainModal.jsx";
@@ -10,10 +11,11 @@ import { useSalleSection } from "./useSalleSection.js";
 
 export function SalleSection({ servers, setServers, tables, restoLvN, cash, setCash, addTx, addToast, candidatePool, setCandidatePool, candidateDate, setCandidateDate, bp }) {
   const clockNow = useClockNow();
+  const { t: tr } = useLang();
   const {
-    tr, modal, setModal, fireId, trainId, setFireId, setTrainId,
+    modal, setModal, fireId, trainId, setFireId, setTrainId,
     maxSlots, tierCap, activeReq, canHire, nextReq, reqMet,
-    doTrain, openHire, hireCandidate, openTrain, openFire,
+    doTrain, openHire, hireCandidate, openTrain, openFire, doFire,
   } = useSalleSection({ servers, setServers, restoLvN, cash, setCash, addTx, addToast, candidatePool, setCandidatePool, candidateDate, setCandidateDate });
 
   const trainSv = modal==="train" ? servers.find(s=>s.id===trainId) : null;
@@ -98,7 +100,7 @@ export function SalleSection({ servers, setServers, tables, restoLvN, cash, setC
             <ServerCard key={sv.id} sv={sv}
               serviceRemSecs={serviceRemSecs} cleanRemSecs={cleanRemSecs}
               cleaningTableName={cleaningTable?.name??null}
-              tables={tables} tierCap={tierCap} cash={cash} tr={tr}
+              tables={tables} tierCap={tierCap} cash={cash}
               setServers={setServers} setCash={setCash} addTx={addTx} addToast={addToast}
               onFire={openFire} onTrain={openTrain}/>
           );
@@ -142,17 +144,17 @@ export function SalleSection({ servers, setServers, tables, restoLvN, cash, setC
       </div>
 
       {modal==="train"&&trainSv&&(
-        <TrainModal sv={trainSv} cash={cash} tr={tr}
+        <TrainModal sv={trainSv} cash={cash}
           onClose={()=>{setModal(false);setTrainId(null);}}
           doTrain={doTrain}/>
       )}
       {modal==="hire"&&(
         <HireModal candidatePool={candidatePool} cash={cash} restoLvN={restoLvN}
-          tierCap={tierCap} servers={servers} maxSlots={maxSlots} tr={tr}
+          tierCap={tierCap} servers={servers} maxSlots={maxSlots}
           onClose={()=>setModal(false)} hireCandidate={hireCandidate}/>
       )}
       {modal==="fire"&&fireSv&&(
-        <FireModal sv={fireSv} cash={cash} tables={tables} tr={tr}
+        <FireModal sv={fireSv} cash={cash} tables={tables}
           onClose={()=>{setModal(false);setFireId(null);}}
           doFire={doFire}/>
       )}

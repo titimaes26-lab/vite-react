@@ -124,6 +124,7 @@ export const en = {
     teamFull: "Team full",
     hire: "Hire a server",
     tierMax: "Max tier: {icon} {name}",
+    candidateTierBadge: "Candidates lv. {level} · Max tier: {tierName}",
     tierUnlocks: "{icon} {name} unlocked at restaurant level {level}",
     allTiersUnlocked: "All tiers unlocked ✨",
     reqMet: "Requirement met",
