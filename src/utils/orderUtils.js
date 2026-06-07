@@ -146,6 +146,9 @@ export const calcBill = (orderLines) =>
  * @param {string} unit
  * @returns {number[]}
  */
+export const stockCap = (item, storageMult) =>
+  (item.alert > 0 ? item.alert * 6 : Math.max(item.qty * 2, 10)) * storageMult;
+
 export const quickAmounts = (unit) => {
   if (["kg", "L"].includes(unit))                   return [0.5, 1, 5];
   if (["btl", "pcs", "bottes"].includes(unit))      return [1, 6, 12];

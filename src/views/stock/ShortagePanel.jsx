@@ -2,6 +2,7 @@ import { memo } from "react";
 import { useLang } from "../../i18n/index.jsx";
 import { C, F } from "../../constants/gameData.js";
 import { Btn } from "../../components/ui/index.js";
+import { stockCap } from "../../utils/orderUtils.js";
 
 export const ShortagePanel = memo(function ShortagePanel({ criticalIngredients, storageMult, orderByForecast }) {
   const { t: tl } = useLang();
@@ -29,7 +30,7 @@ export const ShortagePanel = memo(function ShortagePanel({ criticalIngredients, 
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:7}}>
         {criticalIngredients.map(it=>{
-          const cap = (it.alert>0?it.alert*6:Math.max(it.qty*2,10))*storageMult;
+          const cap = stockCap(it,storageMult);
           const pct = cap>0?Math.min(100,(it.qty/cap)*100):0;
           const urgencyColor = it.portions===0?C.red:it.portions<3?C.terra:C.amber;
           return(

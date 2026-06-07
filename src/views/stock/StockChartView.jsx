@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { useLang } from "../../i18n/index.jsx";
 import { C, F } from "../../constants/gameData.js";
-import { quickAmounts, addLot } from "../../utils/orderUtils.js";
+import { quickAmounts, addLot, stockCap } from "../../utils/orderUtils.js";
 import { getBarColor } from "./StockCard.jsx";
 
 export const StockChartView = memo(function StockChartView({ sortedStock, storageMult, portionsPerIngredient, pendingQty, deductCost, setStock, visibleStock }) {
@@ -14,7 +14,7 @@ export const StockChartView = memo(function StockChartView({ sortedStock, storag
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:5}}>
         {sortedStock.map(it=>{
-          const cap = (it.alert>0?it.alert*6:Math.max(it.qty*2,10))*storageMult;
+          const cap = stockCap(it,storageMult);
           const pct = cap>0?Math.min(100,(it.qty/cap)*100):0;
           const alertPct = cap>0?Math.min(100,(it.alert/cap)*100):0;
           const barColor = getBarColor(it,storageMult);

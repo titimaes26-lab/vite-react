@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { useLang } from "../../i18n/index.jsx";
 import { C, F } from "../../constants/gameData.js";
-import { quickAmounts } from "../../utils/orderUtils.js";
+import { quickAmounts, addLot, stockCap } from "../../utils/orderUtils.js";
 import { getBarColor } from "./StockCard.jsx";
 
 export const StockListView = memo(function StockListView({ sortedStock, storageMult, portionsPerIngredient, pendingQty, deductCost, setStock, catIcon }) {
@@ -21,7 +21,7 @@ export const StockListView = memo(function StockListView({ sortedStock, storageM
         <tbody>
           {sortedStock.map((it,i)=>{
             const low = it.qty<=it.alert;
-            const cap = (it.alert>0?it.alert*6:Math.max(it.qty*2,10))*storageMult;
+            const cap = stockCap(it,storageMult);
             const pct = cap>0?Math.min(100,(it.qty/cap)*100):0;
             const barColor = getBarColor(it,storageMult);
             const portions = portionsPerIngredient(it.id);
@@ -69,7 +69,7 @@ export const StockListView = memo(function StockListView({ sortedStock, storageM
                         <button key={n} onClick={()=>{
                           if(wouldExceed) return;
                           const inst = deductCost(it,n);
-                          if(inst) setStock(p=>p.map(s=>s.id===it.id?{...s,qty:Math.min(cap,+(s.qty+n).toFixed(3))}:s));
+                          if(inst) setStock(p=>p.map(s=>s.id===it.id?addLot(s,n):s));
                         }} disabled={wouldExceed} style={{
                           padding:"3px 8px",fontSize:10,fontWeight:700,borderRadius:5,
                           background:wouldExceed?C.bg:C.greenP,color:wouldExceed?C.muted:C.green,

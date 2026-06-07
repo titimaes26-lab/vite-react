@@ -2,13 +2,13 @@ import { useState, memo } from "react";
 import { useLang } from "../../i18n/index.jsx";
 import { C, F } from "../../constants/gameData.js";
 import { Btn, Inp } from "../../components/ui/index.js";
-import { quickAmounts, getLots } from "../../utils/orderUtils.js";
+import { quickAmounts, getLots, stockCap } from "../../utils/orderUtils.js";
 
 const freshnessColor = (f) => f<=0?"#7f0000":f<20?C.red:f<60?C.amber:C.green;
 const freshnessLabel = (f, tl) => f<=0?tl("stock.expired"):f<20?tl("stock.critical"):f<60?tl("stock.useNow"):tl("stock.fresh");
 
 export const getBarColor = (it, storageMult) => {
-  const cap = (it.alert>0?it.alert*6:Math.max(it.qty*2,10))*storageMult;
+  const cap = stockCap(it,storageMult);
   const pct = cap>0?(it.qty/cap)*100:0;
   const alertPct = cap>0?(it.alert/cap)*100:0;
   return pct<=alertPct?C.red:pct<=alertPct*2.5?C.amber:C.green;
@@ -22,7 +22,7 @@ export const StockCard = memo(function StockCard({ it, storageMult, portions, pe
   const [alertVal, setAlertVal] = useState("");
 
   const low = it.qty<=it.alert;
-  const cap = (it.alert>0?it.alert*6:Math.max(it.qty*2,10))*storageMult;
+  const cap = stockCap(it,storageMult);
   const pct = cap>0?Math.min(100,(it.qty/cap)*100):0;
   const alertPct = cap>0?Math.min(100,(it.alert/cap)*100):0;
   const barColor = getBarColor(it,storageMult);
