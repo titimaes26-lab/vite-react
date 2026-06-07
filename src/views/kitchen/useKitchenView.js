@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useLang } from "../../i18n/index.jsx";
 import { C, CHEF_LVL, KITCHEN_UPGRADES, CHEF_TRAININGS } from "../../constants/gameData.js";
 import { chefLv, CHEF_MAX_XP } from "../../utils/levelUtils.js";
-import { consumeLots } from "../../utils/orderUtils.js";
+import { consumeStock } from "../../utils/orderUtils.js";
 import { isOnShift } from "../../hooks/useGameClock.js";
 
 export function useKitchenView({ kitchen, setKitchen, stock, setStock, setTables, servers, setServers, addToast, gameTime }) {
@@ -58,21 +58,6 @@ export function useKitchenView({ kitchen, setKitchen, stock, setStock, setTables
     const iv = setInterval(()=>setNow(Date.now()),250);
     return()=>clearInterval(iv);
   },[]);
-
-  const consumeStock = (dishes, prevStock)=>{
-    let s = [...prevStock];
-    let cost = 0;
-    const missing = [];
-    dishes.forEach(d=>(d.ingredients||[]).forEach(ing=>{
-      const item = s.find(x=>x.id===ing.stockId);
-      if(item){
-        if(item.qty<ing.qty) missing.push({dish:d.name,ing:item.name,need:ing.qty,have:item.qty});
-        cost += +(ing.qty*(item.price||0)).toFixed(4);
-        s = s.map(x=>x.id===ing.stockId?consumeLots(x,ing.qty):x);
-      }
-    }));
-    return{newStock:s,cost:+cost.toFixed(2),missing};
-  };
 
   useEffect(()=>{
     const iv = setInterval(()=>{
@@ -169,48 +154,65 @@ export function useKitchenView({ kitchen, setKitchen, stock, setStock, setTables
     if(toStart.length===0)return;
     const ts = Date.now();
     setStock(s=>{
-      const{newStock} = consumeStock(toStart,s);
+      const{newStock,missing} = consumeStock(toStart,s);
+      if(missing.length>0){
+        missing.forEach(m=>addToast({icon:"⚠️",title:tl("kitchen.noStock"),
+          msg:tl("kitchen.noStockMsg",{item:m.ing}),
+          color:C.red,tab:"stock"}));
+      }
       return newStock;
     });
-    setKitchen(k=>({
-      ...k,
-      queue:k.queue.filter(d=>!toStart.find(x=>x.id===d.id)),
-      cooking:[...k.cooking,...toStart.map(d=>({
-        ...d,
-        startedAt:ts,
-        timerMax:upgDishCookTime(d.prepTime||60,clD.speed,unlockedCommis,d.cat||""),
-      }))],
-    }));
+    setKitchen(k=>{
+      const stillInQueue = toStart.filter(d=>k.queue.some(q=>q.id===d.id));
+      if(stillInQueue.length===0)return k;
+      return {
+        ...k,
+        queue:k.queue.filter(d=>!stillInQueue.find(x=>x.id===d.id)),
+        cooking:[...k.cooking,...stillInQueue.map(d=>({
+          ...d,
+          startedAt:ts,
+          timerMax:upgDishCookTime(d.prepTime||60,clD.speed,unlockedCommis,d.cat||""),
+        }))],
+      };
+    });
   };
 
   const freeSrvForServing = servers.find(s=>s.status==="actif"&&(s.moral??100)>10);
 
-  const serveTable = (tableId, tableName)=>{
+  const serveTable = (tableId)=>{
     if(!freeSrvForServing)return;
-    setKitchen(k=>{
-      const dishes = k.done.filter(d=>d.tableId===tableId);
-      const maxPrep = Math.max(...dishes.map(d=>d.prepTime||60),60);
-      const eatSec = Math.round(maxPrep*(2/3));
-      setTables(p=>p.map(t=>t.id!==tableId?t:{...t,status:"mange",eatUntil:Date.now()+eatSec*1000,eatDur:eatSec}));
-      return{...k,done:k.done.filter(d=>d.tableId!==tableId)};
+    const dishes = kitchen.done.filter(d=>d.tableId===tableId);
+    if(dishes.length===0)return;
+    const maxPrep = Math.max(...dishes.map(d=>d.prepTime||60),60);
+    const eatSec = Math.round(maxPrep*(2/3));
+    setKitchen(k=>({...k,done:k.done.filter(d=>d.tableId!==tableId)}));
+    setTables(p=>p.map(t=>t.id!==tableId?t:{...t,status:"mange",eatUntil:Date.now()+eatSec*1000,eatDur:eatSec}));
+    if(setServers) setServers(p=>{
+      const srv = p.find(s=>s.status==="actif"&&(s.moral??100)>10);
+      if(!srv)return p;
+      return p.map(s=>s.id!==srv.id?s:{...s,status:"service",serviceUntil:Date.now()+20000});
     });
-    if(setServers) setServers(p=>p.map(s=>s.id!==freeSrvForServing.id?s:
-      {...s,status:"service",serviceUntil:Date.now()+20000}));
   };
 
-  const doneByTable = {};
-  kitchen.done.forEach(d=>{
-    const key = d.tableId||"sans-table";
-    if(!doneByTable[key])doneByTable[key]={tableId:d.tableId,tableName:d.tableName||"Sans table",dishes:[]};
-    doneByTable[key].dishes.push(d);
-  });
+  const doneByTable = useMemo(()=>{
+    const m = {};
+    kitchen.done.forEach(d=>{
+      const key = d.tableId||"sans-table";
+      if(!m[key])m[key]={tableId:d.tableId,tableName:d.tableName||"Sans table",dishes:[]};
+      m[key].dishes.push(d);
+    });
+    return m;
+  },[kitchen.done]);
 
-  const queueByTable = {};
-  kitchen.queue.forEach(d=>{
-    const key = d.tableId||"sans-table";
-    if(!queueByTable[key])queueByTable[key]={tableId:d.tableId,tableName:d.tableName||"Sans table",dishes:[]};
-    queueByTable[key].dishes.push(d);
-  });
+  const queueByTable = useMemo(()=>{
+    const m = {};
+    kitchen.queue.forEach(d=>{
+      const key = d.tableId||"sans-table";
+      if(!m[key])m[key]={tableId:d.tableId,tableName:d.tableName||"Sans table",dishes:[]};
+      m[key].dishes.push(d);
+    });
+    return m;
+  },[kitchen.queue]);
 
   const canServeTable = (tableId)=>{
     const inQ = kitchen.queue.filter(d=>d.tableId===tableId).length;

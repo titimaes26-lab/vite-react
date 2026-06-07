@@ -1,8 +1,9 @@
+import { memo } from "react";
 import { C, F } from "../../constants/gameData.js";
 import { Btn } from "../../components/ui/index.js";
 import { useLang } from "../../i18n/index.jsx";
 
-export function DoneColumn({ doneByTable, doneCount, freeSrvForServing, serveTable, canServeTable }) {
+export const DoneColumn = memo(function DoneColumn({ doneByTable, doneCount, freeSrvForServing, serveTable, canServeTable }) {
   const { t: tl } = useLang();
 
   return (
@@ -72,4 +73,4 @@ export function DoneColumn({ doneByTable, doneCount, freeSrvForServing, serveTab
       </div>
     </div>
   );
-}
+});

@@ -1,8 +1,9 @@
+import { memo } from "react";
 import { C, F } from "../../constants/gameData.js";
 import { Btn } from "../../components/ui/index.js";
 import { useLang } from "../../i18n/index.jsx";
 
-export function QueueColumn({ queueByTable, queueLength, cookingLength, maxConcurrent, slotsLeft, chefOnShift, clD, unlockedCommis, upgDishCookTime, moveTicket, startDish, startAll }) {
+export const QueueColumn = memo(function QueueColumn({ queueByTable, queueLength, cookingLength, maxConcurrent, slotsLeft, chefOnShift, clD, unlockedCommis, upgDishCookTime, moveTicket, startDish, startAll }) {
   const { t: tl } = useLang();
   const queueGroups = Object.values(queueByTable);
   const late = queueGroups.filter(t=>
@@ -101,4 +102,4 @@ export function QueueColumn({ queueByTable, queueLength, cookingLength, maxConcu
       </div>
     </div>
   );
-}
+});
