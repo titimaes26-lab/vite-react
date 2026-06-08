@@ -24,7 +24,7 @@ export const ChefCard = memo(function ChefCard({ chf, kitchen, cash, setCash, ad
   const brigadeSlot = (kitchen?.chefTrainings?.brigade&&kitchen?.chefTrainings?.brigadeUntil>Date.now())?1:0;
   const unlockedCommis = clD?.commis??0;
   const maxConcurrent = 4+unlockedCommis+extraSlots+brigadeSlot;
-  const slotsLeft = maxConcurrent-(kitchen?.cooking?.length??0);
+  const slotsLeft = Math.max(0, maxConcurrent-(kitchen?.cooking?.length??0));
 
   return(
     <Card accent={clD.color+"44"}>

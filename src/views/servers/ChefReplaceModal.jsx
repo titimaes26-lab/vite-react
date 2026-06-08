@@ -13,14 +13,23 @@ export function ChefReplaceModal({ kitchen, cash, setCash, addTx, addToast, setK
 
   const confirm = () => {
     if (!canAfford) return;
-    setCash(c => +(c - severance).toFixed(2));
+    // Guard inside updater in case cash dropped between render and click (e.g. day-end loan)
+    setCash(c => c >= severance ? +(c - severance).toFixed(2) : c);
     addTx("dépense", `Indemnité licenciement — ${chf.name}`, severance);
-    setKitchen(k => ({
-      ...k,
-      chef: { ...k.chef, totalXp: Math.round((k.chef.totalXp || 0) * 0.3) },
-      chefTrainings: {},
-    }));
-    addToast({ icon: "👋", title: `${chf.name} est parti`, msg: tr("kitchen.replaceNote"), color: C.amber, tab: "servers", silent: true });
+    setKitchen(k => {
+      const brigadeWasActive = k.chefTrainings?.brigade && k.chefTrainings?.brigadeUntil > Date.now();
+      // Trim cooking queue by 1 if the brigade extra slot disappears, preventing negative slotsLeft
+      const cooking = brigadeWasActive && k.cooking?.length ? k.cooking.slice(0, -1) : (k.cooking ?? []);
+      const retainedXp = Math.round((k.chef.totalXp || 0) * 0.3);
+      return {
+        ...k,
+        chef: { ...k.chef, name: tr("kitchen.newChef"), totalXp: retainedXp, salary: 20, shift: null },
+        chefTrainings: {},
+        cooking,
+        morale: Math.max(k.morale ?? 100, 50),
+      };
+    });
+    addToast({ icon: "👋", title: `${chf.name} ${tr("kitchen.chefLeft")}`, msg: tr("kitchen.replaceNote"), color: C.amber, tab: "servers", silent: true });
     onClose();
   };
 

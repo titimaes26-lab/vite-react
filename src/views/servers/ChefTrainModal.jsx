@@ -3,17 +3,20 @@ import { C, F, CHEF_LVL, CHEF_TRAININGS } from "../../constants/gameData.js";
 import { chefLv } from "../../utils/levelUtils.js";
 import { Btn } from "../../components/ui/index.js";
 import { useLang } from "../../i18n/index.jsx";
+import { useClockNow } from "../../contexts/ClockContext.jsx";
 
 export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKitchen, onClose }) {
+  useClockNow(); // live brigade countdown + cash display
   const { t: tr, lang } = useLang();
-  const chf = kitchen.chef ?? {};
+  const chf = kitchen?.chef ?? {};
   const cl  = chefLv(chf.totalXp ?? 0);
   const clD = CHEF_LVL[Math.min(cl.l, CHEF_LVL.length - 1)];
-  const ct  = kitchen.chefTrainings ?? {};
+  const ct  = kitchen?.chefTrainings ?? {};
   const locale = lang === "en" ? "en-US" : "fr-FR";
 
   const buyLockRef = useRef(false);
-  useEffect(() => { buyLockRef.current = false; });
+  // [] = runs only on mount; the lock is cleared when the modal opens, not on every render
+  useEffect(() => { buyLockRef.current = false; }, []);
 
   const buy = (training) => {
     if (buyLockRef.current || cash < training.cost) return;

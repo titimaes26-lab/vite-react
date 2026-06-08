@@ -65,7 +65,7 @@ export function useTablesView({
       patienceLeftRatio:Math.max(0,(g.expiresAt-Date.now())/(g.patMax*1000)),
     }));
     setQueue(q=>q.filter(c=>c.id!==g.id));
-    setChallengeProgress&&setChallengeProgress(p=>({...p,fastPlace:p.fastPlace+1}));
+    setChallengeProgress&&setChallengeProgress(p=>({...p,fastPlace:(p.fastPlace||0)+1}));
     const formulaUsed = orderLines.find(o=>o.isFormula);
     addToast({icon:formulaUsed?"🍽️":"🛎️",
       title:formulaUsed?tr("toast.formulaOrdered",{formula:formulaUsed.formulaName}):tr("toast.orderTaken"),

@@ -81,6 +81,8 @@ export const dining = {
     expires: "Expires:",
     acquired: "Acquired",
     active: "Active",
+    newChef: "New chef",
+    chefLeft: "has left",
     chefTrainTitle: "Training: {name}!",
     chefTrainMsg: "+{xp} XP chef · {desc}",
     fund: "Pay",

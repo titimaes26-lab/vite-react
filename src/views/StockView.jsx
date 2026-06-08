@@ -1,5 +1,6 @@
 import { useLang } from "../i18n/index.jsx";
 import { C, F, SUPPLIERS } from "../constants/gameData.js";
+import { useClockNow } from "../contexts/ClockContext.jsx";
 import { useStockView, catIcon } from "./stock/useStockView.js";
 import { ShortagePanel } from "./stock/ShortagePanel.jsx";
 import { StockChartView } from "./stock/StockChartView.jsx";
@@ -7,6 +8,7 @@ import { StockListView } from "./stock/StockListView.jsx";
 import { StockCardsView } from "./stock/StockCardsView.jsx";
 
 export function StockView({ stock, setStock, cash, setCash, addTx, addToast, addDayStat, kitchen, supplierMode, setSupplierMode, pendingDeliveries, setPendingDeliveries, menu=[], restoLvN=0, bp={} }) {
+  useClockNow(); // keep delivery countdown live (250 ms ticks)
   const { t: tl } = useLang();
   const {
     storageMult, visibleStock, viewMode, setViewMode, collapsedCats, sortMode, setSortMode,

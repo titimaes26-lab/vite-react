@@ -98,7 +98,8 @@ export const GAME_EVENTS = [
       const maxCap = Math.max(...tables.filter(t => t.status === "libre").map(t => t.capacity), 2);
       const groups = Array.from({ length: 3 }, () => {
         const mood = rMood();
-        const pat = mood.p * patienceMult;
+        // rush groups get 1.5× base patience (surprise factor) — preserve original intent while fixing patMax consistency
+        const pat = mood.p * 1.5 * patienceMult;
         return { id: Date.now() + Math.random(), name: rName(), size: Math.min(rSize(), maxCap), mood, expiresAt: Date.now() + pat * 1000, patMax: pat };
       });
       setQueue(q => [...q, ...groups]);
@@ -143,6 +144,7 @@ export const GAME_EVENTS = [
       setQueue(q => q.map(g => ({
         ...g,
         expiresAt: g.expiresAt + Math.round(g.patMax * 1000 * 0.3),
+        patMax: g.patMax * 1.3,
       })));
       setTables(t => t.map(tbl => {
         if (tbl.status === "mange" && tbl.eatUntil)
