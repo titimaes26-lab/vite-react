@@ -94,11 +94,12 @@ export const GAME_EVENTS = [
     desc: "Un groupe important vient de réserver — afflux soudain de clients.",
     minLevel: 0,
     type: "auto",
-    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables) => {
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0, patienceMult = 1.0) => {
       const maxCap = Math.max(...tables.filter(t => t.status === "libre").map(t => t.capacity), 2);
       const groups = Array.from({ length: 3 }, () => {
         const mood = rMood();
-        return { id: Date.now() + Math.random(), name: rName(), size: Math.min(rSize(), maxCap), mood, expiresAt: Date.now() + mood.p * 1500, patMax: mood.p };
+        const pat = mood.p * patienceMult;
+        return { id: Date.now() + Math.random(), name: rName(), size: Math.min(rSize(), maxCap), mood, expiresAt: Date.now() + pat * 1000, patMax: pat };
       });
       setQueue(q => [...q, ...groups]);
       addToast({ icon: "⚡", title: "Rush inattendu !", msg: "3 groupes ajoutés en file d'attente", color: "#b87d10", tab: "tables" });
@@ -163,7 +164,8 @@ export const GAME_EVENTS = [
       const maxCap = Math.max(...(tables.filter(t => t.status === "libre").map(t => t.capacity)), 2);
       const groups = Array.from({ length: 2 }, () => {
         const mood = rMood();
-        return { id: Date.now() + Math.random(), name: rName(), size: Math.min(rSize(), maxCap), mood, expiresAt: Date.now() + mood.p * 1000, patMax: mood.p };
+        const pat = mood.p * patienceMult;
+        return { id: Date.now() + Math.random(), name: rName(), size: Math.min(rSize(), maxCap), mood, expiresAt: Date.now() + pat * 1000, patMax: pat };
       });
       const vip = {
         id: Date.now() + Math.random(), name: rName(), size: 2,

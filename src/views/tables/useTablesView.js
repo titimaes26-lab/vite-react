@@ -105,7 +105,7 @@ export function useTablesView({
       updateReputation(REP_DELTA[repKey],`note ${r.toFixed(1)}/5`);
     }
     setTables(p=>p.map(x=>x.id!==tid?x:{...x,status:"nettoyage",group:null,order:[],server:null,patienceLeftRatio:null,svcUntil:null,placedAt:null,cleanUntil:null,cleanDur:30,cleanServer:null,freedAt:null}));
-    setChallengeProgress&&setChallengeProgress(p=>({...p,served:(p.served||0)+1,revenue:p.revenue+total,tips:+((p.tips||0)+tip).toFixed(2),highRating:r>=4?(p.highRating||0)+1:(p.highRating||0),vip:t.group?.isVIP?(p.vip||0)+1:p.vip||0}));
+    setChallengeProgress&&setChallengeProgress(p=>({...p,served:(p.served||0)+1,revenue:(p.revenue||0)+total,tips:+((p.tips||0)+tip).toFixed(2),highRating:r>=4?(p.highRating||0)+1:(p.highRating||0),vip:t.group?.isVIP?(p.vip||0)+1:p.vip||0}));
     if (selectedTable?.id===tid) setSelectedTable(null);
   };
 

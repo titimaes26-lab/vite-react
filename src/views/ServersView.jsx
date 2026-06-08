@@ -11,6 +11,7 @@ import { AdditionalChefFireModal, AdditionalChefHireModal } from "./servers/Addi
 import { AdditionalChefCard } from "./servers/AdditionalChefCard.jsx";
 import { SalleSection } from "./servers/SalleSection.jsx";
 import { ChefTrainModal } from "./servers/ChefTrainModal.jsx";
+import { ChefReplaceModal } from "./servers/ChefReplaceModal.jsx";
 
 export const ServersView = memo(function ServersView({
   servers, setServers, tables, restoLvN=0,
@@ -120,6 +121,10 @@ export const ServersView = memo(function ServersView({
       )}
       {chefModal==="train" && (
         <ChefTrainModal kitchen={kitchen} cash={cash} setCash={setCash} addTx={addTx}
+          addToast={addToast} setKitchen={setKitchen} onClose={()=>setChefModal(false)}/>
+      )}
+      {chefModal==="confirmReplace" && (
+        <ChefReplaceModal kitchen={kitchen} cash={cash} setCash={setCash} addTx={addTx}
           addToast={addToast} setKitchen={setKitchen} onClose={()=>setChefModal(false)}/>
       )}
     </div>

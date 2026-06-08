@@ -1,17 +1,23 @@
+import { useEffect, useRef } from "react";
 import { C, F, CHEF_LVL, CHEF_TRAININGS } from "../../constants/gameData.js";
 import { chefLv } from "../../utils/levelUtils.js";
 import { Btn } from "../../components/ui/index.js";
 import { useLang } from "../../i18n/index.jsx";
 
 export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKitchen, onClose }) {
-  const { t: tr } = useLang();
+  const { t: tr, lang } = useLang();
   const chf = kitchen.chef ?? {};
   const cl  = chefLv(chf.totalXp ?? 0);
   const clD = CHEF_LVL[Math.min(cl.l, CHEF_LVL.length - 1)];
   const ct  = kitchen.chefTrainings ?? {};
+  const locale = lang === "en" ? "en-US" : "fr-FR";
+
+  const buyLockRef = useRef(false);
+  useEffect(() => { buyLockRef.current = false; });
 
   const buy = (training) => {
-    if (cash < training.cost) return;
+    if (buyLockRef.current || cash < training.cost) return;
+    buyLockRef.current = true;
     setCash(c => +(c - training.cost).toFixed(2));
     addTx("achat", `Formation chef : ${training.name}`, training.cost);
     setKitchen(k => {
@@ -27,8 +33,8 @@ export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKit
     });
     addToast({
       icon: training.icon,
-      title: `Formation : ${training.name} !`,
-      msg: `+${training.xp} XP chef · ${training.desc}`,
+      title: tr("kitchen.chefTrainTitle", { name: training.name }),
+      msg: tr("kitchen.chefTrainMsg", { xp: training.xp, desc: training.desc }),
       color: C.navy, tab: "servers", silent: true,
     });
   };
@@ -73,7 +79,7 @@ export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKit
           <span style={{fontSize:12,color:C.muted,fontFamily:F.body}}>{tr("servers.balance")}</span>
           <span style={{fontSize:14,fontWeight:700,
             color:cash<200?C.red:C.green,fontFamily:F.title}}>
-            {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
+            {cash.toLocaleString(locale,{minimumFractionDigits:2})} €
           </span>
         </div>
 
@@ -145,7 +151,7 @@ export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKit
                     </span>
                   ) : isBrigadeActive ? (
                     <span style={{fontSize:11,color:C.green,fontWeight:700,fontFamily:F.body}}>
-                      ✅ Actif
+                      ✅ {tr("kitchen.active")}
                     </span>
                   ) : (
                     <div style={{textAlign:"right"}}>
