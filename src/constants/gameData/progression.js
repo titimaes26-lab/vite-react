@@ -9,29 +9,29 @@ export const LOAN_OPTIONS = [
 
 export const CHALLENGES_POOL = [
   /* ── Tier 1 — disponibles dès le niveau 0 ─────────────────────────── */
-  { tier: 1, id: "c_5_clients",  icon: "👥", title: "5 clients servis",      desc: "Servez 5 clients aujourd'hui",                key: "served",    target: 5,    reward: { cash: 150, xp: 40  } },
-  { tier: 1, id: "c_10_clients", icon: "🔟", title: "10 clients servis",     desc: "Servez 10 clients aujourd'hui",               key: "served",    target: 10,   reward: { cash: 300, xp: 80  } },
-  { tier: 1, id: "c_200_rev",    icon: "💶", title: "200 € de recettes",     desc: "Encaissez 200 € dans la journée",             key: "revenue",   target: 200,  reward: { cash: 100, xp: 30  } },
-  { tier: 1, id: "c_500_rev",    icon: "💰", title: "500 € de recettes",     desc: "Encaissez 500 € dans la journée",             key: "revenue",   target: 500,  reward: { cash: 250, xp: 60  } },
-  { tier: 1, id: "c_1000_rev",   icon: "🏆", title: "1 000 € de recettes",   desc: "Encaissez 1 000 € dans la journée",           key: "revenue",   target: 1000, reward: { cash: 500, xp: 120 } },
-  { tier: 1, id: "c_no_loss",    icon: "✨", title: "Zéro client perdu",      desc: "Ne perdez aucun client de la journée",        key: "noLoss",    target: 1,    reward: { cash: 200, xp: 60  } },
-  { tier: 1, id: "c_3_stars",    icon: "⭐", title: "3 notes ★★★★+",         desc: "Obtenez 3 notes de 4 étoiles ou plus",        key: "highRating",target: 3,    reward: { cash: 180, xp: 50  } },
-  { tier: 1, id: "c_5_stars",    icon: "🌟", title: "5 notes ★★★★+",         desc: "Obtenez 5 notes de 4 étoiles ou plus",        key: "highRating",target: 5,    reward: { cash: 350, xp: 100 } },
-  { tier: 1, id: "c_rush",       icon: "⚡", title: "Rush express",           desc: "Placez 3 groupes en moins de 5 minutes",      key: "fastPlace", target: 3,    reward: { cash: 200, xp: 70  } },
-  { tier: 1, id: "c_vip",        icon: "🎩", title: "Service VIP",            desc: "Servez un client VIP",                        key: "vip",       target: 1,    reward: { cash: 300, xp: 80  } },
-  { tier: 1, id: "c_full_house", icon: "🍽", title: "Salle comble",           desc: "Ayez 5 tables occupées simultanément",        key: "fullHouse", target: 1,    reward: { cash: 250, xp: 70  } },
-  { tier: 1, id: "c_tip_master", icon: "💸", title: "Maître du pourboire",    desc: "Cumulez 50 € de pourboires dans la journée",  key: "tips",      target: 50,   reward: { cash: 150, xp: 40  } },
+  { tier: 1, minLevel:  0, id: "c_5_clients",  icon: "👥", title: "5 clients servis",      desc: "Servez 5 clients aujourd'hui",                key: "served",    target: 5,    reward: { cash: 150, xp: 40  } },
+  { tier: 1, minLevel:  0, id: "c_10_clients", icon: "🔟", title: "10 clients servis",     desc: "Servez 10 clients aujourd'hui",               key: "served",    target: 10,   reward: { cash: 300, xp: 80  } },
+  { tier: 1, minLevel:  0, id: "c_200_rev",    icon: "💶", title: "200 € de recettes",     desc: "Encaissez 200 € dans la journée",             key: "revenue",   target: 200,  reward: { cash: 100, xp: 30  } },
+  { tier: 1, minLevel:  0, id: "c_500_rev",    icon: "💰", title: "500 € de recettes",     desc: "Encaissez 500 € dans la journée",             key: "revenue",   target: 500,  reward: { cash: 250, xp: 60  } },
+  { tier: 1, minLevel:  0, id: "c_1000_rev",   icon: "🏆", title: "1 000 € de recettes",   desc: "Encaissez 1 000 € dans la journée",           key: "revenue",   target: 1000, reward: { cash: 500, xp: 120 } },
+  { tier: 1, minLevel:  0, id: "c_no_loss",    icon: "✨", title: "Zéro client perdu",      desc: "Ne perdez aucun client de la journée",        key: "noLoss",    target: 1,    reward: { cash: 200, xp: 60  } },
+  { tier: 1, minLevel:  0, id: "c_3_stars",    icon: "⭐", title: "3 notes ★★★★+",         desc: "Obtenez 3 notes de 4 étoiles ou plus",        key: "highRating",target: 3,    reward: { cash: 180, xp: 50  } },
+  { tier: 1, minLevel:  0, id: "c_5_stars",    icon: "🌟", title: "5 notes ★★★★+",         desc: "Obtenez 5 notes de 4 étoiles ou plus",        key: "highRating",target: 5,    reward: { cash: 350, xp: 100 } },
+  { tier: 1, minLevel:  0, id: "c_rush",       icon: "⚡", title: "Rush express",           desc: "Placez 3 groupes en moins de 5 minutes",      key: "fastPlace", target: 3,    reward: { cash: 200, xp: 70  } },
+  { tier: 1, minLevel:  0, id: "c_vip",        icon: "🎩", title: "Service VIP",            desc: "Servez un client VIP",                        key: "vip",       target: 1,    reward: { cash: 300, xp: 80  } },
+  { tier: 1, minLevel:  0, id: "c_full_house", icon: "🍽", title: "Salle comble",           desc: "Ayez 5 tables occupées simultanément",        key: "fullHouse", target: 1,    reward: { cash: 250, xp: 70  } },
+  { tier: 1, minLevel:  0, id: "c_tip_master", icon: "💸", title: "Maître du pourboire",    desc: "Cumulez 50 € de pourboires dans la journée",  key: "tips",      target: 50,   reward: { cash: 150, xp: 40  } },
   /* ── Tier 2 — débloqués à partir du niveau 15 ─────────────────────── */
-  { tier: 2, id: "c_20_clients", icon: "👨‍👩‍👦‍👦", title: "20 clients servis",  desc: "Servez 20 clients aujourd'hui",               key: "served",    target: 20,   reward: { cash: 500,  xp: 130 } },
-  { tier: 2, id: "c_2000_rev",   icon: "💎", title: "2 000 € de recettes",   desc: "Encaissez 2 000 € dans la journée",           key: "revenue",   target: 2000, reward: { cash: 700,  xp: 180 } },
-  { tier: 2, id: "c_8_stars",    icon: "🌠", title: "8 notes ★★★★+",         desc: "Obtenez 8 notes de 4 étoiles ou plus",        key: "highRating",target: 8,    reward: { cash: 600,  xp: 160 } },
-  { tier: 2, id: "c_100_tips",   icon: "💰", title: "100 € de pourboires",   desc: "Cumulez 100 € de pourboires dans la journée", key: "tips",      target: 100,  reward: { cash: 400,  xp: 110 } },
-  { tier: 2, id: "c_vip2",       icon: "🎭", title: "Double VIP",             desc: "Servez 2 clients VIP dans la journée",        key: "vip",       target: 2,    reward: { cash: 550,  xp: 140 } },
+  { tier: 2, minLevel: 15, id: "c_20_clients", icon: "👨‍👩‍👦‍👦", title: "20 clients servis",  desc: "Servez 20 clients aujourd'hui",               key: "served",    target: 20,   reward: { cash: 500,  xp: 130 } },
+  { tier: 2, minLevel: 15, id: "c_2000_rev",   icon: "💎", title: "2 000 € de recettes",   desc: "Encaissez 2 000 € dans la journée",           key: "revenue",   target: 2000, reward: { cash: 700,  xp: 180 } },
+  { tier: 2, minLevel: 15, id: "c_8_stars",    icon: "🌠", title: "8 notes ★★★★+",         desc: "Obtenez 8 notes de 4 étoiles ou plus",        key: "highRating",target: 8,    reward: { cash: 600,  xp: 160 } },
+  { tier: 2, minLevel: 15, id: "c_100_tips",   icon: "💰", title: "100 € de pourboires",   desc: "Cumulez 100 € de pourboires dans la journée", key: "tips",      target: 100,  reward: { cash: 400,  xp: 110 } },
+  { tier: 2, minLevel: 15, id: "c_vip2",       icon: "🎭", title: "Double VIP",             desc: "Servez 2 clients VIP dans la journée",        key: "vip",       target: 2,    reward: { cash: 550,  xp: 140 } },
   /* ── Tier 3 — débloqués à partir du niveau 30 ─────────────────────── */
-  { tier: 3, id: "c_50_clients", icon: "🏟", title: "50 clients servis",     desc: "Servez 50 clients aujourd'hui",               key: "served",    target: 50,   reward: { cash: 1200, xp: 350 } },
-  { tier: 3, id: "c_5000_rev",   icon: "👑", title: "5 000 € de recettes",   desc: "Encaissez 5 000 € dans la journée",           key: "revenue",   target: 5000, reward: { cash: 1800, xp: 500 } },
-  { tier: 3, id: "c_10_stars",   icon: "✨", title: "10 notes ★★★★+",        desc: "Obtenez 10 notes de 4 étoiles ou plus",       key: "highRating",target: 10,   reward: { cash: 900,  xp: 250 } },
-  { tier: 3, id: "c_vip3",       icon: "🏅", title: "Triple VIP",             desc: "Servez 3 clients VIP dans la journée",        key: "vip",       target: 3,    reward: { cash: 1000, xp: 280 } },
+  { tier: 3, minLevel: 30, id: "c_50_clients", icon: "🏟", title: "50 clients servis",     desc: "Servez 50 clients aujourd'hui",               key: "served",    target: 50,   reward: { cash: 1200, xp: 350 } },
+  { tier: 3, minLevel: 30, id: "c_5000_rev",   icon: "👑", title: "5 000 € de recettes",   desc: "Encaissez 5 000 € dans la journée",           key: "revenue",   target: 5000, reward: { cash: 1800, xp: 500 } },
+  { tier: 3, minLevel: 30, id: "c_10_stars",   icon: "✨", title: "10 notes ★★★★+",        desc: "Obtenez 10 notes de 4 étoiles ou plus",       key: "highRating",target: 10,   reward: { cash: 900,  xp: 250 } },
+  { tier: 3, minLevel: 30, id: "c_vip3",       icon: "🏅", title: "Triple VIP",             desc: "Servez 3 clients VIP dans la journée",        key: "vip",       target: 3,    reward: { cash: 1000, xp: 280 } },
 ];
 
 export const OBJECTIVES_DEF = [
@@ -121,7 +121,7 @@ export const GAME_EVENTS = [
   {
     id: "critique", icon: "✍️", title: "Critique gastronomique",
     desc: "Un critique du Michelin serait en ville ce soir. Une table VIP vient d'arriver.",
-    minLevel: 0,
+    minLevel: 0, maxLevel: 29,
     type: "auto",
     apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue) => {
       const vip = {

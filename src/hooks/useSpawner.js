@@ -38,7 +38,7 @@ const makeGroup = (livres, patienceMult = 1.0, isVIP = false) => {
       mood      : { e: "🎩", l: "VIP", p: 60, b: 3.0 },
       isVIP     : true,
       expiresAt : Date.now() + 60000 * patienceMult,
-      patMax    : 60,
+      patMax    : 60 * patienceMult,
     };
   }
   const mood = rMood();
@@ -131,9 +131,7 @@ export const useSpawner = ({
           color : "#6b3fa0",
           tab   : "tables",
         });
-      }
-
-      if (isWave && nb > 1) {
+      } else if (isWave && nb > 1) {
         addToast({
           icon  : "🌊",
           title : t("toast.wave", {n:nb}),

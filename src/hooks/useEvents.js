@@ -50,7 +50,8 @@ export const useEvents = ({
       if (Math.random() >= 0.60) return;
 
       const lv = restoLvRef?.current ?? 0;
-      const eligible = GAME_EVENTS.filter(e => (e.minLevel ?? 0) <= lv);
+      const eligible = GAME_EVENTS.filter(e => (e.minLevel ?? 0) <= lv && (e.maxLevel ?? Infinity) >= lv);
+      if (eligible.length === 0) return;
       const evt = eligible[Math.floor(Math.random() * eligible.length)];
 
       // Afficher la bannière d'événement 8 secondes

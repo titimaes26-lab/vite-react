@@ -62,9 +62,7 @@ export const useChallenges = ({
 
         // Nouvelle journée — réinitialiser défis + compteurs
         const lv = restoLvRef?.current ?? 0;
-        const pool = CHALLENGES_POOL.filter(c =>
-          c.tier === 1 || (c.tier === 2 && lv >= 15) || (c.tier === 3 && lv >= 30)
-        );
+        const pool = CHALLENGES_POOL.filter(c => (c.minLevel ?? 0) <= lv);
         setTodayChallenges(pickSeeded(pool, 3, today));
         setChallengeProgress({
           served: 0, revenue: 0, noLoss: 1,
