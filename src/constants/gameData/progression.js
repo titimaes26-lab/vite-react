@@ -8,18 +8,30 @@ export const LOAN_OPTIONS = [
 ];
 
 export const CHALLENGES_POOL = [
-  { id: "c_5_clients",  icon: "👥", title: "5 clients servis",      desc: "Servez 5 clients aujourd'hui",                key: "served",    target: 5,    reward: { cash: 150, xp: 40  } },
-  { id: "c_10_clients", icon: "🔟", title: "10 clients servis",     desc: "Servez 10 clients aujourd'hui",               key: "served",    target: 10,   reward: { cash: 300, xp: 80  } },
-  { id: "c_200_rev",    icon: "💶", title: "200 € de recettes",     desc: "Encaissez 200 € dans la journée",             key: "revenue",   target: 200,  reward: { cash: 100, xp: 30  } },
-  { id: "c_500_rev",    icon: "💰", title: "500 € de recettes",     desc: "Encaissez 500 € dans la journée",             key: "revenue",   target: 500,  reward: { cash: 250, xp: 60  } },
-  { id: "c_1000_rev",   icon: "🏆", title: "1 000 € de recettes",   desc: "Encaissez 1 000 € dans la journée",           key: "revenue",   target: 1000, reward: { cash: 500, xp: 120 } },
-  { id: "c_no_loss",    icon: "✨", title: "Zéro client perdu",      desc: "Ne perdez aucun client de la journée",        key: "noLoss",    target: 1,    reward: { cash: 200, xp: 60  } },
-  { id: "c_3_stars",    icon: "⭐", title: "3 notes ★★★★+",         desc: "Obtenez 3 notes de 4 étoiles ou plus",        key: "highRating",target: 3,    reward: { cash: 180, xp: 50  } },
-  { id: "c_5_stars",    icon: "🌟", title: "5 notes ★★★★+",         desc: "Obtenez 5 notes de 4 étoiles ou plus",        key: "highRating",target: 5,    reward: { cash: 350, xp: 100 } },
-  { id: "c_rush",       icon: "⚡", title: "Rush express",           desc: "Placez 3 groupes en moins de 5 minutes",      key: "fastPlace", target: 3,    reward: { cash: 200, xp: 70  } },
-  { id: "c_vip",        icon: "🎩", title: "Service VIP",            desc: "Servez un client VIP",                        key: "vip",       target: 1,    reward: { cash: 300, xp: 80  } },
-  { id: "c_full_house", icon: "🍽", title: "Salle comble",           desc: "Ayez 5 tables occupées simultanément",        key: "fullHouse", target: 1,    reward: { cash: 250, xp: 70  } },
-  { id: "c_tip_master", icon: "💸", title: "Maître du pourboire",    desc: "Cumulez 50 € de pourboires dans la journée",  key: "tips",      target: 50,   reward: { cash: 150, xp: 40  } },
+  /* ── Tier 1 — disponibles dès le niveau 0 ─────────────────────────── */
+  { tier: 1, id: "c_5_clients",  icon: "👥", title: "5 clients servis",      desc: "Servez 5 clients aujourd'hui",                key: "served",    target: 5,    reward: { cash: 150, xp: 40  } },
+  { tier: 1, id: "c_10_clients", icon: "🔟", title: "10 clients servis",     desc: "Servez 10 clients aujourd'hui",               key: "served",    target: 10,   reward: { cash: 300, xp: 80  } },
+  { tier: 1, id: "c_200_rev",    icon: "💶", title: "200 € de recettes",     desc: "Encaissez 200 € dans la journée",             key: "revenue",   target: 200,  reward: { cash: 100, xp: 30  } },
+  { tier: 1, id: "c_500_rev",    icon: "💰", title: "500 € de recettes",     desc: "Encaissez 500 € dans la journée",             key: "revenue",   target: 500,  reward: { cash: 250, xp: 60  } },
+  { tier: 1, id: "c_1000_rev",   icon: "🏆", title: "1 000 € de recettes",   desc: "Encaissez 1 000 € dans la journée",           key: "revenue",   target: 1000, reward: { cash: 500, xp: 120 } },
+  { tier: 1, id: "c_no_loss",    icon: "✨", title: "Zéro client perdu",      desc: "Ne perdez aucun client de la journée",        key: "noLoss",    target: 1,    reward: { cash: 200, xp: 60  } },
+  { tier: 1, id: "c_3_stars",    icon: "⭐", title: "3 notes ★★★★+",         desc: "Obtenez 3 notes de 4 étoiles ou plus",        key: "highRating",target: 3,    reward: { cash: 180, xp: 50  } },
+  { tier: 1, id: "c_5_stars",    icon: "🌟", title: "5 notes ★★★★+",         desc: "Obtenez 5 notes de 4 étoiles ou plus",        key: "highRating",target: 5,    reward: { cash: 350, xp: 100 } },
+  { tier: 1, id: "c_rush",       icon: "⚡", title: "Rush express",           desc: "Placez 3 groupes en moins de 5 minutes",      key: "fastPlace", target: 3,    reward: { cash: 200, xp: 70  } },
+  { tier: 1, id: "c_vip",        icon: "🎩", title: "Service VIP",            desc: "Servez un client VIP",                        key: "vip",       target: 1,    reward: { cash: 300, xp: 80  } },
+  { tier: 1, id: "c_full_house", icon: "🍽", title: "Salle comble",           desc: "Ayez 5 tables occupées simultanément",        key: "fullHouse", target: 1,    reward: { cash: 250, xp: 70  } },
+  { tier: 1, id: "c_tip_master", icon: "💸", title: "Maître du pourboire",    desc: "Cumulez 50 € de pourboires dans la journée",  key: "tips",      target: 50,   reward: { cash: 150, xp: 40  } },
+  /* ── Tier 2 — débloqués à partir du niveau 15 ─────────────────────── */
+  { tier: 2, id: "c_20_clients", icon: "👨‍👩‍👦‍👦", title: "20 clients servis",  desc: "Servez 20 clients aujourd'hui",               key: "served",    target: 20,   reward: { cash: 500,  xp: 130 } },
+  { tier: 2, id: "c_2000_rev",   icon: "💎", title: "2 000 € de recettes",   desc: "Encaissez 2 000 € dans la journée",           key: "revenue",   target: 2000, reward: { cash: 700,  xp: 180 } },
+  { tier: 2, id: "c_8_stars",    icon: "🌠", title: "8 notes ★★★★+",         desc: "Obtenez 8 notes de 4 étoiles ou plus",        key: "highRating",target: 8,    reward: { cash: 600,  xp: 160 } },
+  { tier: 2, id: "c_100_tips",   icon: "💰", title: "100 € de pourboires",   desc: "Cumulez 100 € de pourboires dans la journée", key: "tips",      target: 100,  reward: { cash: 400,  xp: 110 } },
+  { tier: 2, id: "c_vip2",       icon: "🎭", title: "Double VIP",             desc: "Servez 2 clients VIP dans la journée",        key: "vip",       target: 2,    reward: { cash: 550,  xp: 140 } },
+  /* ── Tier 3 — débloqués à partir du niveau 30 ─────────────────────── */
+  { tier: 3, id: "c_50_clients", icon: "🏟", title: "50 clients servis",     desc: "Servez 50 clients aujourd'hui",               key: "served",    target: 50,   reward: { cash: 1200, xp: 350 } },
+  { tier: 3, id: "c_5000_rev",   icon: "👑", title: "5 000 € de recettes",   desc: "Encaissez 5 000 € dans la journée",           key: "revenue",   target: 5000, reward: { cash: 1800, xp: 500 } },
+  { tier: 3, id: "c_10_stars",   icon: "✨", title: "10 notes ★★★★+",        desc: "Obtenez 10 notes de 4 étoiles ou plus",       key: "highRating",target: 10,   reward: { cash: 900,  xp: 250 } },
+  { tier: 3, id: "c_vip3",       icon: "🏅", title: "Triple VIP",             desc: "Servez 3 clients VIP dans la journée",        key: "vip",       target: 3,    reward: { cash: 1000, xp: 280 } },
 ];
 
 export const OBJECTIVES_DEF = [
@@ -52,11 +64,12 @@ export const GAME_EVENTS = [
   {
     id: "inspection", icon: "🔍", title: "Inspection sanitaire",
     desc: "Un inspecteur de la DGCCRF débarque à l'improviste.",
+    minLevel: 0,
     type: "auto",
-    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints) => {
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0) => {
       const alerts = stock.filter(s => s.qty <= s.alert).length;
       if (alerts >= 3) {
-        const fine = 300;
+        const fine = 300 + restoLv * 20;
         setCash(c => +(c - fine).toFixed(2));
         addTx("dépense", "Amende inspection sanitaire (infractions stock)", fine);
         setComplaints(p => [{
@@ -68,7 +81,7 @@ export const GAME_EVENTS = [
         addToast({ icon: "🚨", title: "Inspection — Amende !", msg: `${alerts} infractions · −${fine}€`, color: "#c0392b", tab: "complaints" });
         return "fail";
       } else {
-        const bonus = 100;
+        const bonus = 100 + restoLv * 10;
         setCash(c => c + bonus);
         addTx("revenu", "Bonus inspection sanitaire (dossier exemplaire)", bonus);
         addToast({ icon: "✅", title: "Inspection réussie !", msg: `Dossier exemplaire · +${bonus}€`, color: "#2a5c3f", tab: "stats" });
@@ -79,6 +92,7 @@ export const GAME_EVENTS = [
   {
     id: "rush", icon: "⚡", title: "Rush inattendu !",
     desc: "Un groupe important vient de réserver — afflux soudain de clients.",
+    minLevel: 0,
     type: "auto",
     apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables) => {
       const maxCap = Math.max(...tables.filter(t => t.status === "libre").map(t => t.capacity), 2);
@@ -93,6 +107,7 @@ export const GAME_EVENTS = [
   {
     id: "frigo", icon: "🧊", title: "Panne de chambre froide !",
     desc: "La chambre froide a lâché cette nuit. Une partie des stocks est perdue.",
+    minLevel: 0,
     type: "auto",
     apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock) => {
       setStock(s => s.map(item => {
@@ -106,6 +121,7 @@ export const GAME_EVENTS = [
   {
     id: "critique", icon: "✍️", title: "Critique gastronomique",
     desc: "Un critique du Michelin serait en ville ce soir. Une table VIP vient d'arriver.",
+    minLevel: 0,
     type: "auto",
     apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue) => {
       const vip = {
@@ -120,8 +136,9 @@ export const GAME_EVENTS = [
   {
     id: "anniversaire", icon: "🎉", title: "Anniversaire surprise !",
     desc: "Un groupe fête un anniversaire — bonne humeur générale dans toute la salle.",
+    minLevel: 0,
     type: "auto",
-    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables) => {
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0) => {
       setQueue(q => q.map(g => ({
         ...g,
         expiresAt: g.expiresAt + Math.round(g.patMax * 1000 * 0.3),
@@ -131,17 +148,18 @@ export const GAME_EVENTS = [
           return { ...tbl, eatUntil: tbl.eatUntil + 30000 };
         return tbl;
       }));
-      const bonus = 60;
+      const bonus = 60 + restoLv * 5;
       setCash(c => +(c + bonus).toFixed(2));
       addTx("revenu", "Ambiance anniversaire — bonus ambiance", bonus);
-      addToast({ icon: "🎉", title: "Anniversaire surprise !", msg: "Patience +30% pour tous · +60€ bonus ambiance", color: "#6b3fa0", tab: "tables" });
+      addToast({ icon: "🎉", title: "Anniversaire surprise !", msg: `Patience +30% pour tous · +${bonus}€ bonus ambiance`, color: "#6b3fa0", tab: "tables" });
     },
   },
   {
     id: "buzz", icon: "📱", title: "Buzz sur les réseaux !",
     desc: "Une story virale attire du monde. File d'attente et réputation en hausse.",
+    minLevel: 0,
     type: "auto",
-    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation) => {
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0) => {
       const maxCap = Math.max(...(tables.filter(t => t.status === "libre").map(t => t.capacity)), 2);
       const groups = Array.from({ length: 2 }, () => {
         const mood = rMood();
@@ -153,13 +171,15 @@ export const GAME_EVENTS = [
         expiresAt: Date.now() + 50000, patMax: 50,
       };
       setQueue(q => [...q, ...groups, vip]);
-      if (updateReputation) updateReputation(5, "buzz réseaux sociaux");
-      addToast({ icon: "📱", title: "Buzz sur les réseaux !", msg: "3 groupes en file · Réputation +5", color: "#6b3fa0", tab: "tables" });
+      const repBoost = 5 + Math.floor(restoLv / 10);
+      if (updateReputation) updateReputation(repBoost, "buzz réseaux sociaux");
+      addToast({ icon: "📱", title: "Buzz sur les réseaux !", msg: `3 groupes en file · Réputation +${repBoost}`, color: "#6b3fa0", tab: "tables" });
     },
   },
   {
     id: "blackout", icon: "🌑", title: "Coupure électrique !",
     desc: "Panne partielle — la cuisine tourne au ralenti pendant 3 minutes.",
+    minLevel: 0,
     type: "auto",
     apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen) => {
       const now = Date.now();
@@ -181,16 +201,18 @@ export const GAME_EVENTS = [
   {
     id: "livraison_cadeau", icon: "🚚", title: "Livraison cadeau fournisseur !",
     desc: "Votre fournisseur offre un réapprovisionnement gratuit sur vos stocks les plus bas.",
+    minLevel: 0,
     type: "auto",
-    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock) => {
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0) => {
       const sorted = [...stock]
         .filter(s => s.alert > 0)
         .sort((a, b) => (a.qty / a.alert) - (b.qty / b.alert))
         .slice(0, 5);
       const ids = new Set(sorted.map(s => s.id));
+      const restockMult = 5 + Math.floor(restoLv / 5);
       setStock(prev => prev.map(s => {
         if (!ids.has(s.id)) return s;
-        const restock = +(s.alert * 5).toFixed(3);
+        const restock = +(s.alert * restockMult).toFixed(3);
         return { ...s, qty: +(s.qty + restock).toFixed(3), freshness: 100 };
       }));
       addToast({ icon: "🚚", title: "Livraison cadeau !", msg: `${sorted.map(s => s.name).join(", ")} réapprovisionnés gratuitement`, color: "#2a5c3f", tab: "stock" });
@@ -199,6 +221,7 @@ export const GAME_EVENTS = [
   {
     id: "serveur_malade", icon: "🤧", title: "Serveur malade !",
     desc: "Un serveur se sent mal et doit s'arrêter 4 minutes.",
+    minLevel: 0,
     type: "auto",
     apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef) => {
       const actifs = (serversRef || []).filter(s => s.status === "actif");
@@ -215,6 +238,60 @@ export const GAME_EVENTS = [
         ));
         addToast({ icon: "💪", title: `${victim.name} de retour !`, msg: "Le serveur a repris son service", color: "#2a5c3f", tab: "servers" });
       }, 240_000);
+    },
+  },
+  /* ── Événements exclusifs : débloqués par niveau ────────────────────── */
+  {
+    id: "guide_michelin", icon: "⭐", title: "Visite du Guide Michelin !",
+    desc: "Un inspecteur du Guide Michelin réserve une table ce soir.",
+    minLevel: 30,
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0) => {
+      const vip1 = {
+        id: Date.now() + Math.random(), name: "Guide Michelin", size: 2,
+        mood: { e: "🌟", l: "VIP Prestige", p: 90, b: 4.0 }, isVIP: true,
+        expiresAt: Date.now() + 90000, patMax: 90,
+      };
+      const vip2 = {
+        id: Date.now() + Math.random(), name: rName(), size: 2,
+        mood: { e: "🎩", l: "VIP", p: 70, b: 3.0 }, isVIP: true,
+        expiresAt: Date.now() + 70000, patMax: 70,
+      };
+      setQueue(q => [vip1, vip2, ...q]);
+      if (updateReputation) updateReputation(10, "visite Guide Michelin");
+      addToast({ icon: "⭐", title: "Guide Michelin !", msg: "2 inspecteurs VIP attendent — service irréprochable requis !", color: "#c89b2a", tab: "tables" });
+    },
+  },
+  {
+    id: "soiree_gala", icon: "🥂", title: "Soirée de gala !",
+    desc: "Une soirée privée de prestige s'improvise — clients VIP en masse.",
+    minLevel: 35,
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0) => {
+      const vips = Array.from({ length: 3 }, () => ({
+        id: Date.now() + Math.random(), name: rName(), size: 2,
+        mood: { e: "🥂", l: "VIP Gala", p: 80, b: 3.5 }, isVIP: true,
+        expiresAt: Date.now() + 80000, patMax: 80,
+      }));
+      setQueue(q => [...vips, ...q]);
+      const bonus = 200 + restoLv * 10;
+      setCash(c => +(c + bonus).toFixed(2));
+      addTx("revenu", "Soirée de gala — acompte privatisation", bonus);
+      if (updateReputation) updateReputation(10, "soirée de gala");
+      addToast({ icon: "🥂", title: "Soirée de gala !", msg: `3 VIP en route · Réputation +10 · +${bonus}€`, color: "#8b2a6b", tab: "tables" });
+    },
+  },
+  {
+    id: "concours_culinaire", icon: "🏆", title: "Concours culinaire !",
+    desc: "Votre chef remporte un concours régional — prix et notoriété.",
+    minLevel: 40,
+    type: "auto",
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0) => {
+      const prize = 500 + restoLv * 20;
+      setCash(c => +(c + prize).toFixed(2));
+      addTx("revenu", "Prix concours culinaire régional", prize);
+      if (updateReputation) updateReputation(15, "victoire concours culinaire");
+      addToast({ icon: "🏆", title: "Concours culinaire !", msg: `Votre chef a gagné ! · +${prize}€ · Réputation +15`, color: "#c89b2a", tab: "stats" });
     },
   },
 ];

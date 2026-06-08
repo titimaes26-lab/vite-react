@@ -99,7 +99,7 @@ export function useTablesView({
       const xp = srvXpFromCheckout(r, t.group.size);
       setServers(p=>p.map(s=>s.id===srvObj.id?{...s,totalXp:Math.min(SRV_MAX_XP,s.totalXp+xp),rating:+(s.rating*0.9+r*0.1).toFixed(1),dayCheckouts:(s.dayCheckouts||0)+1,dayCovers:(s.dayCovers||0)+(t.group.size??1),dayRevenue:+((s.dayRevenue||0)+total).toFixed(2)}:s));
     }
-    addRestoXp(restoXpFromCheckout(t.group.size, t.group.mood.b, t.group.isVIP||false));
+    addRestoXp(restoXpFromCheckout(t.group.size, t.group.mood.b, t.group.isVIP||false, restoLvN));
     if (updateReputation) {
       const repKey=r>=4.5?"rating5":r>=3.5?"rating4":r>=2.5?"rating3":r>=1.5?"rating2":"rating1";
       updateReputation(REP_DELTA[repKey],`note ${r.toFixed(1)}/5`);

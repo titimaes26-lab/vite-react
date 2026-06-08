@@ -76,6 +76,8 @@ export const feedback = {
     spoiledDesc: "{name} expired — 50% of stock lost",
     objectiveReached: "Objective reached!",
     objectiveClaimed: "Objective \"{title}\" claimed!",
+    vipSpawn: "VIP guest!",
+    vipSpawnMsg: "A VIP guest is waiting for a table — flawless service required.",
   },
 
   daily: {

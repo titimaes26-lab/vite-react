@@ -242,8 +242,8 @@ export const srvXpFromCheckout = (rating) => 15 + rating * 5;
  * @param {boolean} isVIP    - client VIP (×3)
  * @returns {number} XP
  */
-export const restoXpFromCheckout = (groupSize, moodB, isVIP = false) =>
-  Math.round((20 + groupSize * 8) * moodB * (isVIP ? 3 : 1));
+export const restoXpFromCheckout = (groupSize, moodB, isVIP = false, restoLv = 0) =>
+  Math.round((20 + groupSize * 8) * moodB * (isVIP ? 3 : 1) * (1 + restoLv * 0.03));
 
 /* ─────────────────────────────────────────────────────
    TESTS UNITAIRES (optionnel — à lancer avec Vitest)

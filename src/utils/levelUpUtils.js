@@ -38,8 +38,8 @@ export const computeUnlocks = (levelData) => {
   if (l === 2)  items.push({ icon: "🎓", text: "Formations disponibles" });
   if (l === 5)  items.push({ icon: "🧑‍🍳", text: "2ème commis cuisine débloqué" });
   if (l === 10) items.push({ icon: "🧑‍🍳", text: "3ème commis cuisine débloqué" });
-  if (l === 20) items.push({ icon: "🍷", text: "Clients VIP plus fréquents" });
-  if (l === 30) items.push({ icon: "🏅", text: "Événements exclusifs débloqués" });
+  if (l === 20) items.push({ icon: "🎩", text: "Spawn VIP spontané activé (probabilité croissante jusqu'au niv. 49)" });
+  if (l === 30) items.push({ icon: "⭐", text: "Événements exclusifs : Guide Michelin, Soirée Gala, Concours Culinaire" });
   if (l === 40) items.push({ icon: "🌐", text: "Réputation internationale" });
   if (isMax)    items.push({ icon: "🏆", text: "Niveau maximum atteint !" });
 

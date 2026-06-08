@@ -834,14 +834,14 @@ function AppContent(){
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useFreshness  ({ stockRef, kitchenRef, setStock, setComplaints, addToast });
   useEvents     ({
-    stockRef, cashRef, complaintsRef, tablesRef, serversRef,
+    stockRef, cashRef, complaintsRef, tablesRef, serversRef, restoLvRef,
     setStock, setComplaints, setQueue, setCash,
     setTables, setServers, setKitchen,
     setActiveEvent, addToast, addTx, updateReputation,
   });
   useServerMoral({ setServers, addToast, pausedRef });
   useChallenges ({
-    tables,
+    tables, restoLvRef,
     setChallengeProgress, setChallengeDate,
     setTodayChallenges, setChallengeLostToday, setChallengeClaimed,
   });

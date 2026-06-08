@@ -24,21 +24,33 @@ const intervalForLevel = spawnInterval;
 
 /* ── Créer un groupe ────────────────────────────────── */
 /**
- * @param {Array}  livres        - tables libres disponibles
- * @param {number} patienceMult  - multiplicateur de patience (1.0 = normal)
+ * @param {Array}   livres       - tables libres disponibles
+ * @param {number}  patienceMult - multiplicateur de patience (1.0 = normal)
+ * @param {boolean} isVIP        - force un groupe VIP spontané
  */
-const makeGroup = (livres, patienceMult = 1.0) => {
-  const mood   = rMood();
+const makeGroup = (livres, patienceMult = 1.0, isVIP = false) => {
   const maxCap = livres.length > 0 ? Math.max(...livres.map(t => t.capacity)) : 2;
-  const size   = Math.min(rSize(), maxCap);
-  const pat    = mood.p * patienceMult; // patience en secondes (ajustée)
+  if (isVIP) {
+    return {
+      id        : Date.now() + Math.random(),
+      name      : rName(),
+      size      : Math.min(2, maxCap),
+      mood      : { e: "🎩", l: "VIP", p: 60, b: 3.0 },
+      isVIP     : true,
+      expiresAt : Date.now() + 60000 * patienceMult,
+      patMax    : 60,
+    };
+  }
+  const mood = rMood();
+  const size = Math.min(rSize(), maxCap);
+  const pat  = mood.p * patienceMult;
   return {
     id        : Date.now() + Math.random(),
     name      : rName(),
     size,
     mood,
     expiresAt : Date.now() + pat * 1000,
-    patMax    : pat,       // secondes — utilisé pour la barre de patience
+    patMax    : pat,
   };
 };
 
@@ -101,9 +113,25 @@ export const useSpawner = ({
 
       // ── P : patience ajustée selon la phase ──────
       const patienceMult = phase?.patienceMultiplier ?? 1.0;
-      const newGroups    = Array.from({ length: nb }, () => makeGroup(livres, patienceMult));
+
+      // ── VIP spontané : actif L20+, probabilité croissante jusqu'à 25% ─
+      const vipProb   = lvl >= 20 ? Math.min(0.25, ((lvl - 20) / 29) * 0.25) : 0;
+      const spawnVIP  = Math.random() < vipProb;
+      const newGroups = Array.from({ length: nb }, (_, i) =>
+        makeGroup(livres, patienceMult, i === 0 && spawnVIP)
+      );
 
       setQueue(q => [...q, ...newGroups]);
+
+      if (spawnVIP) {
+        addToast({
+          icon  : "🎩",
+          title : t("toast.vipSpawn"),
+          msg   : t("toast.vipSpawnMsg"),
+          color : "#6b3fa0",
+          tab   : "tables",
+        });
+      }
 
       if (isWave && nb > 1) {
         addToast({

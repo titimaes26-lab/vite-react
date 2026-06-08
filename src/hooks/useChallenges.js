@@ -33,6 +33,7 @@ import { pickSeeded } from "../utils/randomUtils.js";
  */
 export const useChallenges = ({
   tables,
+  restoLvRef,
   setChallengeProgress,
   setChallengeDate,
   setTodayChallenges,
@@ -60,7 +61,11 @@ export const useChallenges = ({
         if (prev === today) return prev;
 
         // Nouvelle journée — réinitialiser défis + compteurs
-        setTodayChallenges(pickSeeded(CHALLENGES_POOL, 3, today));
+        const lv = restoLvRef?.current ?? 0;
+        const pool = CHALLENGES_POOL.filter(c =>
+          c.tier === 1 || (c.tier === 2 && lv >= 15) || (c.tier === 3 && lv >= 30)
+        );
+        setTodayChallenges(pickSeeded(pool, 3, today));
         setChallengeProgress({
           served: 0, revenue: 0, noLoss: 1,
           highRating: 0, fastPlace: 0, vip: 0, fullHouse: 0, tips: 0,

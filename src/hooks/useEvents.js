@@ -32,6 +32,7 @@ export const useEvents = ({
   complaintsRef,
   tablesRef,
   serversRef,
+  restoLvRef,
   setStock,
   setComplaints,
   setQueue,
@@ -48,7 +49,9 @@ export const useEvents = ({
     const iv = setInterval(() => {
       if (Math.random() >= 0.60) return;
 
-      const evt = GAME_EVENTS[Math.floor(Math.random() * GAME_EVENTS.length)];
+      const lv = restoLvRef?.current ?? 0;
+      const eligible = GAME_EVENTS.filter(e => (e.minLevel ?? 0) <= lv);
+      const evt = eligible[Math.floor(Math.random() * eligible.length)];
 
       // Afficher la bannière d'événement 8 secondes
       setActiveEvent(evt.id);
@@ -74,6 +77,7 @@ export const useEvents = ({
         setKitchen,
         updateReputation,
         serversRef ? serversRef.current : [],
+        lv,
       );
     }, 240_000); // toutes les 4 minutes
 
