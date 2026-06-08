@@ -123,11 +123,11 @@ export const GAME_EVENTS = [
     desc: "Un critique du Michelin serait en ville ce soir. Une table VIP vient d'arriver.",
     minLevel: 0, maxLevel: 29,
     type: "auto",
-    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue) => {
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0, patienceMult = 1.0) => {
       const vip = {
         id: Date.now() + Math.random(), name: "Guide Michelin", size: 2,
         mood: { e: "🎩", l: "VIP", p: 60, b: 3.0 }, isVIP: true,
-        expiresAt: Date.now() + 60000, patMax: 60,
+        expiresAt: Date.now() + 60000 * patienceMult, patMax: 60 * patienceMult,
       };
       setQueue(q => [vip, ...q]);
       addToast({ icon: "🎩", title: "Client VIP !", msg: "Un critique Michelin attend — servez-le vite !", color: "#6b3fa0", tab: "tables" });
@@ -159,7 +159,7 @@ export const GAME_EVENTS = [
     desc: "Une story virale attire du monde. File d'attente et réputation en hausse.",
     minLevel: 0,
     type: "auto",
-    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0) => {
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0, patienceMult = 1.0) => {
       const maxCap = Math.max(...(tables.filter(t => t.status === "libre").map(t => t.capacity)), 2);
       const groups = Array.from({ length: 2 }, () => {
         const mood = rMood();
@@ -168,7 +168,7 @@ export const GAME_EVENTS = [
       const vip = {
         id: Date.now() + Math.random(), name: rName(), size: 2,
         mood: { e: "🎩", l: "VIP", p: 50, b: 2.0 }, isVIP: true,
-        expiresAt: Date.now() + 50000, patMax: 50,
+        expiresAt: Date.now() + 50000 * patienceMult, patMax: 50 * patienceMult,
       };
       setQueue(q => [...q, ...groups, vip]);
       const repBoost = 5 + Math.floor(restoLv / 10);
@@ -246,16 +246,16 @@ export const GAME_EVENTS = [
     desc: "Un inspecteur du Guide Michelin réserve une table ce soir.",
     minLevel: 30,
     type: "auto",
-    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0) => {
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0, patienceMult = 1.0) => {
       const vip1 = {
         id: Date.now() + Math.random(), name: "Guide Michelin", size: 2,
         mood: { e: "🌟", l: "VIP Prestige", p: 90, b: 4.0 }, isVIP: true,
-        expiresAt: Date.now() + 90000, patMax: 90,
+        expiresAt: Date.now() + 90000 * patienceMult, patMax: 90 * patienceMult,
       };
       const vip2 = {
         id: Date.now() + Math.random(), name: rName(), size: 2,
         mood: { e: "🎩", l: "VIP", p: 70, b: 3.0 }, isVIP: true,
-        expiresAt: Date.now() + 70000, patMax: 70,
+        expiresAt: Date.now() + 70000 * patienceMult, patMax: 70 * patienceMult,
       };
       setQueue(q => [vip1, vip2, ...q]);
       if (updateReputation) updateReputation(10, "visite Guide Michelin");
@@ -267,11 +267,11 @@ export const GAME_EVENTS = [
     desc: "Une soirée privée de prestige s'improvise — clients VIP en masse.",
     minLevel: 35,
     type: "auto",
-    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0) => {
+    apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0, patienceMult = 1.0) => {
       const vips = Array.from({ length: 3 }, () => ({
         id: Date.now() + Math.random(), name: rName(), size: 2,
         mood: { e: "🥂", l: "VIP Gala", p: 80, b: 3.5 }, isVIP: true,
-        expiresAt: Date.now() + 80000, patMax: 80,
+        expiresAt: Date.now() + 80000 * patienceMult, patMax: 80 * patienceMult,
       }));
       setQueue(q => [...vips, ...q]);
       const bonus = 200 + restoLv * 10;

@@ -33,6 +33,7 @@ export const useEvents = ({
   tablesRef,
   serversRef,
   restoLvRef,
+  phaseRef,
   setStock,
   setComplaints,
   setQueue,
@@ -58,6 +59,8 @@ export const useEvents = ({
       setActiveEvent(evt.id);
       setTimeout(() => setActiveEvent(null), 8_000);
 
+      const patienceMult = phaseRef?.current?.patienceMultiplier ?? 1.0;
+
       // Exécuter l'événement
       evt.apply(
         stockRef.current,
@@ -79,6 +82,7 @@ export const useEvents = ({
         updateReputation,
         serversRef ? serversRef.current : [],
         lv,
+        patienceMult,
       );
     }, 240_000); // toutes les 4 minutes
 

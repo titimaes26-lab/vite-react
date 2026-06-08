@@ -127,7 +127,9 @@ export const useSpawner = ({
         addToast({
           icon  : "🎩",
           title : t("toast.vipSpawn"),
-          msg   : t("toast.vipSpawnMsg"),
+          msg   : (isWave && nb > 1)
+            ? t("toast.vipSpawnWaveMsg", { n: nb })
+            : t("toast.vipSpawnMsg"),
           color : "#6b3fa0",
           tab   : "tables",
         });

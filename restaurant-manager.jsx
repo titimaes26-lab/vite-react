@@ -834,7 +834,7 @@ function AppContent(){
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useFreshness  ({ stockRef, kitchenRef, setStock, setComplaints, addToast });
   useEvents     ({
-    stockRef, cashRef, complaintsRef, tablesRef, serversRef, restoLvRef,
+    stockRef, cashRef, complaintsRef, tablesRef, serversRef, restoLvRef, phaseRef,
     setStock, setComplaints, setQueue, setCash,
     setTables, setServers, setKitchen,
     setActiveEvent, addToast, addTx, updateReputation,

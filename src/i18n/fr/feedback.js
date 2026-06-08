@@ -78,6 +78,7 @@ export const feedback = {
     objectiveClaimed: "Objectif \"{title}\" réclamé !",
     vipSpawn: "Client VIP !",
     vipSpawnMsg: "Un client VIP attend une table — service impeccable requis.",
+    vipSpawnWaveMsg: "Un client VIP arrive en vague ({n} groupes) — service impeccable requis.",
   },
 
   daily: {

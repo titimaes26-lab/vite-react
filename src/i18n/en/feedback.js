@@ -78,6 +78,7 @@ export const feedback = {
     objectiveClaimed: "Objective \"{title}\" claimed!",
     vipSpawn: "VIP guest!",
     vipSpawnMsg: "A VIP guest is waiting for a table — flawless service required.",
+    vipSpawnWaveMsg: "A VIP guest arrives with a wave ({n} groups) — flawless service required.",
   },
 
   daily: {
