@@ -9,16 +9,16 @@
      children {ReactNode}
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F } from "./theme.js";
+import { C, F, Z } from "./theme.js";
 
 export const Modal = ({ title, onClose, children }) => {
   const [closeHovered, setCloseHovered] = useState(false);
   return (
   <div style={{
     position      : "fixed",
-    inset         : 0,
+    top: 0, left: 0, right: 0, bottom: 44,
     background    : "rgba(26,22,18,0.5)",
-    zIndex        : 1000,
+    zIndex        : Z.modal,
     display       : "flex",
     alignItems    : "center",
     justifyContent: "center",

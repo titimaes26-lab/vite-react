@@ -3,7 +3,7 @@
    Barre flottante — file d'attente + cash — toujours visible
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect, useRef } from "react";
-import { C, F } from "../constants/gameData.js";
+import { C, F, Z } from "../constants/gameData.js";
 import { useLang } from "../i18n/index.jsx";
 
 export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
@@ -29,7 +29,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
       position: "fixed",
       bottom: 0,
       left: 0, right: 0,
-      zIndex: 1001,
+      zIndex: Z.queueBar,
       background: "#ffffff",
       borderTop: `2px solid ${C.border}`,
       boxShadow: "0 -2px 12px rgba(23,18,14,0.08), 0 -1px 3px rgba(23,18,14,0.04)",

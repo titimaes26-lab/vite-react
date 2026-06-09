@@ -45,3 +45,8 @@ export const F = {
   body:    "'Inter','Segoe UI',system-ui,-apple-system,sans-serif",
   mono:    "'SF Mono','Fira Code',monospace",
 };
+
+export const Z = {
+  modal:    1000,
+  queueBar: 1001,
+};

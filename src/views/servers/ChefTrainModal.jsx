@@ -84,7 +84,7 @@ export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKit
   const buy = (training) => {
     if (buyLockRef.current || cash < training.cost) return;
     buyLockRef.current = true;
-    setCash(c => c >= training.cost ? +(c - training.cost).toFixed(2) : c);
+    setCash(c => +(c - training.cost).toFixed(2));
     addTx("achat", `Formation chef : ${training.name}`, training.cost);
     setKitchen(k => {
       const chef = { ...k.chef, totalXp: (k.chef.totalXp || 0) + training.xp };
@@ -107,7 +107,7 @@ export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKit
 
   return (
     <div onClick={onClose}
-      style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",
+      style={{position:"fixed",top:0,left:0,right:0,bottom:44,background:"rgba(0,0,0,0.5)",
         zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div onClick={e=>e.stopPropagation()}
         style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:18,
