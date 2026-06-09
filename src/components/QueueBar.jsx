@@ -29,7 +29,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
       position: "fixed",
       bottom: 0,
       left: 0, right: 0,
-      zIndex: 850,
+      zIndex: 1001,
       background: "#ffffff",
       borderTop: `2px solid ${C.border}`,
       boxShadow: "0 -2px 12px rgba(23,18,14,0.08), 0 -1px 3px rgba(23,18,14,0.04)",
