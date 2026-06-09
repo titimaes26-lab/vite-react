@@ -12,7 +12,7 @@ export function LedgerModal({ onClose, cash, transactions }) {
   return (
     <div onClick={onClose} style={{position:"fixed",inset:0,
       background:"rgba(0,0,0,0.45)",zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:18,
+      <div onClick={e=>e.stopPropagation()} className="modal-inner" style={{background:C.surface,borderRadius:18,
         width:"100%",maxWidth:560,maxHeight:"80vh",display:"flex",flexDirection:"column",
         boxShadow:"0 24px 60px rgba(0,0,0,0.25)"}}>
         {/* Header */}

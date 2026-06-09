@@ -108,7 +108,7 @@ export const APP_STYLES = `
           .resp-grid { grid-template-columns: 1fr !important; }
           .resp-grid-2 { grid-template-columns: 1fr 1fr !important; }
           /* Modals full-screen on mobile */
-          .modal-inner { border-radius: 0 !important; max-height: 100dvh !important; height: 100dvh !important; }
+          .modal-inner { border-radius: 0 !important; max-height: 100dvh !important; height: 100dvh !important; animation: none !important; }
         }
         @media (min-width: 640px) and (max-width: 1023px) {
           :root { --gap: 12px; --pad: 16px; --card-radius: 14px; }
