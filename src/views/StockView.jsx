@@ -2,13 +2,43 @@ import { useLang } from "../i18n/index.jsx";
 import { C, F, SUPPLIERS } from "../constants/gameData.js";
 import { useClockNow } from "../contexts/ClockContext.jsx";
 import { useStockView, catIcon } from "./stock/useStockView.js";
+
+function DeliveryBanner({ deliveries, label }) {
+  useClockNow(); // ticks only while there are pending deliveries
+  return (
+    <div style={{background:C.navyP,border:`1.5px solid ${C.navy}33`,borderRadius:10,
+      padding:"10px 14px",marginBottom:12}}>
+      <div style={{fontSize:11,fontWeight:700,color:C.navy,fontFamily:F.title,marginBottom:6,
+        display:"flex",alignItems:"center",gap:5}}>
+        <span>🚚</span><span>{label}</span>
+      </div>
+      {deliveries.map(d=>{
+        const secsLeft = Math.max(0,Math.ceil((d.arrivedAt-Date.now())/1000));
+        const totalSecs = d.orderedAt?Math.max(1,(d.arrivedAt-d.orderedAt)/1000):secsLeft;
+        const pct = Math.max(0,Math.min(100,100-(secsLeft/totalSecs)*100));
+        const gameMins = secsLeft;
+        const gameH = Math.floor(gameMins/60);
+        const gameM = gameMins%60;
+        const timeLabel = gameMins===0?"✓":gameH>0?`${gameH}h${String(gameM).padStart(2,"0")}`:`${gameM}min`;
+        return(
+          <div key={d.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+            <div style={{flex:1,fontSize:10,color:C.navy,fontFamily:F.body,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.labels}</div>
+            <div style={{width:70,height:4,background:C.border,borderRadius:99,overflow:"hidden",flexShrink:0}}>
+              <div style={{height:"100%",background:C.navy,width:"100%",transformOrigin:"left center",transform:`scaleX(${pct/100})`,transition:"transform 1s linear",borderRadius:99}}/>
+            </div>
+            <span style={{fontSize:9,color:C.navy,fontWeight:700,fontFamily:F.body,flexShrink:0,minWidth:38}}>{timeLabel}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 import { ShortagePanel } from "./stock/ShortagePanel.jsx";
 import { StockChartView } from "./stock/StockChartView.jsx";
 import { StockListView } from "./stock/StockListView.jsx";
 import { StockCardsView } from "./stock/StockCardsView.jsx";
 
 export function StockView({ stock, setStock, cash, setCash, addTx, addToast, addDayStat, kitchen, supplierMode, setSupplierMode, pendingDeliveries, setPendingDeliveries, menu=[], restoLvN=0, bp={} }) {
-  useClockNow(); // keep delivery countdown live (250 ms ticks)
   const { t: tl } = useLang();
   const {
     storageMult, visibleStock, viewMode, setViewMode, collapsedCats, sortMode, setSortMode,
@@ -67,34 +97,10 @@ export function StockView({ stock, setStock, cash, setCash, addTx, addToast, add
         </div>
       </div>
 
-      {/* Pending deliveries */}
+      {/* Pending deliveries — clock subscription lives inside DeliveryBanner */}
       {pendingDeliveries?.length>0&&(
-        <div style={{background:C.navyP,border:`1.5px solid ${C.navy}33`,borderRadius:10,
-          padding:"10px 14px",marginBottom:12}}>
-          <div style={{fontSize:11,fontWeight:700,color:C.navy,fontFamily:F.title,marginBottom:6,
-            display:"flex",alignItems:"center",gap:5}}>
-            <span>🚚</span><span>{tl("stock.deliveries",{n:pendingDeliveries.length,s:pendingDeliveries.length>1?"s":""})}</span>
-          </div>
-          {pendingDeliveries.map(d=>{
-            const secsLeft = Math.max(0,Math.ceil((d.arrivedAt-Date.now())/1000));
-            const totalSecs = d.orderedAt?Math.max(1,(d.arrivedAt-d.orderedAt)/1000):secsLeft;
-            const pct = Math.max(0,Math.min(100,100-(secsLeft/totalSecs)*100));
-            // 1 real second = 1 game minute
-            const gameMins = secsLeft;
-            const gameH = Math.floor(gameMins/60);
-            const gameM = gameMins%60;
-            const timeLabel = gameMins===0?"✓":gameH>0?`${gameH}h${String(gameM).padStart(2,"0")}`:`${gameM}min`;
-            return(
-              <div key={d.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                <div style={{flex:1,fontSize:10,color:C.navy,fontFamily:F.body,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.labels}</div>
-                <div style={{width:70,height:4,background:C.border,borderRadius:99,overflow:"hidden",flexShrink:0}}>
-                  <div style={{height:"100%",background:C.navy,width:"100%",transformOrigin:"left center",transform:`scaleX(${pct/100})`,transition:"transform 1s linear",borderRadius:99}}/>
-                </div>
-                <span style={{fontSize:9,color:C.navy,fontWeight:700,fontFamily:F.body,flexShrink:0,minWidth:38}}>{timeLabel}</span>
-              </div>
-            );
-          })}
-        </div>
+        <DeliveryBanner deliveries={pendingDeliveries}
+          label={tl("stock.deliveries",{n:pendingDeliveries.length,s:pendingDeliveries.length>1?"s":""})}/>
       )}
 
       {/* Alerts + restock */}

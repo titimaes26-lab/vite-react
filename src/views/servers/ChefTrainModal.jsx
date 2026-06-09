@@ -5,8 +5,71 @@ import { Btn } from "../../components/ui/index.js";
 import { useLang } from "../../i18n/index.jsx";
 import { useClockNow } from "../../contexts/ClockContext.jsx";
 
+// Brigade row subscribes to clock ticks independently so the parent modal
+// doesn't re-render at 250 ms when no brigade timer is active.
+function BrigadeTrainingRow({ training, ct, cash, buy, tr }) {
+  useClockNow();
+  const isBrigadeActive = ct.brigade && ct.brigadeUntil > Date.now();
+  const canBuy      = !isBrigadeActive && cash >= training.cost;
+  const cannotAfford = !isBrigadeActive && cash < training.cost;
+  const brigMs = isBrigadeActive ? Math.max(0, ct.brigadeUntil - Date.now()) : 0;
+  const brigH  = Math.floor(brigMs / 3600000);
+  const brigM  = Math.floor((brigMs % 3600000) / 60000);
+  const rowBg     = isBrigadeActive ? C.greenP : "transparent";
+  const rowBorder = isBrigadeActive ? `1.5px solid ${C.green}44` : `1.5px solid ${C.border}`;
+
+  return (
+    <div style={{border:rowBorder,borderRadius:14,padding:"14px 16px",
+      background:rowBg,display:"flex",alignItems:"center",gap:14}}>
+      <div style={{width:42,height:42,borderRadius:12,background:C.surface,
+        border:`1.5px solid ${C.border}`,display:"flex",alignItems:"center",
+        justifyContent:"center",fontSize:22,flexShrink:0}}>
+        {training.icon}
+      </div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:3}}>
+          {training.name}
+        </div>
+        <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginBottom:6}}>
+          {training.desc}
+        </div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          <span style={{fontSize:10,background:C.navyP,color:C.navy,
+            border:`1px solid ${C.navy}22`,borderRadius:5,padding:"1px 7px",
+            fontFamily:F.body,fontWeight:600}}>+{training.xp} XP</span>
+          <span style={{fontSize:10,background:C.amberP,color:C.amber,
+            border:`1px solid ${C.amber}22`,borderRadius:5,padding:"1px 7px",
+            fontFamily:F.body,fontWeight:600}}>{training.cost} €</span>
+          {isBrigadeActive && (
+            <span style={{fontSize:10,background:C.greenP,color:C.green,
+              border:`1px solid ${C.green}22`,borderRadius:5,padding:"1px 7px",
+              fontFamily:F.body,fontWeight:600}}>
+              ⏱ {brigH}h{String(brigM).padStart(2,"0")}m restantes
+            </span>
+          )}
+        </div>
+      </div>
+      <div style={{flexShrink:0,textAlign:"right"}}>
+        {isBrigadeActive ? (
+          <span style={{fontSize:11,color:C.green,fontWeight:700,fontFamily:F.body}}>
+            ✅ {tr("kitchen.active")}
+          </span>
+        ) : (
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:14,fontWeight:800,fontFamily:F.title,marginBottom:6,
+              color:canBuy?C.navy:C.red}}>{training.cost} €</div>
+            <Btn sm v={canBuy?"primary":"disabled"} disabled={!canBuy}
+              onClick={()=>buy(training)}>
+              {cannotAfford ? tr("kitchen.noFunds") : tr("kitchen.fund")}
+            </Btn>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKitchen, onClose }) {
-  useClockNow(); // live brigade countdown + cash display
   const { t: tr, lang } = useLang();
   const chf = kitchen?.chef ?? {};
   const cl  = chefLv(chf.totalXp ?? 0);
@@ -89,21 +152,17 @@ export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKit
         {/* ── Training list ──────────────────────────────────── */}
         <div style={{padding:"16px 22px",display:"flex",flexDirection:"column",gap:12}}>
           {CHEF_TRAININGS.map(training => {
-            const isRepeat      = training.id === "tech";
-            const isPermanent   = !isRepeat && training.id !== "brigade";
-            const isBought      = isPermanent && !!ct[training.id];
-            const isBrigadeActive = training.id === "brigade"
-              && ct.brigade && ct.brigadeUntil > Date.now();
-            const canBuy        = !isBought && !isBrigadeActive && cash >= training.cost;
-            const cannotAfford  = !isBought && !isBrigadeActive && cash < training.cost;
+            if (training.id === "brigade") {
+              return <BrigadeTrainingRow key="brigade" training={training} ct={ct} cash={cash} buy={buy} tr={tr} />;
+            }
 
-            const brigMs    = isBrigadeActive ? ct.brigadeUntil - Date.now() : 0;
-            const brigH     = Math.floor(brigMs / 3600000);
-            const brigM     = Math.floor((brigMs % 3600000) / 60000);
-
-            const rowBg     = (isBought || isBrigadeActive) ? C.greenP : "transparent";
-            const rowBorder = (isBought || isBrigadeActive)
-              ? `1.5px solid ${C.green}44` : `1.5px solid ${C.border}`;
+            const isRepeat    = training.id === "tech";
+            const isPermanent = !isRepeat;
+            const isBought    = isPermanent && !!ct[training.id];
+            const canBuy      = !isBought && cash >= training.cost;
+            const cannotAfford = !isBought && cash < training.cost;
+            const rowBg     = isBought ? C.greenP : "transparent";
+            const rowBorder = isBought ? `1.5px solid ${C.green}44` : `1.5px solid ${C.border}`;
 
             return (
               <div key={training.id}
@@ -137,13 +196,6 @@ export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKit
                         border:`1px solid ${C.navy}22`,borderRadius:5,padding:"1px 7px",
                         fontFamily:F.body,fontWeight:600}}>♻ Renouvelable</span>
                     )}
-                    {isBrigadeActive && (
-                      <span style={{fontSize:10,background:C.greenP,color:C.green,
-                        border:`1px solid ${C.green}22`,borderRadius:5,padding:"1px 7px",
-                        fontFamily:F.body,fontWeight:600}}>
-                        ⏱ {brigH}h{String(brigM).padStart(2,"0")}m restantes
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -151,10 +203,6 @@ export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKit
                   {isBought ? (
                     <span style={{fontSize:11,color:C.green,fontWeight:700,fontFamily:F.body}}>
                       ✅ {tr("kitchen.acquired")}
-                    </span>
-                  ) : isBrigadeActive ? (
-                    <span style={{fontSize:11,color:C.green,fontWeight:700,fontFamily:F.body}}>
-                      ✅ {tr("kitchen.active")}
                     </span>
                   ) : (
                     <div style={{textAlign:"right"}}>

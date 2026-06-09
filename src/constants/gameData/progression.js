@@ -141,11 +141,15 @@ export const GAME_EVENTS = [
     minLevel: 0,
     type: "auto",
     apply: (stock, cash, complaints, addToast, setCash, addTx, setComplaints, setQueue, rMood, rName, rSize, tables, setStock, setTables, setServers, setKitchen, updateReputation, serversRef, restoLv = 0) => {
-      setQueue(q => q.map(g => ({
-        ...g,
-        expiresAt: g.expiresAt + Math.round(g.patMax * 1000 * 0.3),
-        patMax: g.patMax * 1.3,
-      })));
+      setQueue(q => q.map(g => {
+        if (g.anniversaireApplied) return g;
+        return {
+          ...g,
+          anniversaireApplied: true,
+          expiresAt: g.expiresAt + Math.round(g.patMax * 1000 * 0.3),
+          patMax: g.patMax * 1.3,
+        };
+      }));
       setTables(t => t.map(tbl => {
         if (tbl.status === "mange" && tbl.eatUntil)
           return { ...tbl, eatUntil: tbl.eatUntil + 30000 };
