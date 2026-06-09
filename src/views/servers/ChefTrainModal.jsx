@@ -15,8 +15,8 @@ export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKit
   const locale = lang === "en" ? "en-US" : "fr-FR";
 
   const buyLockRef = useRef(false);
-  // [] = runs only on mount; the lock is cleared when the modal opens, not on every render
-  useEffect(() => { buyLockRef.current = false; }, []);
+  // Reset after each confirmed purchase (totalXp changes) — prevents double-spend without blocking subsequent buys
+  useEffect(() => { buyLockRef.current = false; }, [kitchen?.chef?.totalXp]);
 
   const buy = (training) => {
     if (buyLockRef.current || cash < training.cost) return;
