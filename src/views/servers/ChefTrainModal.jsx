@@ -84,7 +84,7 @@ export function ChefTrainModal({ kitchen, cash, setCash, addTx, addToast, setKit
   const buy = (training) => {
     if (buyLockRef.current || cash < training.cost) return;
     buyLockRef.current = true;
-    setCash(c => +(c - training.cost).toFixed(2));
+    setCash(c => c >= training.cost ? +(c - training.cost).toFixed(2) : c);
     addTx("achat", `Formation chef : ${training.name}`, training.cost);
     setKitchen(k => {
       const chef = { ...k.chef, totalXp: (k.chef.totalXp || 0) + training.xp };

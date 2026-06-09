@@ -13,7 +13,7 @@ export function ChefReplaceModal({ kitchen, cash, setCash, addTx, addToast, setK
 
   const confirm = () => {
     if (!canAfford) return;
-    setCash(c => +(c - severance).toFixed(2));
+    setCash(c => c >= severance ? +(c - severance).toFixed(2) : c);
     addTx("dépense", `Indemnité licenciement — ${chf.name}`, severance);
     setKitchen(k => {
       const retainedXp = Math.round((k.chef.totalXp || 0) * 0.3);
