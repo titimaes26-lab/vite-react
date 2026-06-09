@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { C, F } from "../constants/gameData.js";
+import { C, F, Z } from "../constants/gameData.js";
 import { computeUnlocks } from "../utils/levelUpUtils.js";
 
 export function LevelUpModal({ levelData, onClose }) {
@@ -24,7 +24,7 @@ export function LevelUpModal({ levelData, onClose }) {
     <div
       onClick={handleClose}
       style={{
-        position: "fixed", inset: 0, zIndex: 99998,
+        position: "fixed", inset: 0, zIndex: Z.levelUp,
         background: "rgba(6,4,2,0.88)",
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: 16,

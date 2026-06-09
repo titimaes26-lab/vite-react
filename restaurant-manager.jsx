@@ -995,7 +995,7 @@ function AppContent(){
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
       {showResetModal&&(
         <div onClick={()=>setShowResetModal(false)} style={{position:"fixed",inset:0,
-          background:"rgba(0,0,0,0.55)",zIndex:10001,
+          background:"rgba(0,0,0,0.55)",zIndex:Z.reset,
           display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:18,
             padding:28,width:"100%",maxWidth:380,

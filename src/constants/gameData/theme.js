@@ -52,7 +52,9 @@ export const Z = {
   notif:   2000,
   ledger:  9998,
   help:    10000,
+  reset:   10001,
   summary: 10050,
+  levelUp: 99998,
   scene:   99999,
 };
 
