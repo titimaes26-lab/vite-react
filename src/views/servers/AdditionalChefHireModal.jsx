@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { C, F } from "../../constants/gameData.js";
+import { C, F, Z } from "../../constants/gameData.js";
 import { Btn, Modal } from "../../components/ui/index.js";
 
 export const AdditionalChefFireModal = memo(function AdditionalChefFireModal({ idx, kitchen, cash, setCash, addTx, setKitchen, setChefConfirmIdx }) {
@@ -27,7 +27,7 @@ export const AdditionalChefFireModal = memo(function AdditionalChefFireModal({ i
 
 export const AdditionalChefHireModal = memo(function AdditionalChefHireModal({ chefPool, cash, setChefHireIdx, hireChef }) {
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:Z.modal,display:"flex",alignItems:"center",justifyContent:"center"}}
       onClick={()=>setChefHireIdx(null)}>
       <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:420,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
         onClick={e=>e.stopPropagation()}>

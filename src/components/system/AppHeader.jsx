@@ -1,4 +1,4 @@
-import { C } from "../../constants/gameData.js";
+import { C, Z } from "../../constants/gameData.js";
 import { HeaderTop } from "./HeaderTop.jsx";
 import { NavDesktop } from "./NavDesktop.jsx";
 import { NavMobile } from "./NavMobile.jsx";
@@ -22,7 +22,7 @@ export function AppHeader({
   };
 
   return (
-    <div style={{position:"sticky",top:0,zIndex:1000,background:C.surface}}>
+    <div style={{position:"sticky",top:0,zIndex:Z.header,background:C.surface}}>
       <HeaderTop
         bp={bp} sAlerts={sAlerts} nCompl={nCompl} queue={queue}
         phase={phase} gameTime={gameTime} loan={loan} openBank={openBank}

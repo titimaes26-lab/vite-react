@@ -1,12 +1,12 @@
 import { memo } from "react";
 import { useLang } from "../../i18n/index.jsx";
-import { C, F, COMMIS_LVL } from "../../constants/gameData.js";
+import { C, F, Z, COMMIS_LVL } from "../../constants/gameData.js";
 import { commisLv } from "../../utils/levelUtils.js";
 
 export const CommisHireModal = memo(function CommisHireModal({ commisPool, cash, setCommisHireSlot, hireCommis }) {
   const { t: tr } = useLang();
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:Z.modal,display:"flex",alignItems:"center",justifyContent:"center"}}
       onClick={()=>setCommisHireSlot(null)}>
       <div style={{background:C.card,borderRadius:16,padding:24,maxWidth:400,width:"90%",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}
         onClick={e=>e.stopPropagation()}>
