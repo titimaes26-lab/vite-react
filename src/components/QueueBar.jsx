@@ -26,9 +26,8 @@ export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
 
   return (
     <div style={{
-      position: "fixed",
-      bottom: 0,
-      left: 0, right: 0,
+      width: "100%",
+      flexShrink: 0,
       zIndex: Z.queueBar,
       background: "#ffffff",
       borderTop: `2px solid ${C.border}`,

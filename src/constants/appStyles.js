@@ -1,5 +1,6 @@
 export const APP_STYLES = `
         * { box-sizing: border-box; }
+        html, body, #root { height: 100%; overflow: hidden; margin: 0; }
         html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
         /* ── Hover cards ── */
@@ -95,7 +96,7 @@ export const APP_STYLES = `
           :root { --gap: 10px; --pad: 12px; --card-radius: 12px; --font-base: 12px; }
           .desktop-nav { display: none !important; }
           .mobile-nav  { display: flex !important; }
-          .content-area { padding: 12px var(--pad) 60px !important; }
+          .content-area { padding: 12px var(--pad) 16px !important; }
           .badge-alert { font-size: 8px !important; width: 14px !important; height: 14px !important; }
           .hide-mobile { display: none !important; }
           .show-mobile { display: flex !important; }
@@ -112,7 +113,7 @@ export const APP_STYLES = `
           :root { --gap: 12px; --pad: 16px; --card-radius: 14px; }
           .desktop-nav { display: flex !important; }
           .mobile-nav  { display: none !important; }
-          .content-area { padding: 16px var(--pad) 60px !important; }
+          .content-area { padding: 16px var(--pad) 16px !important; }
           .hide-tablet { display: none !important; }
           .resp-grid { grid-template-columns: 1fr 1fr !important; }
           .resp-grid-3 { grid-template-columns: 1fr 1fr !important; }
@@ -120,7 +121,7 @@ export const APP_STYLES = `
         @media (min-width: 1024px) {
           .desktop-nav { display: flex !important; }
           .mobile-nav  { display: none !important; }
-          .content-area { padding: 20px var(--pad) 60px !important; }
+          .content-area { padding: 20px var(--pad) 16px !important; }
           .show-mobile { display: none !important; }
         }
       `;

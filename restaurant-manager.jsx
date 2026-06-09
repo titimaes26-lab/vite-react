@@ -932,7 +932,7 @@ function AppContent(){
 
   return(
     <ClockContext.Provider value={clockNow}>
-    <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:F.body}}>
+    <div style={{height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg,color:C.ink,fontFamily:F.body}}>
       {/* Écran de chargement */}
       {!isLoaded&&(
         <div style={{position:"fixed",inset:0,background:C.bg,zIndex:99999,
@@ -965,7 +965,7 @@ function AppContent(){
       />
 
       {/* Content */}
-      <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
+      <div className="content-area" style={{flex:1,overflowY:"auto",width:"100%",maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
         <TabErrorBoundary tab={tab}>
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
         {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} gameTime={gameTime} onTableUpgrade={handleTableUpgrade} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} restoLvN={rl.l} stock={stock} formulas={formulas} bp={bp}/>}
