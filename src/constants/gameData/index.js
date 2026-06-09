@@ -1,4 +1,4 @@
-export { C, F, Z } from './theme.js';
+export { C, F, Z, QUEUE_BAR_H } from './theme.js';
 export * from './staff.js';
 export * from './restaurant.js';
 export * from './stock.js';

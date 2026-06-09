@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { C, F, CHEF_LVL } from "../../constants/gameData.js";
 import { chefLv } from "../../utils/levelUtils.js";
 import { Btn, Modal } from "../../components/ui/index.js";
@@ -10,9 +11,11 @@ export function ChefReplaceModal({ kitchen, cash, setCash, addTx, addToast, setK
   const clD = CHEF_LVL[Math.min(cl.l, CHEF_LVL.length - 1)];
   const severance = (chf.salary || 20) * 24;
   const canAfford = cash >= severance;
+  const confirmLockRef = useRef(false);
 
   const confirm = () => {
-    if (!canAfford) return;
+    if (!canAfford || confirmLockRef.current) return;
+    confirmLockRef.current = true;
     setCash(c => +(c - severance).toFixed(2));
     addTx("dépense", `Indemnité licenciement — ${chf.name}`, severance);
     setKitchen(k => {

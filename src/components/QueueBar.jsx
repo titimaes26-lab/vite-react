@@ -3,7 +3,7 @@
    Barre flottante — file d'attente + cash — toujours visible
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect, useRef } from "react";
-import { C, F, Z } from "../constants/gameData.js";
+import { C, F, Z, QUEUE_BAR_H } from "../constants/gameData.js";
 import { useLang } from "../i18n/index.jsx";
 
 export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
@@ -35,7 +35,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
       boxShadow: "0 -2px 12px rgba(23,18,14,0.08), 0 -1px 3px rgba(23,18,14,0.04)",
       display: "flex",
       alignItems: "stretch",
-      minHeight: 44,
+      height: QUEUE_BAR_H,
     }}>
 
       {/* ── Cash ───────────────────────────────────────── */}
@@ -132,7 +132,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
                   border: `1px solid ${isUrgent ? C.red + "55" : C.border}`,
                   borderRadius: 8,
                   padding: "4px 8px",
-                  minHeight: 44,
+                  minHeight: QUEUE_BAR_H,
                   flexShrink: 0,
                   cursor: "pointer",
                   animation: isUrgent ? "queuePulse 1s ease-in-out infinite" : "none",
