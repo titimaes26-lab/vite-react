@@ -1,4 +1,4 @@
-import { C, F, SRV_LVL, QUEUE_BAR_H } from "../../constants/gameData.js";
+import { C, F, SRV_LVL, QUEUE_BAR_H, Z } from "../../constants/gameData.js";
 import { Btn } from "../../components/ui/index.js";
 import { useLang } from "../../i18n/index.jsx";
 import { srvLv } from "../../utils/levelUtils.js";
@@ -9,7 +9,7 @@ export function HireModal({ candidatePool, cash, restoLvN, tierCap, servers, max
   return (
     <div onClick={onClose}
       style={{position:"fixed",top:0,left:0,right:0,bottom:QUEUE_BAR_H,background:"rgba(0,0,0,0.5)",
-        zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        zIndex:Z.modal,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div onClick={e=>e.stopPropagation()}
         style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:18,
           width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",
