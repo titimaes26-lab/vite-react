@@ -5,4 +5,4 @@
    Facilite un futur remplacement de thème sans toucher
    chaque composant.
 ═══════════════════════════════════════════════════════ */
-export { C, F } from "../../constants/gameData.js";
+export { C, F, Z, QUEUE_BAR_H } from "../../constants/gameData.js";
