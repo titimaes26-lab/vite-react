@@ -56,6 +56,7 @@ export const Z = {
   summary: 10050,
   levelUp: 99998,
   scene:   99999,
+  toast:   100000,
 };
 
 export const QUEUE_BAR_H = 44;

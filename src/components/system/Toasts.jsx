@@ -11,14 +11,14 @@
      onDismiss  {(id: string) => void}
      onNavigate {(tab: string) => void}
 ═══════════════════════════════════════════════════════ */
-import { C, F } from "../ui/theme.js";
+import { C, F, Z } from "../ui/theme.js";
 
 export const Toasts = ({ list, onDismiss, onNavigate }) => (
   <div style={{
     position     : "fixed",
     top          : 100,
     right        : 18,
-    zIndex       : 9999,
+    zIndex       : Z.toast,
     display      : "flex",
     flexDirection: "column",
     gap          : 8,
