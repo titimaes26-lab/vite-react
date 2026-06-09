@@ -16,7 +16,7 @@ export function HelpModal({onClose}){
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",
       zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
       onClick={onClose}>
-      <div style={{background:C.surface,borderRadius:20,width:"100%",maxWidth:780,
+      <div className="modal-inner" style={{background:C.surface,borderRadius:20,width:"100%",maxWidth:780,
         maxHeight:"88vh",display:"flex",flexDirection:"column",overflow:"hidden",
         boxShadow:"0 24px 80px rgba(0,0,0,0.25)"}}
         onClick={e=>e.stopPropagation()}>

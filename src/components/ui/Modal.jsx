@@ -24,7 +24,7 @@ export const Modal = ({ title, onClose, children }) => {
     justifyContent: "center",
     padding       : 16,
   }}>
-    <div className="modal-inner" style={{
+    <div style={{
       background  : C.surface,
       border      : `1.5px solid ${C.border}`,
       borderRadius: 18,

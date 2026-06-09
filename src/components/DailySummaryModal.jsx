@@ -29,7 +29,7 @@ export function DailySummaryModal({ onClose, dailyStats, objStats, servers, tran
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:10050,
       display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{background:C.surface,borderRadius:22,width:"100%",maxWidth:460,
+      <div className="modal-inner" style={{background:C.surface,borderRadius:22,width:"100%",maxWidth:460,
         boxShadow:"0 32px 80px rgba(0,0,0,0.35)",overflow:"hidden",
         maxHeight:"90vh",overflowY:"auto",
         animation:"popIn 0.4s ease"}}>
