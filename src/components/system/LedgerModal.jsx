@@ -3,7 +3,7 @@
    Extrait du monolithe restaurant-manager.jsx
    Modal affichant l'historique des transactions (grand livre).
 ═══════════════════════════════════════════════════════ */
-import { C, F } from "../../constants/gameData";
+import { C, F, Z } from "../../constants/gameData";
 import { useLang } from "../../i18n/index.jsx";
 
 export function LedgerModal({ onClose, cash, transactions }) {
@@ -11,7 +11,7 @@ export function LedgerModal({ onClose, cash, transactions }) {
 
   return (
     <div onClick={onClose} style={{position:"fixed",inset:0,
-      background:"rgba(0,0,0,0.45)",zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      background:"rgba(0,0,0,0.45)",zIndex:Z.ledger,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div onClick={e=>e.stopPropagation()} className="modal-inner" style={{background:C.surface,borderRadius:18,
         width:"100%",maxWidth:560,maxHeight:"80vh",display:"flex",flexDirection:"column",
         boxShadow:"0 24px 60px rgba(0,0,0,0.25)"}}>

@@ -47,8 +47,13 @@ export const F = {
 };
 
 export const Z = {
-  header: 999,
-  modal:  1000,
+  header:  999,
+  modal:   1000,
+  notif:   2000,
+  ledger:  9998,
+  help:    10000,
+  summary: 10050,
+  scene:   99999,
 };
 
 export const QUEUE_BAR_H = 44;

@@ -4,7 +4,7 @@
    Dépendances déclarées dans les imports ci-dessous.
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F } from "../../constants/gameData";
+import { C, F, Z } from "../../constants/gameData";
 import { HELP_SECTIONS } from "../../constants/helpContent.js";
 import { useLang } from "../../i18n/index.jsx";
 
@@ -14,7 +14,7 @@ export function HelpModal({onClose}){
   const s=HELP_SECTIONS[sec];
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",
-      zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+      zIndex:Z.help,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
       onClick={onClose}>
       <div className="modal-inner" style={{background:C.surface,borderRadius:20,width:"100%",maxWidth:780,
         maxHeight:"88vh",display:"flex",flexDirection:"column",overflow:"hidden",

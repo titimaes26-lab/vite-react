@@ -2,7 +2,7 @@
    src/components/DailySummaryModal.jsx
    Résumé de fin de journée.
 ═══════════════════════════════════════════════════════ */
-import { C, F } from "../constants/gameData.js";
+import { C, F, Z } from "../constants/gameData.js";
 import { useLang } from "../i18n/index.jsx";
 
 export function DailySummaryModal({ onClose, dailyStats, objStats, servers, transactions, isRecord, salaryData }) {
@@ -27,7 +27,7 @@ export function DailySummaryModal({ onClose, dailyStats, objStats, servers, tran
   const nextRevTarget = [500, 1000, 2000, 5000, 10000].find(t => t > objStats.totalRevenue) || 10000;
 
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:10050,
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",zIndex:Z.summary,
       display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div className="modal-inner" style={{background:C.surface,borderRadius:22,width:"100%",maxWidth:460,
         boxShadow:"0 32px 80px rgba(0,0,0,0.35)",overflow:"hidden",

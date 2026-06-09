@@ -27,7 +27,7 @@ import { APP_STYLES }          from "./src/constants/appStyles.js";
 
 // ── Données statiques ──────────────────────────────────
 import {
-  C, F,
+  C, F, Z,
   SRV_LVL, CHEF_LVL, CHEF_XP_CAP, COMMIS_LVL, COMMIS_XP_CAP,
   RESTO_LVL, SERVER_SLOTS_BY_LEVEL, CAP_UPGRADES,
   MOODS, NAMES1, NAMES2,
@@ -935,7 +935,7 @@ function AppContent(){
     <div style={{height:"100%",display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg,color:C.ink,fontFamily:F.body}}>
       {/* Écran de chargement */}
       {!isLoaded&&(
-        <div style={{position:"fixed",inset:0,background:C.bg,zIndex:99999,
+        <div style={{position:"fixed",inset:0,background:C.bg,zIndex:Z.scene,
           display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
           <div style={{width:52,height:52,background:C.green,borderRadius:14,
             display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,

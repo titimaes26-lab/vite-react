@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { F } from "../../constants/gameData.js";
+import { F, Z } from "../../constants/gameData.js";
 import { useLang } from "../../i18n/index.jsx";
 import { SPEAKERS_FR, SPEAKERS_EN } from "../../constants/dialogData.js";
 import { DialogHeader } from "./DialogHeader.jsx";
@@ -48,7 +48,7 @@ export function DialogScene({ dialogData, ctaLabel = "OK", onDone }) {
   const skip = (e) => { e.stopPropagation(); setVisible(false); setTimeout(onDone, 350); };
 
   return (
-    <div onClick={next} style={{position:"fixed",inset:0,zIndex:99999,background:"rgba(8,6,4,0.92)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"12px 12px 16px",opacity:visible?1:0,transition:"opacity 0.35s ease",cursor:"pointer"}}>
+    <div onClick={next} style={{position:"fixed",inset:0,zIndex:Z.scene,background:"rgba(8,6,4,0.92)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"12px 12px 16px",opacity:visible?1:0,transition:"opacity 0.35s ease",cursor:"pointer"}}>
       <button onClick={skip} style={{position:"absolute",top:14,right:14,padding:"5px 14px",background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:20,color:"rgba(255,255,255,0.6)",fontSize:11,cursor:"pointer",fontFamily:F.body,zIndex:1}}>
         {t("dialog.skip")}
       </button>
