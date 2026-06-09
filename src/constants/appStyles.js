@@ -1,6 +1,7 @@
 export const APP_STYLES = `
         * { box-sizing: border-box; }
-        html, body, #root { height: 100%; overflow: hidden; margin: 0; }
+        html, body { height: 100%; overflow: hidden; margin: 0; }
+        #root { height: 100%; height: 100dvh; overflow: hidden; }
         html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
         /* ── Hover cards ── */

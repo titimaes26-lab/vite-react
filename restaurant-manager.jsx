@@ -932,7 +932,7 @@ function AppContent(){
 
   return(
     <ClockContext.Provider value={clockNow}>
-    <div style={{height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg,color:C.ink,fontFamily:F.body}}>
+    <div style={{height:"100%",display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg,color:C.ink,fontFamily:F.body}}>
       {/* Écran de chargement */}
       {!isLoaded&&(
         <div style={{position:"fixed",inset:0,background:C.bg,zIndex:99999,
