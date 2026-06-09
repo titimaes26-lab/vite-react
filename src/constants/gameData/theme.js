@@ -48,7 +48,7 @@ export const F = {
 
 export const Z = {
   modal:    1000,
-  queueBar: 1001,
+  queueBar:  900,
 };
 
 export const QUEUE_BAR_H = 44;

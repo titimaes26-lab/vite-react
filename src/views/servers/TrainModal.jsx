@@ -1,4 +1,4 @@
-import { C, F, SRV_LVL, QUEUE_BAR_H, Z } from "../../constants/gameData.js";
+import { C, F, SRV_LVL, Z } from "../../constants/gameData.js";
 import { TRAINING_CATALOG } from "../../constants/serverConstants.js";
 import { Btn } from "../../components/ui/index.js";
 import { useLang } from "../../i18n/index.jsx";
@@ -13,7 +13,7 @@ export function TrainModal({ sv, cash, onClose, doTrain }) {
     <div onClick={onClose}
       style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.5)",
         zIndex:Z.modal,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-      <div onClick={e=>e.stopPropagation()}
+      <div onClick={e=>e.stopPropagation()} className="modal-inner"
         style={{background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:18,
           width:"100%",maxWidth:620,maxHeight:"90vh",overflowY:"auto",
           boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>

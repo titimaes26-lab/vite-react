@@ -9,7 +9,7 @@
      children {ReactNode}
 ═══════════════════════════════════════════════════════ */
 import { useState } from "react";
-import { C, F, Z, QUEUE_BAR_H } from "./theme.js";
+import { C, F, Z } from "./theme.js";
 
 export const Modal = ({ title, onClose, children }) => {
   const [closeHovered, setCloseHovered] = useState(false);
@@ -24,7 +24,7 @@ export const Modal = ({ title, onClose, children }) => {
     justifyContent: "center",
     padding       : 16,
   }}>
-    <div style={{
+    <div className="modal-inner" style={{
       background  : C.surface,
       border      : `1.5px solid ${C.border}`,
       borderRadius: 18,
