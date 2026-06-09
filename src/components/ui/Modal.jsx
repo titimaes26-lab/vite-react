@@ -16,7 +16,7 @@ export const Modal = ({ title, onClose, children }) => {
   return (
   <div style={{
     position      : "fixed",
-    top: 0, left: 0, right: 0, bottom: QUEUE_BAR_H,
+    top: 0, left: 0, right: 0, bottom: 0,
     background    : "rgba(26,22,18,0.5)",
     zIndex        : Z.modal,
     display       : "flex",
