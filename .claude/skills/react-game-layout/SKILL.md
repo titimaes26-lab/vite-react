@@ -24,15 +24,18 @@ Lorsque tu crées ou modifies la structure principale du jeu, base-toi systémat
 
 ```javascript
 import React, { useState } from 'react';
+import { Z } from './constants/gameData'; // token z-index centralisés
 
 // 1. Structure Générique du HUD Supérieur
-const HUD = ({ currentScreen, setScreen }) => {
+// Utilise position:sticky dans un flex-column — pas de position:fixed
+// pour éviter les offsets manuels fragiles.
+const HUD = ({ currentScreen, setScreen, gold, gems }) => {
   return (
     <div style={{
-      position: 'fixed',
+      position: 'sticky',
       top: 0,
-      left: 0,
-      right: 0,
+      width: '100%',
+      flexShrink: 0,
       height: '60px',
       backgroundColor: '#1a1a1a',
       color: '#fff',
@@ -40,13 +43,13 @@ const HUD = ({ currentScreen, setScreen }) => {
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '0 16px',
-      zIndex: 50,
+      zIndex: Z.header,
       borderBottom: '2px solid #333'
     }}>
-      {/* Section Ressources */}
+      {/* Section Ressources — valeurs passées en props, pas de DOM impératif */}
       <div style={{ display: 'flex', gap: '16px' }}>
-        <div>💰 <span id="hud-gold">0</span></div>
-        <div>💎 <span id="hud-gems">0</span></div>
+        <div>💰 {gold}</div>
+        <div>💎 {gems}</div>
       </div>
       
       {/* Section Navigation épurée */}
@@ -71,6 +74,8 @@ const HUD = ({ currentScreen, setScreen }) => {
 // 2. Composant Principal (Layout Engine)
 export default function GameLayout() {
   const [currentScreen, setCurrentScreen] = useState('MAIN_MENU');
+  const [gold, setGold] = useState(0);
+  const [gems, setGems] = useState(0);
 
   // Rendu conditionnel des écrans
   const renderScreen = () => {
@@ -87,23 +92,30 @@ export default function GameLayout() {
   };
 
   return (
+    // height:100dvh (pas 100vh) — 100dvh exclut la barre d'adresse mobile
     <div style={{ 
       display: 'flex', 
       flexDirection: 'column', 
-      minHeight: '100vh',
+      height: '100dvh',
+      overflow: 'hidden',
       backgroundColor: '#121212',
       color: '#ffffff',
       fontFamily: 'sans-serif'
     }}>
       {/* Le HUD n'apparaît pas sur le menu principal */}
       {currentScreen !== 'MAIN_MENU' && (
-        <HUD currentScreen={currentScreen} setScreen={setCurrentScreen} />
+        <HUD
+          currentScreen={currentScreen}
+          setScreen={setCurrentScreen}
+          gold={gold}
+          gems={gems}
+        />
       )}
       
-      {/* Zone de contenu ajustée en fonction de la présence du HUD */}
+      {/* Zone de contenu scrollable — flex:1 absorbe l'espace restant */}
       <main style={{ 
-        flex: 1, 
-        marginTop: currentScreen !== 'MAIN_MENU' ? '60px' : '0px',
+        flex: 1,
+        overflowY: 'auto',
         padding: '16px',
         display: 'flex',
         flexDirection: 'column'
