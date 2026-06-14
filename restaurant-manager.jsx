@@ -735,7 +735,7 @@ function AppContent(){
   }, [adWatching]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Horloge de jeu ────────────────────────────────── */
-  const { clockNow, gameTime, phase, isDayOver: clockIsDayOver, resetDay } = useGameClock(dayStartRealMs, pausedRef);
+  const { clockNow, gameTime, phase, isDayOver: clockIsDayOver, resetDay } = useGameClock({ pausedRef });
   gameTimeRef.current  = gameTime.str;
   resetDayRef.current  = resetDay;
   const tablesOccupied = tables.some(t=>t.status==="occupée"||t.status==="mange");

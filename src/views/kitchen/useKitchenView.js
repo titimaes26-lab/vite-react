@@ -48,6 +48,9 @@ export function useKitchenView({ kitchen, setKitchen, stock, setStock, setTables
   const upgDishCookTime = (prepTime, chefSpeed, commisCount, cat="") =>
     Math.max(5, Math.round(prepTime/((chefSpeed+speedBonus)*(1+commisCount*0.15)*(1+activeAdditionalChefs.length*0.10)*moraleMult*(1+specBonus(cat)+trainingBonus(cat)))));
 
+  const absMinRef = useRef(absMin);
+  useEffect(()=>{ absMinRef.current = absMin; }, [absMin]);
+
   const [now, setNow] = useState(Date.now());
   const [pianoCompact, setPianoCompact] = useState(()=>{
     try{return localStorage.getItem("pianoCompact")==="1";}catch{return false;}
@@ -69,8 +72,11 @@ export function useKitchenView({ kitchen, setKitchen, stock, setStock, setTables
         if(justDone.length===0)return k;
         const stillCooking = k.cooking.filter(d=>t<d.startedAt+d.timerMax*1000);
         const xpPerDish = 12;
-        const activeCommis = k.commis.filter(c=>c.status==="actif").slice(0,unlockedCommis);
-        const activeChefs = (k.chefs??[]).filter(c=>c.status==="actif");
+        const cur = absMinRef.current;
+        const activeCommis = k.commis
+          .filter(c=>c.status==="actif"&&(!c.shift||isOnShift(c.shift,cur)))
+          .slice(0,unlockedCommis);
+        const activeChefs = (k.chefs??[]).filter(c=>c.status==="actif"&&isOnShift(c.shift,cur));
         return {
           ...k,
           chef:{...k.chef,totalXp:Math.min(CHEF_MAX_XP,k.chef.totalXp+justDone.length*xpPerDish)},

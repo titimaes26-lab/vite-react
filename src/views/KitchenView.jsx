@@ -44,8 +44,7 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
           maxConcurrent={maxConcurrent}
           slotsLeft={slotsLeft}
           chefOnShift={chefOnShift}
-          clD={clD}
-          unlockedCommis={activeCommisCount}
+          activeCommisCount={activeCommisCount}
           effectiveChefSpeed={effectiveChefSpeed}
           upgDishCookTime={upgDishCookTime}
           moveTicket={moveTicket}
