@@ -65,7 +65,7 @@ export const ServersView = memo(function ServersView({
           <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
             👨‍🍳 Chefs
             <span style={{fontSize:10,background:C.amberP,color:C.amber,border:`1px solid ${C.amber}33`,borderRadius:6,padding:"1px 8px",fontWeight:600}}>
-              {1+(kitchen.chefs??[]).length}/{1+maxChefSlots}
+              {1+Math.min((kitchen.chefs??[]).length,maxChefSlots)}/{1+maxChefSlots}
             </span>
           </div>
           <div style={{display:"grid",gridTemplateColumns:gridCols,gap:gridGap,marginBottom:20}}>
@@ -89,7 +89,7 @@ export const ServersView = memo(function ServersView({
           <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
             👥 Commis
             <span style={{fontSize:10,background:C.greenP,color:C.green,border:`1px solid ${C.green}33`,borderRadius:6,padding:"1px 8px",fontWeight:600}}>
-              {unlockedCommis}/{maxCommisSlots} débloqué{unlockedCommis>1?"s":""}
+              {unlockedCommis}/{maxCommisSlots} débloqué{unlockedCommis!==1?"s":""}
             </span>
           </div>
           <div style={{display:"grid",gridTemplateColumns:gridCols,gap:gridGap,marginBottom:16}}>
