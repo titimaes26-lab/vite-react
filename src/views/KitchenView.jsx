@@ -16,20 +16,20 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
 
   return(
     <div>
-      {kitchen.chef?.shift&&!chefOnShift&&(
+      {!chefOnShift&&kitchen.chef?.shift&&(
         <div style={{background:"#fef3c7",border:"1.5px solid #f59e0b",borderRadius:10,
           padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10,
           fontSize:11,fontFamily:F.body,fontWeight:700,color:"#92400e"}}>
           <span style={{fontSize:18}}>💤</span>
-          <span>{kitchen.chef.name} est hors créneau — la cuisine est à l'arrêt.</span>
+          <span>Aucun chef en service — {kitchen.chef.name} reprend son créneau à la prochaine plage horaire.</span>
         </div>
       )}
-      {!kitchen.chef?.shift&&(
+      {!chefOnShift&&!kitchen.chef?.shift&&(
         <div style={{background:"#fdf3dc",border:"1.5px solid #a86e08",borderRadius:10,
           padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10,
           fontSize:11,fontFamily:F.body,fontWeight:600,color:"#a86e08"}}>
           <span style={{fontSize:16}}>⚠️</span>
-          <span>Aucun créneau assigné au chef — assigner un créneau dans l'onglet Personnel.</span>
+          <span>Aucun créneau assigné — assigner un créneau dans l'onglet Personnel.</span>
         </div>
       )}
 

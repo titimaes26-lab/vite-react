@@ -26,7 +26,9 @@ export function useKitchenView({ kitchen, setKitchen, stock, setStock, setTables
 
   const morale = kitchen.morale??100;
   const moraleMult = morale>=70?1.10:morale<30?0.85:1.0;
-  const activeCommisArr = kitchen.commis.filter((_,i)=>i<unlockedCommis);
+  const activeCommisArr = kitchen.commis
+    .filter((_,i) => i < unlockedCommis)
+    .filter(c => !c.shift || isOnShift(c.shift, gameTime?.absMin ?? 0));
   const specBonus = (cat)=>activeCommisArr.filter(c=>c.specialty?.cat===cat).reduce((s,c)=>s+(c.specialty?.bonus||0),0);
   const trainingBonus = (cat)=>{
     const t = kitchen.chefTrainings||{};
@@ -120,7 +122,7 @@ export function useKitchenView({ kitchen, setKitchen, stock, setStock, setTables
     prevChefLvRef.current = cl.l;
   },[cl.l]);
 
-  const chefOnShift = isOnShift(kitchen.chef?.shift, gameTime?.absMin ?? 0);
+  const chefOnShift = isOnShift(kitchen.chef?.shift, absMin) || activeAdditionalChefs.length > 0;
 
   const startDish = (dish)=>{
     if(!chefOnShift)return;
