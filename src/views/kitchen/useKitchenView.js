@@ -122,12 +122,27 @@ export function useKitchenView({ kitchen, setKitchen, stock, setStock, setTables
     prevChefLvRef.current = cl.l;
   },[cl.l]);
 
-  const chefOnShift = isOnShift(kitchen.chef?.shift, absMin) || activeAdditionalChefs.length > 0;
+  const primaryChefOnShift = isOnShift(kitchen.chef?.shift, absMin);
+  const chefOnShift = primaryChefOnShift || activeAdditionalChefs.length > 0;
+
+  // Speed of the fastest chef currently on duty (fallback to primary chef's stat)
+  const effectiveChefSpeed = (() => {
+    if (!primaryChefOnShift && activeAdditionalChefs.length > 0) {
+      const speeds = activeAdditionalChefs.map(ac => {
+        const acl = chefLv(ac.totalXp ?? 0);
+        return CHEF_LVL[Math.min(acl.l, CHEF_LVL.length - 1)].speed;
+      });
+      return Math.max(...speeds);
+    }
+    return clD.speed;
+  })();
+  // Number of commis actually on shift (used for cook-time formula)
+  const activeCommisCount = activeCommisArr.length;
 
   const startDish = (dish)=>{
     if(!chefOnShift)return;
     if(kitchen.cooking.length>=maxConcurrent)return;
-    const ct = upgDishCookTime(dish.prepTime||60,clD.speed,unlockedCommis,dish.cat||"");
+    const ct = upgDishCookTime(dish.prepTime||60,effectiveChefSpeed,activeCommisCount,dish.cat||"");
     let blocked = false;
     setStock(s=>{
       const{newStock,missing} = consumeStock([dish],s);
@@ -173,7 +188,7 @@ export function useKitchenView({ kitchen, setKitchen, stock, setStock, setTables
         cooking:[...k.cooking,...stillInQueue.map(d=>({
           ...d,
           startedAt:ts,
-          timerMax:upgDishCookTime(d.prepTime||60,clD.speed,unlockedCommis,d.cat||""),
+          timerMax:upgDishCookTime(d.prepTime||60,effectiveChefSpeed,activeCommisCount,d.cat||""),
         }))],
       };
     });
@@ -241,7 +256,8 @@ export function useKitchenView({ kitchen, setKitchen, stock, setStock, setTables
   };
 
   return {
-    cl, clD, unlockedCommis, maxConcurrent, upgDishCookTime, upg,
+    cl, clD, unlockedCommis, activeCommisCount, effectiveChefSpeed,
+    maxConcurrent, upgDishCookTime, upg,
     now, pianoCompact, togglePiano,
     chefOnShift, freeSrvForServing,
     startDish, startAll, serveTable, moveTicket,

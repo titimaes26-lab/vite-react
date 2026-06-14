@@ -7,7 +7,8 @@ import { UpgradesGrid } from "./kitchen/UpgradesGrid.jsx";
 
 export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,servers=[],setServers,addToast,cash,setCash,addTx,gameTime,restoLvN=0,bp={}}){
   const {
-    clD, unlockedCommis, maxConcurrent, upgDishCookTime, upg,
+    clD, unlockedCommis, activeCommisCount, effectiveChefSpeed,
+    maxConcurrent, upgDishCookTime, upg,
     now, pianoCompact, togglePiano,
     chefOnShift, freeSrvForServing,
     startDish, startAll, serveTable, moveTicket,
@@ -44,7 +45,8 @@ export function KitchenView({kitchen,setKitchen,stock,setStock,tables,setTables,
           slotsLeft={slotsLeft}
           chefOnShift={chefOnShift}
           clD={clD}
-          unlockedCommis={unlockedCommis}
+          unlockedCommis={activeCommisCount}
+          effectiveChefSpeed={effectiveChefSpeed}
           upgDishCookTime={upgDishCookTime}
           moveTicket={moveTicket}
           startDish={startDish}
