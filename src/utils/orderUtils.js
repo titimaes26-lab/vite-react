@@ -149,9 +149,17 @@ export const calcBill = (orderLines) =>
 export const stockCap = (item, storageMult) =>
   (item.alert > 0 ? item.alert * 6 : Math.max((item.qty ?? 0) * 2, 10)) * storageMult;
 
-export const quickAmounts = (unit) => {
-  if (["kg", "L"].includes(unit))                   return [0.5, 1, 5];
-  if (["btl", "pcs", "bottes"].includes(unit))      return [1, 6, 12];
-  if (unit === "u")                                  return [6, 12, 24];
-  return [1, 5, 10];
+export const quickAmounts = (item, storageMult = 1) => {
+  const cap = stockCap(item, storageMult);
+  const isDiscrete = ["u", "btl", "pcs", "bottes"].includes(item.unit);
+  const eff = item.alert > 0 ? item.alert : Math.max(1, cap / 6);
+  const step = isDiscrete ? 1 : 0.5;
+  const round = (v) =>
+    isDiscrete ? Math.max(1, Math.round(v)) : Math.max(0.5, Math.round(v * 2) / 2);
+  let s = round(eff);
+  let m = round(eff * 2);
+  let l = round(Math.min(eff * 4, cap * 0.85));
+  if (m <= s) m = s + step;
+  if (l <= m) l = m + step;
+  return [s, m, l];
 };

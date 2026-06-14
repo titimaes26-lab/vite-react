@@ -25,7 +25,7 @@ export const StockListView = memo(function StockListView({ sortedStock, storageM
             const pct = cap>0?Math.min(100,(it.qty/cap)*100):0;
             const barColor = getBarColor(it,storageMult,cap);
             const portions = portionsPerIngredient(it.id);
-            const amounts = quickAmounts(it.unit).slice(0,2);
+            const amounts = quickAmounts(it, storageMult).slice(0,2);
             return(
               <tr key={it.id} style={{background:i%2===0?C.card:C.bg,
                 borderLeft:low?`3px solid ${C.red}`:"3px solid transparent"}}>

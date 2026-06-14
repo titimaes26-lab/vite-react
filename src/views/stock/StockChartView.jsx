@@ -50,7 +50,7 @@ export const StockChartView = memo(function StockChartView({ sortedStock, storag
                 ):null}
               </div>
               <div style={{display:"flex",gap:3,flexShrink:0}} onClick={e=>e.stopPropagation()}>
-                {quickAmounts(it.unit).map(n=>{
+                {quickAmounts(it, storageMult).map(n=>{
                   const wouldExceed = it.qty+pendingQty(it.id)+n>cap;
                   return(
                     <button key={n} onClick={()=>{
