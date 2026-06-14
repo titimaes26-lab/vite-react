@@ -71,7 +71,7 @@ export const PHASES = [
     icon: "🌙",
     color: "#8b5cf6",
     startAbs: 900,   // 15:00
-    endAbs:   1380,  // 23:00
+    endAbs:   1350,  // 22:30
     spawnRate: 1.5,
     prepBonus: 0,
     patienceMultiplier: 0.9,
@@ -80,12 +80,27 @@ export const PHASES = [
     allowedCats: ["Entrées", "Plats", "Desserts", "Boissons"],
     desc: "Service du soir · +10 % prix",
   },
+  {
+    id: "fermeture",
+    label: "Fermeture",
+    icon: "🔒",
+    color: "#64748b",
+    startAbs: 1350,  // 22:30
+    endAbs:   1440,  // 00:00
+    spawnRate: 0,
+    prepBonus: 0,
+    patienceMultiplier: 1.0,
+    cleanBonus: 0,
+    priceMultiplier: 1.0,
+    allowedCats: [],
+    desc: "Fermeture — plus de nouveaux clients",
+  },
 ];
 
 /* ─── Créneaux de travail du personnel ───────────────── */
 const SHIFTS = {
   matin: { id: "matin", label: "Matin",  icon: "🌅", startAbs: 420,  endAbs: 900  }, // 07h-15h
-  soir:  { id: "soir",  label: "Soir",   icon: "🌙", startAbs: 900,  endAbs: 1380 }, // 15h-23h
+  soir:  { id: "soir",  label: "Soir",   icon: "🌙", startAbs: 900,  endAbs: 1440 }, // 15h-00h (overtime jusqu'au dernier client)
 };
 
 /**
