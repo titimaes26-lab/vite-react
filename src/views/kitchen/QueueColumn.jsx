@@ -79,7 +79,7 @@ export const QueueColumn = memo(function QueueColumn({ queueByTable, queueLength
                 </div>
               </div>
               {tblQ.dishes.map((d,i)=>{
-                const estSec = upgDishCookTime(d.prepTime||60,effectiveChefSpeed??clD.speed,unlockedCommis,d.cat||"");
+                const estSec = upgDishCookTime(d.prepTime||60,effectiveChefSpeed,unlockedCommis,d.cat||"");
                 const estFmt = estSec>=60?`${Math.floor(estSec/60)}m${String(estSec%60).padStart(2,"0")}s`:estSec+"s";
                 return(
                   <div key={d.id} style={{padding:"5px 9px",borderTop:i>0?`1px dashed ${tc}22`:undefined,

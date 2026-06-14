@@ -125,16 +125,16 @@ export function useKitchenView({ kitchen, setKitchen, stock, setStock, setTables
   const primaryChefOnShift = isOnShift(kitchen.chef?.shift, absMin);
   const chefOnShift = primaryChefOnShift || activeAdditionalChefs.length > 0;
 
-  // Speed of the fastest chef currently on duty (fallback to primary chef's stat)
+  // Speed of the fastest chef currently on duty
   const effectiveChefSpeed = (() => {
-    if (!primaryChefOnShift && activeAdditionalChefs.length > 0) {
-      const speeds = activeAdditionalChefs.map(ac => {
+    const speeds = [
+      ...(primaryChefOnShift ? [clD.speed] : []),
+      ...activeAdditionalChefs.map(ac => {
         const acl = chefLv(ac.totalXp ?? 0);
         return CHEF_LVL[Math.min(acl.l, CHEF_LVL.length - 1)].speed;
-      });
-      return Math.max(...speeds);
-    }
-    return clD.speed;
+      }),
+    ];
+    return speeds.length > 0 ? Math.max(...speeds) : clD.speed;
   })();
   // Number of commis actually on shift (used for cook-time formula)
   const activeCommisCount = activeCommisArr.length;
