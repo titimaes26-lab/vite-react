@@ -61,28 +61,17 @@ export const ServersView = memo(function ServersView({
 
       {kitchen && staffFilter==="cuisine" && (
         <>
+          {/* ── Chefs ───────────────────────────────────────── */}
           <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
-            👨‍🍳 Brigade de cuisine
+            👨‍🍳 Chefs
+            <span style={{fontSize:10,background:C.amberP,color:C.amber,border:`1px solid ${C.amber}33`,borderRadius:6,padding:"1px 8px",fontWeight:600}}>
+              {1+(kitchen.chefs??[]).length}/{1+maxChefSlots}
+            </span>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:gridCols,gap:gridGap,marginBottom:16}}>
+          <div style={{display:"grid",gridTemplateColumns:gridCols,gap:gridGap,marginBottom:20}}>
             <ChefCard chf={chf} kitchen={kitchen} cash={cash} setCash={setCash} addTx={addTx}
               addToast={addToast} setKitchen={setKitchen} setChefModal={setChefModal}
               brigMorale={brigMorale} brigMoraleColor={brigMoraleColor} brigMoraleIcon={brigMoraleIcon}/>
-            {Array.from({length:maxCommisSlots},(_,idx)=>(
-              <CommisSlotCard key={`commis-${idx}`} idx={idx} cm={kitchen.commis?.[idx]}
-                locked={idx>=unlockedCommis} unlockedCommis={unlockedCommis}
-                setKitchen={setKitchen} setCommisHireSlot={setCommisHireSlot}
-                setCommisConfirmSlot={setCommisConfirmSlot}/>
-            ))}
-          </div>
-
-          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginTop:16,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
-            🧑‍🍳 Chefs supplémentaires
-            <span style={{fontSize:10,background:C.amberP,color:C.amber,border:`1px solid ${C.amber}33`,borderRadius:6,padding:"1px 8px",fontWeight:600}}>
-              {(kitchen.chefs??[]).length}/{maxChefSlots} slot{maxChefSlots>1?"s":""}
-            </span>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:gridCols,gap:gridGap,marginBottom:16}}>
             {Array.from({length:maxChefSlots},(_,idx)=>{
               const ac=(kitchen.chefs??[])[idx];
               if(ac) return <AdditionalChefCard key={ac.id} idx={idx} ac={ac} setKitchen={setKitchen} setChefConfirmIdx={setChefConfirmIdx}/>;
@@ -94,6 +83,22 @@ export const ServersView = memo(function ServersView({
                 </div>
               );
             })}
+          </div>
+
+          {/* ── Commis ──────────────────────────────────────── */}
+          <div style={{fontSize:13,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+            👥 Commis
+            <span style={{fontSize:10,background:C.greenP,color:C.green,border:`1px solid ${C.green}33`,borderRadius:6,padding:"1px 8px",fontWeight:600}}>
+              {unlockedCommis}/{maxCommisSlots} débloqué{unlockedCommis>1?"s":""}
+            </span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:gridCols,gap:gridGap,marginBottom:16}}>
+            {Array.from({length:maxCommisSlots},(_,idx)=>(
+              <CommisSlotCard key={`commis-${idx}`} idx={idx} cm={kitchen.commis?.[idx]}
+                locked={idx>=unlockedCommis} unlockedCommis={unlockedCommis}
+                setKitchen={setKitchen} setCommisHireSlot={setCommisHireSlot}
+                setCommisConfirmSlot={setCommisConfirmSlot}/>
+            ))}
           </div>
         </>
       )}
