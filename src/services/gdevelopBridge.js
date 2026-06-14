@@ -126,7 +126,7 @@ export const buildGDevelopPayload = ({
     plaintes: (complaints || []).slice(0, 20).map(c => ({
       id: c.id, message: c.message, date: c.date,
     })),
-    fournisseur: supplierMode || "premium",
+    fournisseur: supplierMode || "normal",
     objectifs: {
       completedIds,
       pendingClaim,

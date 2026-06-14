@@ -147,6 +147,6 @@ export function useStockView({ stock, setStock, cash, setCash, addTx, addToast, 
     storageMult, visibleStock, viewMode, setViewMode, collapsedCats, sortMode, setSortMode,
     alerts, staleItems, portionsPerIngredient, criticalIngredients, inventoryValue,
     pendingQty, deductCost, handleOrder, handleAdjust, handleSetAlert,
-    orderByForecast, restockAll, cats, toggleCat, sortedStock,
+    orderByForecast, restockAll, cats, toggleCat, sortedStock, sup,
   };
 }

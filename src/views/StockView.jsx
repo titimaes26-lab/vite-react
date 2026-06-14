@@ -44,7 +44,7 @@ export function StockView({ stock, setStock, cash, setCash, addTx, addToast, add
     storageMult, visibleStock, viewMode, setViewMode, collapsedCats, sortMode, setSortMode,
     alerts, staleItems, portionsPerIngredient, criticalIngredients, inventoryValue,
     pendingQty, deductCost, handleOrder, handleAdjust, handleSetAlert,
-    orderByForecast, restockAll, cats, toggleCat, sortedStock,
+    orderByForecast, restockAll, cats, toggleCat, sortedStock, sup,
   } = useStockView({ stock, setStock, cash, setCash, addTx, addToast, addDayStat, kitchen, supplierMode, setSupplierMode, pendingDeliveries, setPendingDeliveries, menu, restoLvN });
 
   return(
@@ -76,12 +76,12 @@ export function StockView({ stock, setStock, cash, setCash, addTx, addToast, add
             {tl("stock.supply")}
           </div>
           <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-            {(SUPPLIERS[supplierMode]??SUPPLIERS.normal).desc}
+            {sup.desc}
           </div>
         </div>
         <div style={{display:"flex",gap:5}}>
           {Object.values(SUPPLIERS).map(s=>{
-            const active = (SUPPLIERS[supplierMode]?supplierMode:"normal")===s.id;
+            const active = sup.id===s.id;
             const badge = s.discount>0?`−${(s.discount*100).toFixed(0)}%`:s.discount<0?`+${(-s.discount*100).toFixed(0)}%`:null;
             return(
               <button key={s.id} onClick={()=>setSupplierMode(s.id)} style={{
