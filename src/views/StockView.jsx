@@ -76,12 +76,12 @@ export function StockView({ stock, setStock, cash, setCash, addTx, addToast, add
             {tl("stock.supply")}
           </div>
           <div style={{fontSize:10,color:C.muted,fontFamily:F.body}}>
-            {SUPPLIERS[supplierMode||"normal"].desc}
+            {(SUPPLIERS[supplierMode]??SUPPLIERS.normal).desc}
           </div>
         </div>
         <div style={{display:"flex",gap:5}}>
           {Object.values(SUPPLIERS).map(s=>{
-            const active = (supplierMode||"normal")===s.id;
+            const active = (SUPPLIERS[supplierMode]?supplierMode:"normal")===s.id;
             const badge = s.discount>0?`−${(s.discount*100).toFixed(0)}%`:s.discount<0?`+${(-s.discount*100).toFixed(0)}%`:null;
             return(
               <button key={s.id} onClick={()=>setSupplierMode(s.id)} style={{
