@@ -838,6 +838,7 @@ function AppContent(){
     setStock, setComplaints, setQueue, setCash,
     setTables, setServers, setKitchen,
     setActiveEvent, addToast, addTx, updateReputation,
+    dayStartRealMs,
   });
   useServerMoral({ setServers, addToast, pausedRef });
   useChallenges ({
