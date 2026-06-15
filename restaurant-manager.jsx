@@ -381,6 +381,9 @@ function AppContent(){
     salaryAccruedRef.current={ total: 0, perPerson: {} };
     setTab("tables");
     setShowResetModal(false);
+    const now = Date.now();
+    setDayStartRealMs(now);
+    try { localStorage.setItem("day_start", String(now)); } catch(e) {}
     resetDayRef.current?.();
   },[]);
 
@@ -838,7 +841,7 @@ function AppContent(){
     setStock, setComplaints, setQueue, setCash,
     setTables, setServers, setKitchen,
     setActiveEvent, addToast, addTx, updateReputation,
-    dayStartRealMs,
+    dayStartRealMs, pausedRef,
   });
   useServerMoral({ setServers, addToast, pausedRef });
   useChallenges ({
