@@ -6,12 +6,17 @@
 
    Comportement :
    - Si la journée est déjà avancée (chargement de sauvegarde),
-     la fenêtre de déclenchement est recalée pour rester dans
-     les 15 premières minutes ; si la fenêtre est dépassée,
-     aucun événement ne se produit ce jour-là.
+     la fenêtre est recalée pour rester dans les 15 premières minutes.
+   - Si le navigateur a été fermé longtemps (elapsed > 15 min réelles),
+     on repart d'une fenêtre complète [1-15 min] plutôt que de
+     supprimer l'événement du jour.
    - Le décompte est pause-aware : le temps de pause ne compte
      pas dans le délai.
-   - La bannière 8 s est annulée proprement lors du cleanup.
+   - La bannière 8 s et l'état activeEvent sont annulés lors du cleanup.
+   - IMPORTANT : addToast et addTx doivent rester des références stables
+     (useCallback à deps vides). Si leurs deps changent, l'effet se
+     ré-exécute à chaque render et le cleanup efface immédiatement
+     chaque bannière d'événement.
 
    Usage dans App.jsx :
      useEvents({ stockRef, cashRef, complaintsRef, tablesRef,
