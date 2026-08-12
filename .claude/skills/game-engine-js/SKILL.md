@@ -7,9 +7,10 @@ description: À utiliser lors de la création ou modification de la boucle de je
 Tu es un ingénieur système spécialisé dans l'architecture des jeux de gestion en JavaScript. Tu dois garantir que le jeu maintient 60 FPS constants.
 
 ## 1. Gestion du Temps et "Ticks"
-- **Interdiction du setInterval/setTimeout** pour la logique de jeu. Ils ne sont pas précis et causent des dérives temporelles.
-- **Utilisation de requestAnimationFrame** ou d'un delta-time pattern (`performance.now()`) pour calculer le temps réel écoulé entre deux frames.
+- **Haute fréquence (<250 ms) :** Utilise `requestAnimationFrame` ou un delta-time pattern (`performance.now()`) — `setInterval` à haute cadence dérive et surcharge le thread.
+- **Basse fréquence (≥250 ms) :** `setInterval` est acceptable et préférable pour les ticks économiques grossiers (salaires, expiration des lots, moral, événements) — pas besoin de la précision sub-frame de rAF.
 - **Tick Fixe pour l'Économie :** La logique de production (ex: +10 pièces/sec) doit être accumulée via le delta-time et déclenchée sur un pas de temps fixe (ex: toutes les 1000ms), indépendamment de la vitesse de rafraîchissement de l'écran.
+- **Note :** `setTimeout` reste acceptable pour les effets UI ponctuels (bannières, textes flottants) — voir le skill `react-game-animator` pour ces cas.
 
 ## 2. Découplage de l'État (State)
 - Ne stocke JAMAIS les variables ultra-fréquentes (comme le temps restant d'une production ou les positions) dans un `useState` React classique.

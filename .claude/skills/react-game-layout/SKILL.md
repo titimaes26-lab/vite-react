@@ -24,7 +24,10 @@ Lorsque tu crées ou modifies la structure principale du jeu, base-toi systémat
 
 ```javascript
 import React, { useState } from 'react';
-import { Z } from './constants/gameData'; // token z-index centralisés
+// Adapte le chemin relatif selon la position du fichier dans src/
+// ex: '../constants/gameData.js' depuis src/components/
+//     '../../constants/gameData.js' depuis src/views/monEcran/
+import { Z } from '../constants/gameData.js'; // token z-index centralisés
 
 // 1. Structure Générique du HUD Supérieur
 // Utilise position:sticky dans un flex-column — pas de position:fixed
@@ -72,16 +75,26 @@ const HUD = ({ currentScreen, setScreen, gold, gems }) => {
 };
 
 // 2. Composant Principal (Layout Engine)
-export default function GameLayout() {
+// gold/gems ne vivent pas en local — reçois-les depuis le state global
+// (props, context, ou hook dédié) pour éviter un HUD figé à 0.
+export default function GameLayout({ gold = 0, gems = 0 }) {
   const [currentScreen, setCurrentScreen] = useState('MAIN_MENU');
-  const [gold, setGold] = useState(0);
-  const [gems, setGems] = useState(0);
 
   // Rendu conditionnel des écrans
   const renderScreen = () => {
     switch(currentScreen) {
       case 'MAIN_MENU':
-        return <div className="screen-menu">Menu Principal (Bouton Jouer)</div>;
+        return (
+          <div className="screen-menu" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', paddingTop: '40px' }}>
+            <h1>Menu Principal</h1>
+            <button
+              onClick={() => setCurrentScreen('GAME')}
+              style={{ minWidth: '44px', minHeight: '44px', padding: '12px 32px', fontSize: '16px', cursor: 'pointer' }}
+            >
+              Jouer
+            </button>
+          </div>
+        );
       case 'GAME':
         return <div className="screen-game">Zone de Gestion (Tables, Clients)</div>;
       case 'UPGRADES':
