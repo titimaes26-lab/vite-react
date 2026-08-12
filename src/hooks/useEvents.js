@@ -68,6 +68,7 @@ export const useEvents = ({
     let remaining = minDelay + Math.random() * (maxDelay - minDelay);
     let lastTick = Date.now();
     let bannerT;
+    let evtCleanup = null;
 
     const fireEvent = () => {
       const lv = restoLvRef?.current ?? 0;
@@ -80,7 +81,7 @@ export const useEvents = ({
 
       const patienceMult = phaseRef?.current?.patienceMultiplier ?? 1.0;
 
-      evt.apply(
+      evtCleanup = evt.apply(
         stockRef.current,
         cashRef.current,
         complaintsRef.current,
@@ -101,7 +102,7 @@ export const useEvents = ({
         serversRef ? serversRef.current : [],
         lv,
         patienceMult,
-      );
+      ) ?? null;
     };
 
     // Décompte pause-aware : le temps de pause ne consomme pas le délai
@@ -121,6 +122,7 @@ export const useEvents = ({
     return () => {
       clearInterval(iv);
       clearTimeout(bannerT);
+      evtCleanup?.();
       setActiveEvent(null);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

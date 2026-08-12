@@ -201,9 +201,10 @@ export const GAME_EVENTS = [
         }),
       }));
       addToast({ icon: "🌑", title: "Coupure électrique !", msg: "Cuisson ralentie +50% · Retour normal dans 3 min", color: "#1c3352", tab: "cuisine" });
-      setTimeout(() => {
+      const t = setTimeout(() => {
         addToast({ icon: "💡", title: "Électricité rétablie !", msg: "La cuisine reprend son rythme normal", color: "#2a5c3f", tab: "cuisine" });
       }, 180_000);
+      return () => clearTimeout(t);
     },
   },
   {
@@ -240,12 +241,19 @@ export const GAME_EVENTS = [
         s.id !== victim.id ? s : { ...s, status: "pause", moral: 10, pauseUntil }
       ));
       addToast({ icon: "🤧", title: "Serveur malade !", msg: `${victim.name} est indisponible pendant 4 minutes`, color: "#c4622d", tab: "servers" });
-      setTimeout(() => {
+      const t = setTimeout(() => {
         setServers(prev => prev.map(s =>
           s.id !== victim.id ? s : { ...s, status: "actif", pauseUntil: null }
         ));
         addToast({ icon: "💪", title: `${victim.name} de retour !`, msg: "Le serveur a repris son service", color: "#2a5c3f", tab: "servers" });
       }, 240_000);
+      // Annulé au changement de jour : restaure le statut du serveur immédiatement
+      return () => {
+        clearTimeout(t);
+        setServers(prev => prev.map(s =>
+          s.id !== victim.id ? s : { ...s, status: "actif", pauseUntil: null }
+        ));
+      };
     },
   },
   /* ── Événements exclusifs : débloqués par niveau ────────────────────── */
