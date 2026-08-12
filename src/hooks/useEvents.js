@@ -52,9 +52,11 @@ export const useEvents = ({
   dayStartRealMs,
 }) => {
   useEffect(() => {
-    // Corrige la fenêtre si la journée est déjà avancée (chargement de sauvegarde)
-    const elapsed = Math.max(0, Date.now() - (dayStartRealMs ?? 0));
-    if (elapsed >= EVENT_MAX_MS) return; // fenêtre dépassée, pas d'événement aujourd'hui
+    // Corrige la fenêtre si la journée est déjà avancée (chargement de sauvegarde).
+    // Si le navigateur a été fermé longtemps (elapsed >= EVENT_MAX_MS), on repart
+    // d'une fenêtre complète plutôt que de supprimer l'événement du jour.
+    const rawElapsed = Math.max(0, Date.now() - (dayStartRealMs ?? 0));
+    const elapsed = rawElapsed >= EVENT_MAX_MS ? 0 : rawElapsed;
 
     const minDelay = Math.max(0, EVENT_MIN_MS - elapsed);
     const maxDelay = EVENT_MAX_MS - elapsed;
@@ -114,6 +116,7 @@ export const useEvents = ({
     return () => {
       clearInterval(iv);
       clearTimeout(bannerT);
+      setActiveEvent(null);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayStartRealMs, addToast, addTx]);
