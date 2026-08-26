@@ -48,7 +48,7 @@ const _candidateSpecRate = (lv) => lv<5?0.10:lv<10?0.25:lv<20?0.40:0.60;
 
 
 
-export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast,candidatePool=[],setCandidatePool,candidateDate="",setCandidateDate,kitchen,setKitchen,commisPool=[],setCommisPool=()=>{},commisPoolDate="",setCommisPoolDate=()=>{},bp={}}){
+export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,setCash,addTx,addToast,candidatePool=[],setCandidatePool,candidateDate="",setCandidateDate,kitchen,setKitchen,commisPool=[],setCommisPool=()=>{},commisPoolDate="",setCommisPoolDate=()=>{},bp={},autoPrimeBrigade={enabled:false,threshold:60},setAutoPrimeBrigade=()=>{},autoPrimeServeurs={enabled:false,threshold:60},setAutoPrimeServeurs=()=>{}}){
   const { t: tr, lang } = useLang();
 
   /* ── État chef / commis ────────────────────────────── */
@@ -262,6 +262,24 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
                   </Btn>
                 )}
               </div>
+              {/* Auto-prime brigade */}
+              <div style={{marginTop:8,display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                <Btn sm v={autoPrimeBrigade.enabled?"amber":"secondary"}
+                  onClick={()=>setAutoPrimeBrigade(a=>({...a,enabled:!a.enabled}))}>
+                  🤖 Auto {autoPrimeBrigade.enabled?"ON":"OFF"}
+                </Btn>
+                {autoPrimeBrigade.enabled&&(
+                  <div style={{display:"flex",alignItems:"center",gap:4}}>
+                    <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>Seuil</span>
+                    <input type="number" min={1} max={100}
+                      value={autoPrimeBrigade.threshold}
+                      onChange={e=>setAutoPrimeBrigade(a=>({...a,threshold:Math.max(1,Math.min(100,+e.target.value))}))}
+                      style={{width:44,fontSize:11,padding:"2px 4px",borderRadius:5,
+                        border:"1px solid #ddd",fontFamily:F.body,textAlign:"center"}}/>
+                    <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>% moral</span>
+                  </div>
+                )}
+              </div>
             </Card>
 
             {/* ── Cartes Commis ── */}
@@ -433,7 +451,7 @@ export function ServersView({servers,setServers,tables,clockNow,restoLvN,cash,se
         </>
       )}
 
-      {staffFilter==="salle"&&<SalleSection servers={servers} setServers={setServers} tables={tables} clockNow={clockNow} restoLvN={restoLvN} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
+      {staffFilter==="salle"&&<SalleSection servers={servers} setServers={setServers} tables={tables} clockNow={clockNow} restoLvN={restoLvN} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp} autoPrimeServeurs={autoPrimeServeurs} setAutoPrimeServeurs={setAutoPrimeServeurs}/>}
       {/* ══ MODAL : Confirmation licenciement commis ══ */}
       {commisConfirmSlot!==null&&(()=>{
         const cm=kitchen?.commis?.[commisConfirmSlot];

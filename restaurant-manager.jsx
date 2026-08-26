@@ -65,6 +65,7 @@ import { useGameClock, PHASES, REAL_DAY_MS, getPhase, realMsToGameTime } from ".
 import { useSpawner }     from "./src/hooks/useSpawner.js";
 import { useExpiry }      from "./src/hooks/useExpiry.js";
 import { useSalary }      from "./src/hooks/useSalary.js";
+import { useAutoPrime }   from "./src/hooks/useAutoPrime.js";
 import { useDeliveries }  from "./src/hooks/useDeliveries.js";
 import { useEvents }      from "./src/hooks/useEvents.js";
 import { useServerMoral } from "./src/hooks/useServerMoral.js";
@@ -258,6 +259,8 @@ function AppContent(){
   const [formulas,setFormulas]=useState([]); // [{id, presetId, name, items:[{menuId,cat}], active}]
   const [complaints,setComplaints]=useState(COMPLAINTS0);
   const [kitchen,setKitchen]=useState(KITCHEN0);
+  const [autoPrimeBrigade,setAutoPrimeBrigade]=useState({enabled:false,threshold:60});
+  const [autoPrimeServeurs,setAutoPrimeServeurs]=useState({enabled:false,threshold:60});
   const [toasts,setToasts]=useState([]);
   const [toastHistory,setToastHistory]=useState([]);
   const [toastUnread,setToastUnread]=useState(0);
@@ -404,6 +407,8 @@ function AppContent(){
         if(sv.candidatePool) setCandidatePool(sv.candidatePool);
         if(sv.candidateDate) setCandidateDate(sv.candidateDate);
         if(sv.dayStartRealMs>0) setDayStartRealMs(sv.dayStartRealMs);
+        if(sv.autoPrimeBrigade)  setAutoPrimeBrigade(sv.autoPrimeBrigade);
+        if(sv.autoPrimeServeurs) setAutoPrimeServeurs(sv.autoPrimeServeurs);
         setQueue(sv.queue||[]);
       }
       setIsLoaded(true);
@@ -493,7 +498,7 @@ function AppContent(){
      restoXp,cash,loan,supplierMode,pendingDeliveries,
      completedIds,challengeProgress,challengeClaimed,
      challengeLostToday,pendingClaim,objStats,dailyStats,reputation,
-     formulas]);
+     formulas,autoPrimeBrigade,autoPrimeServeurs]);
 
   // Toutes les 5s : sauvegarder si dirty
   // Utilise gdSyncStateRef.current (toujours à jour) pour éviter la fermeture périmée
@@ -574,13 +579,15 @@ function AppContent(){
       challengeClaimed, challengeLostToday, activeEvent,
       candidatePool, candidateDate,
       dayStartRealMs,
+      autoPrimeBrigade, autoPrimeServeurs,
     };
   },[cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
      reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
      formulas, dailySpecials, challengeDate,
      completedIds, pendingClaim, todayChallenges, challengeProgress,
      challengeClaimed, challengeLostToday, activeEvent,
-     candidatePool, candidateDate, dayStartRealMs]);
+     candidatePool, candidateDate, dayStartRealMs,
+     autoPrimeBrigade, autoPrimeServeurs]);
 
   useEffect(()=>{
     if (!isLoaded) return;
@@ -796,6 +803,7 @@ function AppContent(){
     return () => clearInterval(iv);
   }, [setTables, setServers]);
   useSalary     ({ serversRef, kitchenRef, onAccrue: onSalaryAccrue, pausedRef });
+  useAutoPrime  ({ autoPrimeBrigade, autoPrimeServeurs, kitchenRef, serversRef, cashRef, pausedRef, setCash, addTx, addToast, setKitchen, setServers });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useFreshness  ({ stockRef, kitchenRef, setStock, setComplaints, addToast });
   useEvents     ({
@@ -930,7 +938,7 @@ function AppContent(){
         <TabErrorBoundary key={tab}>
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
         {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} restoLvN={rl.l} stock={stock} formulas={formulas} bp={bp}/>}
-        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} kitchen={kitchen} setKitchen={setKitchen} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp}/>}
+        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} kitchen={kitchen} setKitchen={setKitchen} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp} autoPrimeBrigade={autoPrimeBrigade} setAutoPrimeBrigade={setAutoPrimeBrigade} autoPrimeServeurs={autoPrimeServeurs} setAutoPrimeServeurs={setAutoPrimeServeurs}/>}
         {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} restoLvN={rl.l} bp={bp}/>}
         {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} dailyStats={dailyStats} restoLvN={rl.l} bp={bp}/>}
         {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} addDayStat={addDayStat} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} restoLvN={rl.l} bp={bp}/>}

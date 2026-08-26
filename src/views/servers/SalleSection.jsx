@@ -41,7 +41,7 @@ const _candidateXpRange  = (lv) => [[0,100],[80,350],[300,800],[700,1500],[1200,
 const _candidateSalRange = (lv) => [[10,13],[11,15],[13,17],[15,20],[18,25]][Math.min(Math.floor(lv/5),4)];
 const _candidateSpecRate = (lv) => lv<5?0.10:lv<10?0.25:lv<20?0.40:0.60;
 
-export function SalleSection({ servers, setServers, tables, clockNow, restoLvN, cash, setCash, addTx, addToast, candidatePool, setCandidatePool, candidateDate, setCandidateDate, bp }) {
+export function SalleSection({ servers, setServers, tables, clockNow, restoLvN, cash, setCash, addTx, addToast, candidatePool, setCandidatePool, candidateDate, setCandidateDate, bp, autoPrimeServeurs={enabled:false,threshold:60}, setAutoPrimeServeurs=()=>{} }) {
   const { t: tr } = useLang();
 
   /* ── État salle ────────────────────────────────────── */
@@ -303,6 +303,25 @@ export function SalleSection({ servers, setServers, tables, clockNow, restoLvN, 
             )}
           </div>
         </div>
+      </div>
+
+      {/* Auto-prime motivation */}
+      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:10}}>
+        <Btn sm v={autoPrimeServeurs.enabled?"navy":"secondary"}
+          onClick={()=>setAutoPrimeServeurs(a=>({...a,enabled:!a.enabled}))}>
+          🤖 Auto motivation {autoPrimeServeurs.enabled?"ON":"OFF"}
+        </Btn>
+        {autoPrimeServeurs.enabled&&(
+          <div style={{display:"flex",alignItems:"center",gap:4}}>
+            <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>Seuil</span>
+            <input type="number" min={1} max={100}
+              value={autoPrimeServeurs.threshold}
+              onChange={e=>setAutoPrimeServeurs(a=>({...a,threshold:Math.max(1,Math.min(100,+e.target.value))}))}
+              style={{width:44,fontSize:11,padding:"2px 4px",borderRadius:5,
+                border:"1px solid #ddd",fontFamily:F.body,textAlign:"center"}}/>
+            <span style={{fontSize:10,color:C.muted,fontFamily:F.body}}>% moral</span>
+          </div>
+        )}
       </div>
 
       {/* ── Grille des serveurs ── */}
