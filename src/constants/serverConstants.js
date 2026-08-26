@@ -13,7 +13,7 @@ export const SRV_SPECIALTIES = [
   { id:"vip",       icon:"🎩", name:"Gestion VIP",  color:"#b87d10", desc:"Patience clients VIP +30s",        tipMult:1.15, speedMult:1.0  },
 ];
 
-export const pickSpecialty = () =>
+const pickSpecialty = () =>
   SRV_SPECIALTIES[Math.floor(Math.random() * SRV_SPECIALTIES.length)];
 
 /* ─── Catalogue de formations serveurs ───────────────── */
@@ -76,28 +76,3 @@ export const getMaxMoral = (sv) => {
   return 100 + (bienetre >= 1 ? 10 : 0) + (bienetre >= 2 ? 10 : 0);
 };
 
-// Vitesse de drain moral : −1 toutes les 5 min réelles si actif
-export const MORAL_DRAIN_INTERVAL = 300000;
-
-/* ─── Défis quotidiens ───────────────────────────────── */
-export const ALL_CHALLENGES = [
-  { id:"ch_served",    key:"served",      icon:"🍽", title:"Service express",     desc:"Servir 10 clients aujourd'hui",          target:10,  reward:{cash:80,  xp:120} },
-  { id:"ch_revenue",   key:"revenue",     icon:"💶", title:"Journée dorée",       desc:"Encaisser 500€ dans la journée",         target:500, reward:{cash:100, xp:150} },
-  { id:"ch_rating",    key:"highRating",  icon:"⭐", title:"Service 5 étoiles",   desc:"Obtenir 5 notes ≥ 4★",                  target:5,   reward:{cash:60,  xp:100} },
-  { id:"ch_noloss",    key:"noLoss",      icon:"😊", title:"Zéro abandon",        desc:"Aucun client ne repart sans être servi", target:1,   reward:{cash:70,  xp:90 } },
-  { id:"ch_fast",      key:"fastPlace",   icon:"⚡", title:"Placement rapide",    desc:"Placer 8 groupes en un clic",            target:8,   reward:{cash:50,  xp:80 } },
-  { id:"ch_vip",       key:"vip",         icon:"🎩", title:"Service VIP",         desc:"Servir un client VIP",                   target:1,   reward:{cash:150, xp:200} },
-  { id:"ch_tips",      key:"tips",        icon:"💰", title:"Maître du pourboire", desc:"Encaisser 50€ de pourboires",            target:50,  reward:{cash:60,  xp:100} },
-  { id:"ch_fullhouse", key:"fullHouse",   icon:"🏠", title:"Salle comble",        desc:"Avoir 5 tables occupées simultanément",  target:1,   reward:{cash:90,  xp:130} },
-];
-
-// Sélection déterministe de 3 défis selon la date
-export const pickDailyChallenges = (dateStr) => {
-  const seed = dateStr.split("/").reduce((acc, n, i) => acc + parseInt(n) * (i + 1), 0);
-  const shuffled = [...ALL_CHALLENGES].sort((a, b) => {
-    const ha = (seed * 17 + a.id.charCodeAt(3)) % 100;
-    const hb = (seed * 17 + b.id.charCodeAt(3)) % 100;
-    return ha - hb;
-  });
-  return shuffled.slice(0, 3);
-};

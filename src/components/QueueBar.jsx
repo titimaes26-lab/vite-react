@@ -4,8 +4,11 @@
 ═══════════════════════════════════════════════════════ */
 import { useState, useEffect, useRef } from "react";
 import { C, F } from "../constants/gameData.js";
+import { useLang } from "../i18n/index.jsx";
 
 export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
+  const { t, lang } = useLang();
+  const locale = lang === "en" ? "en-US" : "fr-FR";
   const [now, setNow] = useState(Date.now());
   const rafRef = useRef(null);
 
@@ -38,7 +41,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
       {/* ── Cash ───────────────────────────────────────── */}
       <div
         onClick={onOpenBank}
-        title="Voir le grand livre"
+        title={t("queue.ledgerTooltip")}
         style={{
           display: "flex", alignItems: "center", gap: 6,
           padding: "0 14px",
@@ -58,7 +61,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
           whiteSpace: "nowrap",
           letterSpacing: "-0.01em",
         }}>
-          {cash.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+          {cash.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
         </span>
         {onOpenBank && <span style={{ fontSize: 9, color: cashColor, opacity: 0.7 }}>▼</span>}
       </div>
@@ -77,7 +80,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
           fontFamily: F.body,
           whiteSpace: "nowrap",
         }}>
-          {queueCount === 0 ? "Personne" : `${queueCount} groupe${queueCount > 1 ? "s" : ""}`}
+          {queueCount === 0 ? t("queue.nobody") : t("queue.groups", { n: queueCount, s: queueCount > 1 ? "s" : "" })}
         </span>
         {urgentCount > 0 && (
           <span style={{
@@ -109,7 +112,7 @@ export function QueueBar({ queue, cash, onTabChange, isMobile, onOpenBank }) {
             fontFamily: F.body, fontStyle: "italic",
             whiteSpace: "nowrap", opacity: 0.6,
           }}>
-            Aucun client en attente
+            {t("queue.noClients")}
           </span>
         ) : (
           queue.map(g => {

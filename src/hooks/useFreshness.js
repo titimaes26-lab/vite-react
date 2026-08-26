@@ -1,25 +1,23 @@
 /* ═══════════════════════════════════════════════════════
    src/hooks/useFreshness.js
    Tick toutes les 60s — décrémente la fraîcheur de chaque
-   article de stock selon sa catégorie. Gère la péremption.
+   LOT de stock selon sa catégorie. Gère la péremption par lot.
 
    Fraîcheur (0–100%) :
      > 60% → Frais       (normal)
      20–60% → À utiliser (warning)
      < 20% → Presque périmé (malus note −0.5)
-     0%    → Périmé (qty −50%, plainte, toast)
+     0%    → Lot périmé : supprimé, qty totale recalculée
 
    Taux de base (%/min) définis dans FRESHNESS_DECAY.
    La chambre froide (kitchen.upgrades.stockage) réduit le
    taux : niv 1 → ×0.5, niv 2 → ×0.25.
-
-   Usage dans App.jsx :
-     useFreshness({ stockRef, kitchenRef, setStock,
-                    setComplaints, addToast });
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
 import { FRESHNESS_DECAY } from "../constants/gameData.js";
+import { getLots } from "../utils/orderUtils.js";
+import { useLang } from "../i18n/index.jsx";
 
 export const useFreshness = ({
   stockRef,
@@ -28,6 +26,7 @@ export const useFreshness = ({
   setComplaints,
   addToast,
 }) => {
+  const { t } = useLang();
   useEffect(() => {
     const iv = setInterval(() => {
       const current = stockRef.current;
@@ -36,35 +35,36 @@ export const useFreshness = ({
       const storageLv = kitchenRef?.current?.upgrades?.stockage || 0;
       const decayMult = storageLv >= 2 ? 0.25 : storageLv >= 1 ? 0.5 : 1.0;
 
-      // Identifier les items qui vont passer à 0 ce tick
-      const newlySpoiled = current.filter(item => {
-        if (item.qty <= 0) return false;
-        const decay = (FRESHNESS_DECAY[item.cat] ?? 0.033) * decayMult;
-        const f = item.freshness ?? 100;
-        return f > 0 && f - decay <= 0;
-      });
+      const newlySpoiled = [];
 
-      // Appliquer la dégradation
       setStock(prev => prev.map(item => {
         if (item.qty <= 0) return item;
         const decay = (FRESHNESS_DECAY[item.cat] ?? 0.033) * decayMult;
-        const f = item.freshness ?? 100;
-        const newF = +(Math.max(0, f - decay)).toFixed(2);
-        if (newF <= 0 && f > 0) {
-          // Péremption : qty divisée par 2
-          return { ...item, freshness: 0, qty: +(item.qty * 0.5).toFixed(3) };
-        }
-        return { ...item, freshness: newF };
+        const lots = getLots(item);
+
+        const newLots = lots.map(lot => {
+          if (lot.qty <= 0) return null;
+          const newF = +(Math.max(0, lot.freshness - decay)).toFixed(2);
+          if (newF <= 0 && lot.freshness > 0) {
+            newlySpoiled.push({ ...item, spoiledQty: lot.qty });
+            return null; // lot supprimé
+          }
+          return { ...lot, freshness: newF };
+        }).filter(Boolean);
+
+        const totalQty = +newLots.reduce((s, l) => s + l.qty, 0).toFixed(3);
+        const freshness = newLots[0]?.freshness ?? 0;
+        return { ...item, lots: newLots, qty: totalQty, freshness };
       }));
 
-      // Effets de bord pour les items périmés
       newlySpoiled.forEach(item => {
         addToast({
           icon:  "🗑",
-          title: "Aliment périmé !",
-          msg:   `${item.name} — 50% du stock perdu`,
+          title: t("toast.spoiled"),
+          msg:   t("toast.spoiledMsg", { name: item.name }),
           color: "#c0392b",
           tab:   "stock",
+          silent: true,
         });
         setComplaints(p => [{
           id:     Date.now() + Math.random(),
@@ -72,15 +72,14 @@ export const useFreshness = ({
           table:  "-",
           server: "-",
           type:   "Hygiène",
-          desc:   `${item.name} périmé — 50% des stocks perdus`,
+          desc:   t("toast.spoiledDesc", { name: item.name }),
           status: "nouveau",
           prio:   "haute",
         }, ...p]);
       });
-    }, 60_000); // toutes les minutes
+    }, 60_000);
 
     return () => clearInterval(iv);
-  // stockRef et kitchenRef sont des refs — stables, pas besoin dans deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setStock, setComplaints, addToast]);
+  }, [setStock, setComplaints, addToast, t]);
 };

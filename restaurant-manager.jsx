@@ -1,17 +1,24 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Component } from "react";
+import { LangProvider, useLang } from "./src/i18n/index.jsx";
+import { LanguageSelect } from "./src/components/LanguageSelect.jsx";
 
 // ── Services ───────────────────────────────────────────
 import { saveGame, loadGame, SAVE_KEY } from "./src/services/persistence.js";
 import { sendToGDevelop, buildGDevelopPayload, sanitizeSave } from "./src/services/gdevelopBridge.js";
+import { triggerAd } from "./src/services/adBridge.js";
 
 // ── Données serveurs ───────────────────────────────────
 import { SRV_SPECIALTIES, pickSpecialty, TRAINING_CATALOG, getMaxMoral } from "./src/constants/serverData.js";
 
 // ── Composants supplémentaires ─────────────────────────
-import { BankModal }         from "./src/components/system/BankModal.jsx";
-import { HelpModal }         from "./src/components/system/HelpModal.jsx";
-import { DailySummaryModal } from "./src/components/DailySummaryModal.jsx";
+import { BankModal }           from "./src/components/system/BankModal.jsx";
+import { HelpModal }           from "./src/components/system/HelpModal.jsx";
+import { DailySummaryModal }   from "./src/components/DailySummaryModal.jsx";
 import { useBreakpoint, rVal, rGrid } from "./src/hooks/useBreakpoint.js";
+import { AppHeader }           from "./src/components/system/AppHeader.jsx";
+import { LedgerModal }         from "./src/components/system/LedgerModal.jsx";
+import { NotificationHistory } from "./src/components/system/NotificationHistory.jsx";
+import { APP_STYLES }          from "./src/constants/appStyles.js";
 
 /* ═══════════════════════════════════════════════════════
    Imports modulaires — extraits du monolithe original
@@ -58,6 +65,7 @@ import { useGameClock, PHASES, REAL_DAY_MS, getPhase, realMsToGameTime } from ".
 import { useSpawner }     from "./src/hooks/useSpawner.js";
 import { useExpiry }      from "./src/hooks/useExpiry.js";
 import { useSalary }      from "./src/hooks/useSalary.js";
+import { useAutoPrime }   from "./src/hooks/useAutoPrime.js";
 import { useDeliveries }  from "./src/hooks/useDeliveries.js";
 import { useEvents }      from "./src/hooks/useEvents.js";
 import { useServerMoral } from "./src/hooks/useServerMoral.js";
@@ -82,7 +90,32 @@ import { ComplaintsView } from "./src/views/ComplaintsView.jsx";
 import { StatsView }      from "./src/views/StatsView.jsx";
 import { ObjectivesView } from "./src/views/ObjectivesView.jsx";
 
-export default function App(){
+class TabErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{padding:24,color:"#c0392b",fontFamily:"monospace",background:"#fff8f8",border:"1px solid #c0392b",borderRadius:8,margin:16}}>
+          <strong>Erreur dans l'onglet — veuillez recharger la page</strong>
+          <pre style={{marginTop:8,fontSize:11,whiteSpace:"pre-wrap"}}>{String(this.state.error)}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function App() {
+  return (
+    <LangProvider>
+      <AppContent />
+    </LangProvider>
+  );
+}
+
+function AppContent(){
+  const { lang, t: tl } = useLang();
   const bp=useBreakpoint();
   const _today = new Date().toLocaleDateString("fr-FR");
 
@@ -226,7 +259,12 @@ export default function App(){
   const [formulas,setFormulas]=useState([]); // [{id, presetId, name, items:[{menuId,cat}], active}]
   const [complaints,setComplaints]=useState(COMPLAINTS0);
   const [kitchen,setKitchen]=useState(KITCHEN0);
+  const [autoPrimeBrigade,setAutoPrimeBrigade]=useState({enabled:false,threshold:60});
+  const [autoPrimeServeurs,setAutoPrimeServeurs]=useState({enabled:false,threshold:60});
   const [toasts,setToasts]=useState([]);
+  const [toastHistory,setToastHistory]=useState([]);
+  const [toastUnread,setToastUnread]=useState(0);
+  const [showToastHistory,setShowToastHistory]=useState(false);
   const [restoXp,setRestoXp]=useState(0);
   const [cash,setCash]=useState(5000);
   const [transactions,setTransactions]=useState([
@@ -281,11 +319,17 @@ export default function App(){
   const [showResetModal,setShowResetModal]=useState(false);
   const [showSummary,setShowSummary]=useState(false);
   const [summaryIsRecord,setSummaryIsRecord]=useState(false);
+  const [salarySummary,setSalarySummary]=useState(null);
   const prevRevenueRef=useRef(0);
   const resetDayRef=useRef(null);
   // Résumé de fin de journée : s'affiche après 10 min de jeu réel
   const [seenIds,setSeenIds]=useState(new Set());
   const summaryShownRef=useRef(false);
+  const pausedRef     = useRef(false);
+  const pauseStartRef = useRef(null);
+  const [adWatching, setAdWatching] = useState(false);
+  const [isGameOver,setIsGameOver]=useState(false);
+  const salaryAccruedRef=useRef({ total: 0, perPerson: {} });
 
   /* ── Réinitialisation complète (sans reload) ────────── */
   const doReset = useCallback(() => {
@@ -320,6 +364,8 @@ export default function App(){
     setReputation(50);
     setWaitlist([]);
     setFormulas([]);
+    setIsGameOver(false);
+    salaryAccruedRef.current={ total: 0, perPerson: {} };
     setTab("tables");
     setShowResetModal(false);
     resetDayRef.current?.();
@@ -361,6 +407,8 @@ export default function App(){
         if(sv.candidatePool) setCandidatePool(sv.candidatePool);
         if(sv.candidateDate) setCandidateDate(sv.candidateDate);
         if(sv.dayStartRealMs>0) setDayStartRealMs(sv.dayStartRealMs);
+        if(sv.autoPrimeBrigade)  setAutoPrimeBrigade(sv.autoPrimeBrigade);
+        if(sv.autoPrimeServeurs) setAutoPrimeServeurs(sv.autoPrimeServeurs);
         setQueue(sv.queue||[]);
       }
       setIsLoaded(true);
@@ -370,12 +418,27 @@ export default function App(){
   const dismissToast=useCallback(id=>setToasts(p=>p.filter(x=>x.id!==id)),[]);
   const addToast=useCallback(t=>{
     const id=Date.now()+Math.random();
-    setToasts(p=>[...p.slice(-4),{...t,id}]);
-    setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),4000);
+    if(!t.silent){
+      setToasts(p=>[...p.slice(-4),{...t,id}]);
+      setTimeout(()=>setToasts(p=>p.filter(x=>x.id!==id)),4000);
+    }
+    setToastHistory(p=>[{...t,id,at:gameTimeRef.current},...p].slice(0,100));
+    setToastUnread(n=>n+1);
   },[]);
 
   const addTx=useCallback((type,label,amount)=>{
-    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:gameTimeRef.current},...p].slice(0,200));
+    setTransactions(p=>[{id:Date.now()+Math.random(),type,label,amount:+Math.abs(amount).toFixed(2),date:Date.now(),gameTime:gameTimeRef.current,gameDay:currentDayRef.current},...p].slice(0,200));
+  },[]);
+
+  useEffect(()=>{
+    if(isLoaded && cash < 0) setIsGameOver(true);
+  },[isLoaded, cash]);
+
+  const onSalaryAccrue=useCallback((total, perPerson)=>{
+    salaryAccruedRef.current.total+=total;
+    Object.entries(perPerson).forEach(([k,v])=>{
+      salaryAccruedRef.current.perPerson[k]=(salaryAccruedRef.current.perPerson[k]??0)+v;
+    });
   },[]);
 
   const updateReputation = useCallback((delta, reason="")=>{
@@ -391,6 +454,7 @@ export default function App(){
           msg: `${after.label} (${Math.round(next)}/100)${reason?" · "+reason:""}`,
           color: after.color,
           tab: "stats",
+          silent:true,
         }),50);
       }
       repRef.current = next;
@@ -403,10 +467,10 @@ export default function App(){
       if(p.length===0) return [{day:1,served:0,lost:0,revenue:0,[key]:+value.toFixed(2)}];
       const updated=[...p];
       const idx=updated.length-1;
-      updated[idx]={...updated[idx],[key]:+(updated[idx][key]+value).toFixed(2)};
+      updated[idx]={...updated[idx],[key]:+((updated[idx][key]??0)+value).toFixed(2)};
       return updated;
     });
-    if(key==="served") setObjStats(s=>({...s,totalServed:s.totalServed+1}));
+    if(key==="served") setObjStats(s=>({...s,totalServed:s.totalServed+value}));
     if(key==="rating") setObjStats(s=>({...s,totalRating:(s.totalRating||0)+value,ratingCount:(s.ratingCount||0)+1}));
     if(key==="revenue") setObjStats(s=>({...s,totalRevenue:+(s.totalRevenue+value).toFixed(2)}));
     if(key==="lost"){
@@ -434,7 +498,7 @@ export default function App(){
      restoXp,cash,loan,supplierMode,pendingDeliveries,
      completedIds,challengeProgress,challengeClaimed,
      challengeLostToday,pendingClaim,objStats,dailyStats,reputation,
-     formulas]);
+     formulas,autoPrimeBrigade,autoPrimeServeurs]);
 
   // Toutes les 5s : sauvegarder si dirty
   // Utilise gdSyncStateRef.current (toujours à jour) pour éviter la fermeture périmée
@@ -515,13 +579,15 @@ export default function App(){
       challengeClaimed, challengeLostToday, activeEvent,
       candidatePool, candidateDate,
       dayStartRealMs,
+      autoPrimeBrigade, autoPrimeServeurs,
     };
   },[cash, restoXp, stock, queue, waitlist, tables, kitchen, objStats, servers, dailyStats,
      reputation, transactions, loan, pendingDeliveries, menu, complaints, supplierMode,
      formulas, dailySpecials, challengeDate,
      completedIds, pendingClaim, todayChallenges, challengeProgress,
      challengeClaimed, challengeLostToday, activeEvent,
-     candidatePool, candidateDate, dayStartRealMs]);
+     candidatePool, candidateDate, dayStartRealMs,
+     autoPrimeBrigade, autoPrimeServeurs]);
 
   useEffect(()=>{
     if (!isLoaded) return;
@@ -548,6 +614,7 @@ export default function App(){
   const restoLvRef    = useRef(0);
   const lastSpawnRef  = useRef(Date.now());
   const gameTimeRef   = useRef("08h00");
+  const currentDayRef = useRef(1);
 
   useEffect(() => { stockRef.current      = stock;      }, [stock]);
   useEffect(() => { cashRef.current       = cash;       }, [cash]);
@@ -559,10 +626,88 @@ export default function App(){
   useEffect(() => { waitlistRef.current   = waitlist;   }, [waitlist]);
   useEffect(() => { kitchenRef.current    = kitchen;    }, [kitchen]);
   useEffect(() => { loanRef.current       = loan;       }, [loan]);
+  useEffect(() => { currentDayRef.current = dailyStats[dailyStats.length-1]?.day??1; }, [dailyStats]);
   useEffect(() => { restoLvRef.current    = restoLv(restoXp).l; }, [restoXp]);
 
+  /* ── Pause lors des dialogues ───────────────────────── */
+  const isDialogOpen = !!(showIntro||showTablesTutorial||showServersTutorial||showStatsTutorial||showObjectivesTutorial||showStockTutorial||showMenuTutorial||showKitchenTutorial||showBankTutorial);
+  useEffect(() => {
+    if (isDialogOpen) {
+      pausedRef.current     = true;
+      pauseStartRef.current = Date.now();
+    } else if (pauseStartRef.current !== null) {
+      pausedRef.current = false;
+      const dur = Date.now() - pauseStartRef.current;
+      pauseStartRef.current = null;
+      if (dur > 100) {
+        setTables(ts => ts.map(t => ({
+          ...t,
+          eatUntil:   t.eatUntil   ? t.eatUntil   + dur : null,
+          cleanUntil: t.cleanUntil ? t.cleanUntil + dur : null,
+          svcUntil:   t.svcUntil   ? t.svcUntil   + dur : null,
+          placedAt:   t.placedAt   ? t.placedAt   + dur : null,
+        })));
+        setQueue(q => q.map(g => ({ ...g, expiresAt: g.expiresAt + dur })));
+        setWaitlist(w => w.map(g => ({
+          ...g,
+          recallUntil: g.recallUntil ? g.recallUntil + dur : null,
+        })));
+        setServers(ss => ss.map(s => ({
+          ...s,
+          serviceUntil: s.serviceUntil ? s.serviceUntil + dur : null,
+          cleanUntil:   s.cleanUntil   ? s.cleanUntil   + dur : null,
+        })));
+        setKitchen(k => ({
+          ...k,
+          cooking: (k.cooking ?? []).map(d => ({
+            ...d,
+            startedAt: d.startedAt ? d.startedAt + dur : null,
+          })),
+        }));
+      }
+    }
+  }, [isDialogOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── Pause pendant la pub ───────────────────────────── */
+  useEffect(() => {
+    if (adWatching) {
+      pausedRef.current = true;
+      pauseStartRef.current = Date.now();
+    } else if (pauseStartRef.current !== null) {
+      pausedRef.current = false;
+      const dur = Date.now() - pauseStartRef.current;
+      pauseStartRef.current = null;
+      if (dur > 100) {
+        setTables(ts => ts.map(t => ({
+          ...t,
+          eatUntil:   t.eatUntil   ? t.eatUntil   + dur : null,
+          cleanUntil: t.cleanUntil ? t.cleanUntil + dur : null,
+          svcUntil:   t.svcUntil   ? t.svcUntil   + dur : null,
+          placedAt:   t.placedAt   ? t.placedAt   + dur : null,
+        })));
+        setQueue(q => q.map(g => ({ ...g, expiresAt: g.expiresAt + dur })));
+        setWaitlist(w => w.map(g => ({
+          ...g,
+          recallUntil: g.recallUntil ? g.recallUntil + dur : null,
+        })));
+        setServers(ss => ss.map(s => ({
+          ...s,
+          serviceUntil: s.serviceUntil ? s.serviceUntil + dur : null,
+          cleanUntil:   s.cleanUntil   ? s.cleanUntil   + dur : null,
+        })));
+        setKitchen(k => ({
+          ...k,
+          cooking: (k.cooking ?? []).map(d => ({
+            ...d,
+            startedAt: d.startedAt ? d.startedAt + dur : null,
+          })),
+        }));
+      }
+    }
+  }, [adWatching]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ── Horloge de jeu ────────────────────────────────── */
-  const { clockNow, gameTime, phase, isDayOver: clockIsDayOver, resetDay } = useGameClock(dayStartRealMs);
+  const { clockNow, gameTime, phase, isDayOver: clockIsDayOver, resetDay } = useGameClock(dayStartRealMs, pausedRef);
   gameTimeRef.current  = gameTime.str;
   resetDayRef.current  = resetDay;
   const tablesOccupied = tables.some(t=>t.status==="occupée"||t.status==="mange");
@@ -592,9 +737,10 @@ export default function App(){
       const newRemaining = +(ln.remaining - repay).toFixed(2);
       setCash(c => +Math.max(0, c - repay).toFixed(2));
       addTx("remboursement", `Mensualité prêt (${ln.id})`, repay);
+      addDayStat("loan", repay);
       if (newRemaining <= 0) {
         setLoan(null);
-        addToast({ icon:"🎉", title:"Prêt remboursé !", msg:"Votre emprunt est entièrement soldé.", color:C.green, tab:"stats" });
+        addToast({ icon:"🎉", title:"Prêt remboursé !", msg:"Votre emprunt est entièrement soldé.", color:C.green, tab:"stats", silent:true });
       } else {
         setLoan({ ...ln, remaining: newRemaining });
       }
@@ -604,6 +750,8 @@ export default function App(){
     const isRecord=today&&today.revenue>prevRevenueRef.current&&today.revenue>0;
     setSummaryIsRecord(isRecord);
     setObjStats(s=>s._hadLoss?s:{...s,perfectDays:(s.perfectDays||0)+1});
+    const sal=salaryAccruedRef.current;
+    setSalarySummary(sal.total>0?{ total: sal.total, perPerson: { ...sal.perPerson } }:null);
     setShowSummary(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[isDayOver, isLoaded]);
@@ -611,6 +759,7 @@ export default function App(){
   // Lancer une nouvelle journée (bouton dans DailySummaryModal)
   const startNewDay = useCallback(()=>{
     const now=Date.now();
+    const sal=salaryAccruedRef.current;
     try{localStorage.setItem("day_start",String(now));}catch(e){}
     setDayStartRealMs(now);
     resetDayRef.current?.();
@@ -618,13 +767,23 @@ export default function App(){
     setShowSummary(false);
     setDailyStats(p=>{
       const nextDay=(p[p.length-1]?.day||0)+1;
-      return [...p,{day:nextDay,served:0,lost:0,revenue:0}].slice(-15);
+      const withSal=p.length>0
+        ?[...p.slice(0,-1),{...p[p.length-1],salary:+(sal.total).toFixed(2)}]
+        :p;
+      return [...withSal,{day:nextDay,served:0,lost:0,revenue:0,salary:0}].slice(-15);
     });
     setObjStats(s=>({...s,_hadLoss:false}));
-  },[]);
+    setMenu(p=>p.map(m=>({...m,dayOrderCount:0,dayFormulaRevenue:0})));
+    setServers(p=>p.map(s=>({...s,dayCheckouts:0,dayCovers:0,dayRevenue:0})));
+    if(sal.total>0){
+      setCash(c=>+(c-sal.total).toFixed(2));
+      addTx("dépense", tl("daily.salaries"), sal.total);
+    }
+    salaryAccruedRef.current={ total: 0, perPerson: {} };
+  },[addTx, tl]);
 
-  useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef });
-  useExpiry     ({ queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient: REP_DELTA.lostClient });
+  useSpawner    ({ setQueue, tablesRef, queueRef, restoLvRef, lastSpawnRef, repRef, getRepTier, addToast, phaseRef, pausedRef });
+  useExpiry     ({ queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient: REP_DELTA.lostClient, pausedRef });
 
   /* ── Auto-assign serveur pour le nettoyage des tables ── */
   useEffect(() => {
@@ -643,7 +802,8 @@ export default function App(){
     }, 500);
     return () => clearInterval(iv);
   }, [setTables, setServers]);
-  useSalary     ({ serversRef, kitchenRef, setCash, addTx, addToast });
+  useSalary     ({ serversRef, kitchenRef, onAccrue: onSalaryAccrue, pausedRef });
+  useAutoPrime  ({ autoPrimeBrigade, autoPrimeServeurs, kitchenRef, serversRef, cashRef, pausedRef, setCash, addTx, addToast, setKitchen, setServers });
   useDeliveries ({ setPendingDeliveries, setStock, addToast });
   useFreshness  ({ stockRef, kitchenRef, setStock, setComplaints, addToast });
   useEvents     ({
@@ -652,7 +812,7 @@ export default function App(){
     setTables, setServers, setKitchen,
     setActiveEvent, addToast, addTx, updateReputation,
   });
-  useServerMoral({ setServers, addToast });
+  useServerMoral({ setServers, addToast, pausedRef });
   useChallenges ({
     tables,
     setChallengeProgress, setChallengeDate,
@@ -676,7 +836,17 @@ export default function App(){
       const after=restoLv(next);
       if(after.l>before.l){
         const nd=RESTO_LVL[after.l];
-        setTimeout(()=>setLevelUpData(nd), 50);
+        setTimeout(()=>{
+          setLevelUpData(nd);
+          // Pub automatique au level-up (seulement dans GDevelop/iframe)
+          if(window !== window.parent){
+            setAdWatching(true);
+            const safety=setTimeout(()=>setAdWatching(false), 30000);
+            triggerAd("rewarded",{
+              onRewarded:()=>{ clearTimeout(safety); setAdWatching(false); },
+            });
+          }
+        }, 50);
         // Débloquer les plats dont unlockLevel correspond au nouveau niveau
         const newlyUnlocked=MENU0.filter(
           d=>(d.unlockLevel??0)>before.l&&(d.unlockLevel??0)<=after.l
@@ -699,6 +869,7 @@ export default function App(){
           msg:`🎉 ${nd.tables} tables débloquées${unlockedNames?` · 🍽 ${unlockedNames}`:""}`,
           color:nd.color,
           tab:"tables",
+          silent:true,
         }),50);
         setObjStats(s=>({...s,restoLevel:after.l}));
       }
@@ -717,7 +888,7 @@ export default function App(){
     addTx("revenu",`Récompense objectif : ${obj.title}`,obj.reward.cash);
     addRestoXp(obj.reward.xp);
     addToast({icon:obj.icon,title:`+${obj.reward.cash}€ · +${obj.reward.xp} XP`,
-      msg:`Objectif "${obj.title}" réclamé !`,color:C.green,tab:"objectives"});
+      msg:`Objectif "${obj.title}" réclamé !`,color:C.green,tab:"objectives",silent:true});
   },[addTx,addRestoXp,addToast]);
 
   /* ── Dérivés (calculés à chaque render) ─────────────── */
@@ -726,6 +897,8 @@ export default function App(){
   const nPending   = pendingClaim.length;
   const repTier    = getRepTier(reputation);
 
+
+  if (!lang) return <LanguageSelect />;
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,color:C.ink,fontFamily:F.body}}>
@@ -736,429 +909,44 @@ export default function App(){
           <div style={{width:52,height:52,background:C.green,borderRadius:14,
             display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,
             animation:"pulse 1s ease-in-out infinite"}}>🍽</div>
-          <div style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>Chargement de la partie…</div>
-          <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>Récupération de la sauvegarde</div>
+          <div style={{fontSize:15,fontWeight:700,color:C.ink,fontFamily:F.title}}>{tl("app.loading")}</div>
+          <div style={{fontSize:12,color:C.muted,fontFamily:F.body}}>{tl("app.saveLoading")}</div>
         </div>
       )}
-      <style>{`
-        * { box-sizing: border-box; }
-        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-
-        /* ── Hover cards ── */
-        .hovcard { transition: box-shadow 0.22s cubic-bezier(.4,0,.2,1), transform 0.18s cubic-bezier(.4,0,.2,1) !important; }
-        .hovcard:hover { box-shadow: 0 8px 28px rgba(23,18,14,0.14), 0 2px 6px rgba(23,18,14,0.07) !important; transform: translateY(-2px) !important; }
-        .hovcard:active { transform: translateY(0px) !important; box-shadow: 0 2px 8px rgba(23,18,14,0.08) !important; }
-
-        /* ── Buttons ── */
-        button { transition: filter 0.14s, transform 0.14s, box-shadow 0.14s, opacity 0.14s !important; }
-        button:not(:disabled):hover { filter: brightness(1.10); transform: translateY(-1px); }
-        button:not(:disabled):active { transform: translateY(0px) scale(0.97); filter: brightness(0.96); }
-
-        /* ── Inputs ── */
-        select option { background:#fff; color:#18130e; }
-        ::placeholder { color:#b0a088; }
-        input, select { transition: border-color 0.15s, box-shadow 0.15s; }
-        input:focus, select:focus {
-          outline: none !important;
-          border-color: #1e5c38 !important;
-          box-shadow: 0 0 0 3px #1e5c3822 !important;
-        }
-
-        /* ── Animations ── */
-        @keyframes slideIn      { from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes slideUp      { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes fadeIn       { from{opacity:0} to{opacity:1} }
-        @keyframes pulse        { 0%,100%{opacity:1} 50%{opacity:0.45} }
-        @keyframes popIn        { 0%{transform:scale(0.82);opacity:0} 65%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
-        @keyframes breathe      { 0%,100%{box-shadow:0 0 0 0 rgba(30,92,56,0)} 50%{box-shadow:0 0 0 7px rgba(30,92,56,0.16)} }
-        @keyframes breatheAmber { 0%,100%{box-shadow:0 0 0 0 rgba(160,108,8,0)} 50%{box-shadow:0 0 0 6px rgba(160,108,8,0.20)} }
-        @keyframes bankPulse    { 0%,100%{box-shadow:0 2px 10px rgba(160,108,8,0.4);transform:scale(1)} 50%{box-shadow:0 2px 18px rgba(160,108,8,0.7);transform:scale(1.04)} }
-        @keyframes toastBar     { from{width:100%} to{width:0%} }
-        @keyframes ledPulse     { 0%,100%{opacity:1} 50%{opacity:0.35} }
-        @keyframes shimmer      { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-        @keyframes shimmerBar   {
-          0%  { background-position: -200% 0; }
-          100%{ background-position:  200% 0; }
-        }
-        @keyframes saveFlash    { 0%{opacity:0;transform:scale(0.8)} 20%{opacity:1;transform:scale(1.1)} 80%{opacity:1} 100%{opacity:0;transform:scale(0.95)} }
-        @keyframes countUp      { from{transform:translateY(6px);opacity:0} to{transform:translateY(0);opacity:1} }
-        @keyframes glow         { 0%,100%{opacity:0.5} 50%{opacity:1} }
-        @keyframes tabSlide     { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-
-        /* ── Tab content entry ── */
-        .tab-content { animation: tabSlide 0.22s ease both; }
-
-        /* ── XP bar shimmer ── */
-        .xpbar-shimmer::after {
-          content:'';
-          position:absolute;
-          inset:0;
-          background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.35) 50%,transparent 100%);
-          background-size:200% 100%;
-          animation: shimmerBar 2.4s ease-in-out infinite;
-          border-radius:99px;
-        }
-        .xpbar-shimmer { position:relative; overflow:hidden; }
-
-        /* ── Accent strip card ── */
-        .card-strip { position:relative; overflow:hidden; }
-        .card-strip::before {
-          content:'';
-          position:absolute;
-          left:0;top:0;bottom:0;
-          width:4px;
-          border-radius:2px 0 0 2px;
-        }
-
-        /* ── Navigation tab bar ── */
-        .nav-tab-active {
-          background: linear-gradient(135deg, #1e5c3814, #1e5c3808) !important;
-          color: #1e5c38 !important;
-          border-bottom: 2.5px solid #1e5c38 !important;
-          font-weight: 700 !important;
-        }
-        .nav-tab {
-          transition: color 0.15s, background 0.15s, border-color 0.15s;
-        }
-        .nav-tab:hover:not(.nav-tab-active) {
-          background: rgba(30,92,56,0.05) !important;
-          color: #1e5c38 !important;
-        }
-
-        /* ── Mobile ── */
-        :root {
-          --gap: 16px;
-          --pad: 22px;
-          --card-radius: 16px;
-          --font-base: 13px;
-        }
-        @media (max-width: 639px) {
-          :root { --gap: 10px; --pad: 12px; --card-radius: 12px; --font-base: 12px; }
-          .desktop-nav { display: none !important; }
-          .mobile-nav  { display: flex !important; }
-          .content-area { padding: 12px var(--pad) 60px !important; }
-          .badge-alert { font-size: 8px !important; width: 14px !important; height: 14px !important; }
-          .hide-mobile { display: none !important; }
-          .show-mobile { display: flex !important; }
-          /* Compact header on mobile */
-          .header-title { font-size: 13px !important; }
-          .header-line2 { gap: 6px !important; padding: 4px 10px 6px !important; }
-          /* Full-width tables on mobile */
-          .resp-grid { grid-template-columns: 1fr !important; }
-          .resp-grid-2 { grid-template-columns: 1fr 1fr !important; }
-          /* Modals full-screen on mobile */
-          .modal-inner { border-radius: 0 !important; max-height: 100vh !important; height: 100vh !important; }
-        }
-        @media (min-width: 640px) and (max-width: 1023px) {
-          :root { --gap: 12px; --pad: 16px; --card-radius: 14px; }
-          .desktop-nav { display: flex !important; }
-          .mobile-nav  { display: none !important; }
-          .content-area { padding: 16px var(--pad) 60px !important; }
-          .hide-tablet { display: none !important; }
-          .resp-grid { grid-template-columns: 1fr 1fr !important; }
-          .resp-grid-3 { grid-template-columns: 1fr 1fr !important; }
-        }
-        @media (min-width: 1024px) {
-          .desktop-nav { display: flex !important; }
-          .mobile-nav  { display: none !important; }
-          .content-area { padding: 20px var(--pad) 60px !important; }
-          .show-mobile { display: none !important; }
-        }
-      `}</style>
+      <style>{APP_STYLES}</style>
 
       {/* Header + Nav — sticky top */}
-      <div style={{position:"sticky",top:0,zIndex:1000,background:C.surface}}>
-
-      {/* Header — 2 lignes */}
-      <div style={{
-        background:`linear-gradient(180deg,${C.surface} 0%,#faf7f0 100%)`,
-        borderBottom:`1px solid ${C.border}`,
-        boxShadow:"0 2px 14px rgba(23,18,14,0.08), 0 1px 3px rgba(23,18,14,0.04)",
-      }}>
-
-        {/* Ligne 1 : logo · alertes · horloge · aide */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-          padding:bp.isMobile?"0 10px":"0 16px",minHeight:bp.isMobile?46:52,gap:8,flexWrap:"nowrap",overflow:"hidden"}}>
-
-          {/* Logo + nom */}
-          <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,minWidth:0}}>
-            <div style={{
-              width:38,height:38,
-              background:`linear-gradient(135deg,${C.green} 0%,${C.greenL||"#2d7a50"} 100%)`,
-              borderRadius:11,
-              display:"flex",alignItems:"center",justifyContent:"center",
-              fontSize:19,flexShrink:0,
-              boxShadow:`0 3px 10px ${C.green}38`,
-            }}>🍽</div>
-            <div style={{minWidth:0}}>
-              <div className={bp.isSmall?"hide-mobile":""} style={{
-                fontSize:bp.isMobile?13:15,fontWeight:800,color:C.ink,fontFamily:F.title,
-                whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
-                letterSpacing:"-0.02em",lineHeight:1.2,
-              }}>Le Grand Restaurant</div>
-            </div>
-          </div>
-
-          {/* Alertes + horloge + aide */}
-          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-            {sAlerts>0&&(
-              <div style={{
-                background:C.redP,border:`1.5px solid ${C.red}28`,borderRadius:8,
-                padding:"3px 9px",fontSize:10,color:C.red,fontWeight:700,whiteSpace:"nowrap",
-                display:"flex",alignItems:"center",gap:4,
-                boxShadow:`0 1px 4px ${C.red}18`,
-              }}>
-                <span style={{width:5,height:5,borderRadius:"50%",background:C.red,animation:"pulse 1.2s infinite",display:"inline-block",flexShrink:0}}/>
-                ⚠ {sAlerts}
-              </div>
-            )}
-            {nCompl>0&&tab!=="complaints"&&(
-              <div onClick={()=>{
-                setTab("complaints");
-                setSeenIds(p=>new Set([...p,...complaints.filter(c=>c.status==="nouveau").map(c=>c.id)]));
-              }} style={{
-                background:C.terraP,border:`1.5px solid ${C.terra}28`,borderRadius:8,
-                padding:"3px 9px",fontSize:10,color:C.terra,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",
-                boxShadow:`0 1px 4px ${C.terra}18`,
-              }}>
-                💬 {nCompl}
-              </div>
-            )}
-            {queue.length>=5&&(
-              <div style={{
-                background:C.redP,border:`1.5px solid ${C.red}28`,borderRadius:8,
-                padding:"3px 9px",fontSize:10,color:C.red,fontWeight:700,whiteSpace:"nowrap",
-                animation:"pulse 1.2s ease-in-out infinite",
-              }}>🚨</div>
-            )}
-            {/* Horloge — temps de jeu simulé + phase */}
-            <div style={{
-              textAlign:"right",flexShrink:0,
-              background:C.bg,border:`1px solid ${phase?.color||C.border}44`,
-              borderRadius:8,padding:"3px 9px",
-            }}>
-              <div style={{fontSize:16,fontWeight:800,color:phase?.color||C.ink,fontFamily:F.title,lineHeight:1.1,letterSpacing:"-0.02em"}}>
-                {phase?.icon} {gameTime.str}
-              </div>
-              <div style={{fontSize:8,color:C.muted,whiteSpace:"nowrap",marginTop:1}}>
-                {phase?.label} · {activeTables.filter(t=>t.status==="occupée"||t.status==="mange").length}/{activeTables.length} tables
-              </div>
-            </div>
-            <button onClick={()=>setShowHelp(true)} title="Guide utilisateur" style={{
-              width:30,height:30,borderRadius:"50%",
-              border:`1.5px solid ${C.green}44`,
-              background:C.greenP,cursor:"pointer",fontSize:14,
-              color:C.green,display:"flex",alignItems:"center",justifyContent:"center",
-              flexShrink:0,fontWeight:800,
-              boxShadow:`0 2px 7px ${C.green}20`,
-            }}>?</button>
-            <button onClick={()=>setShowResetModal(true)} title="Nouvelle partie" style={{
-              width:30,height:30,borderRadius:"50%",
-              border:`1.5px solid ${C.red}33`,
-              background:C.redP,cursor:"pointer",fontSize:13,
-              color:C.red,display:"flex",alignItems:"center",justifyContent:"center",
-              flexShrink:0,fontWeight:800,opacity:0.65,
-            }}>↺</button>
-          </div>
-        </div>
-
-        {/* Ligne 2 : niveau restaurant + cash */}
-        <div style={{
-          borderTop:`1px solid ${C.border}`,
-          padding:bp.isMobile?"5px 10px 7px":"6px 16px 9px",display:"flex",alignItems:"center",gap:bp.isMobile?6:10,
-          background:`linear-gradient(180deg,${C.bg}90,${C.bg})`,
-          flexWrap:"nowrap",overflow:"hidden",
-        }}>
-          <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-            <span style={{fontSize:14}}>{rlD.icon}</span>
-            <span style={{fontSize:11,fontWeight:700,color:rlD.color,fontFamily:F.title,whiteSpace:"nowrap"}}>{rlD.name}</span>
-            <span style={{fontSize:9,background:rlD.color+"18",color:rlD.color,
-              border:`1px solid ${rlD.color}33`,borderRadius:4,
-              padding:"1px 5px",fontWeight:700,fontFamily:F.body,whiteSpace:"nowrap"}}>N{rlD.l}</span>
-            <span style={{fontSize:9,color:C.muted,fontFamily:F.body,whiteSpace:"nowrap"}}>
-              {rl.l>=RESTO_LVL.length-1?"✦ Max":`${restoXp}/${rl.next.xpNeeded} XP`}
-            </span>
-          </div>
-
-          {/* ── Réputation ── */}
-          {(()=>{
-            const tier=getRepTier(reputation);
-            return(
-              <div title={`${tier.label} — ${tier.desc}`}
-                style={{display:"flex",alignItems:"center",gap:5,flexShrink:0,
-                  background:tier.color+"14",border:`1px solid ${tier.color}33`,
-                  borderRadius:7,padding:"3px 8px",cursor:"default"}}>
-                <span style={{fontSize:13}}>{tier.icon}</span>
-                <div style={{display:"flex",flexDirection:"column",gap:2,minWidth:50}}>
-                  <div style={{height:4,background:C.border,borderRadius:99,overflow:"hidden"}}>
-                    <div style={{height:"100%",
-                      width:`${reputation}%`,
-                      background:tier.color,
-                      borderRadius:99,transition:"width 0.6s ease"}}/>
-                  </div>
-                  <div style={{fontSize:8,color:tier.color,fontWeight:700,
-                    fontFamily:F.body,whiteSpace:"nowrap",lineHeight:1}}>
-                    {tier.icon} {Math.round(reputation)}/100
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Loan indicator + bank button */}
-          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-            {loan&&(
-              <div style={{background:C.amberP,border:`1px solid ${C.amber}44`,borderRadius:6,
-                padding:"3px 8px",fontSize:10,color:C.amber,fontWeight:600,whiteSpace:"nowrap"}}>
-                🏦 −{loan.remaining.toFixed(0)}€
-              </div>
-            )}
-            <button onClick={openBank} title="Banque" style={{
-              padding:"6px 12px",fontSize:12,fontWeight:700,
-              background:loan?C.amber:C.navy,
-              border:"none",
-              borderRadius:8,color:"#fff",cursor:"pointer",
-              fontFamily:F.body,display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap",
-              boxShadow:loan?`0 2px 10px ${C.amber}66`:`0 2px 10px ${C.navy}44`,
-              animation:loan?"bankPulse 2s ease-in-out infinite":"none"}}>
-              🏦 Banque
-            </button>
-          </div>
-
-        </div>
-      </div>
-
-      {/* Nav Desktop */}
-      <div className="desktop-nav" style={{
-        background:C.surface,
-        borderBottom:`1px solid ${C.border}`,
-        padding:"0 16px",overflowX:"auto",
-        boxShadow:"0 1px 0 rgba(23,18,14,0.04)",
-      }}>
-        {TABS.map(t=>{
-          const readyChallenges=(todayChallenges||[]).filter(ch=>{
-            const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):
-              ch.key==="fullHouse"||ch.key==="vip"?(challengeProgress[ch.key]||0):
-              (challengeProgress[ch.key]||0);
-            return val>=ch.target&&!(challengeClaimed||{})[ch.id];
-          }).length;
-          const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:0;
-          const active=tab===t.id;
-          return(
-            <button key={t.id} onClick={()=>{
-              setTab(t.id);
-              if(t.id==="complaints")
-                setSeenIds(p=>new Set([...p,...complaints.filter(c=>c.status==="nouveau").map(c=>c.id)]));
-            }} className={active?"nav-tab nav-tab-active":"nav-tab"} style={{
-              background:active?`linear-gradient(180deg,${C.green}10,${C.green}06)`:"transparent",
-              color:active?C.green:C.muted,
-              border:"none",
-              borderBottom:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
-              borderRadius:active?"10px 10px 0 0":0,
-              padding:"12px 16px",
-              fontSize:12,fontWeight:active?700:400,
-              cursor:"pointer",fontFamily:F.body,
-              display:"flex",alignItems:"center",gap:6,
-              whiteSpace:"nowrap",
-              position:"relative",
-            }}>
-              <span style={{fontSize:15,lineHeight:1}}>{t.icon}</span>
-              <span>{t.label}</span>
-              {badge>0&&(
-                <span className="badge-alert" style={{
-                  background:C.red,color:"#fff",
-                  borderRadius:"50%",
-                  width:16,height:16,fontSize:9,fontWeight:800,
-                  display:"inline-flex",alignItems:"center",justifyContent:"center",
-                  boxShadow:`0 1px 4px ${C.red}44`,
-                  animation:"popIn 0.3s ease",
-                }}>
-                  {badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Nav Mobile — fixe en haut (dans le wrapper sticky) */}
-      <div className="mobile-nav" style={{
-        background:C.surface,
-        borderBottom:`1px solid ${C.border}`,
-        boxShadow:"0 2px 8px rgba(23,18,14,0.07)",
-        justifyContent:"space-around",alignItems:"stretch",
-        paddingTop:"env(safe-area-inset-top,0px)",
-      }}>
-        {TABS.map(t=>{
-          const readyChallenges=(todayChallenges||[]).filter(ch=>{
-            const val=ch.key==="noLoss"?(!challengeLostToday&&(challengeProgress.served||0)>=1?1:0):(challengeProgress[ch.key]||0);
-            return val>=ch.target&&!(challengeClaimed||{})[ch.id];
-          }).length;
-          const badge=t.id==="stock"?sAlerts:t.id==="objectives"?pendingClaim.length+readyChallenges:0;
-          const active=tab===t.id;
-          return(
-            <button key={t.id} onClick={()=>{
-              setTab(t.id);
-              if(t.id==="complaints")
-                setSeenIds(p=>new Set([...p,...complaints.filter(c=>c.status==="nouveau").map(c=>c.id)]));
-            }} style={{
-              flex:1,
-              background:active?`linear-gradient(180deg,${C.green}08,transparent)`:"transparent",
-              border:"none",
-              display:"flex",flexDirection:"column",alignItems:"center",
-              justifyContent:"center",
-              padding:"7px 2px 8px",
-              cursor:"pointer",position:"relative",
-              borderBottom:active?`2.5px solid ${C.green}`:"2.5px solid transparent",
-              gap:3,
-              transition:"background 0.15s",
-            }}>
-              <div style={{
-                width:34,height:26,
-                display:"flex",alignItems:"center",justifyContent:"center",
-                borderRadius:9,
-                background:active?C.green+"14":"transparent",
-                transition:"background 0.15s",
-              }}>
-                <span style={{
-                  fontSize:17,lineHeight:1,
-                  filter:active?"none":"grayscale(0.5) opacity(0.55)",
-                  transition:"filter 0.15s",
-                }}>{t.icon}</span>
-              </div>
-              <span style={{
-                fontSize:9,fontWeight:active?700:400,fontFamily:F.body,
-                color:active?C.green:C.muted,
-                whiteSpace:"nowrap",letterSpacing:"0.01em",lineHeight:1,
-              }}>{t.label}</span>
-              {badge>0&&(
-                <span style={{
-                  position:"absolute",top:4,right:"calc(50% - 18px)",
-                  background:C.red,color:"#fff",borderRadius:"50%",
-                  width:15,height:15,fontSize:8,fontWeight:800,
-                  display:"inline-flex",alignItems:"center",justifyContent:"center",
-                  boxShadow:`0 1px 4px ${C.red}55`,animation:"popIn 0.3s ease",
-                }}>{badge}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      </div>{/* fin wrapper sticky */}
+      <AppHeader
+        tab={tab} setTab={setTab}
+        bp={bp}
+        sAlerts={sAlerts} nCompl={nCompl} queue={queue}
+        phase={phase} gameTime={gameTime}
+        loan={loan} openBank={openBank}
+        setShowToastHistory={setShowToastHistory} setToastUnread={setToastUnread} toastUnread={toastUnread}
+        adWatching={adWatching} setAdWatching={setAdWatching}
+        setCash={setCash} addTx={addTx} addToast={addToast}
+        setShowHelp={setShowHelp} setShowResetModal={setShowResetModal}
+        rl={rl} rlD={rlD} restoXp={restoXp} reputation={reputation}
+        complaints={complaints} setSeenIds={setSeenIds}
+        todayChallenges={todayChallenges} challengeProgress={challengeProgress}
+        challengeClaimed={challengeClaimed} challengeLostToday={challengeLostToday}
+        pendingClaim={pendingClaim} kitchen={kitchen} activeTables={activeTables}
+      />
 
       {/* Content */}
       <div className="content-area" style={{maxWidth:bp.isDesktop?1300:undefined,margin:"0 auto"}}>
+        <TabErrorBoundary key={tab}>
         <div key={tab} style={{animation:"tabSlide 0.2s ease both"}}>
         {tab==="tables"     &&<TablesView     tables={activeTables} setTables={setTables}   servers={servers} setServers={setServers} menu={menu} setMenu={setMenu} setKitchen={setKitchen} kitchen={kitchen} addToast={addToast} addRestoXp={addRestoXp} cash={cash} setCash={setCash} addTx={addTx} queue={queue} setQueue={setQueue} waitlist={waitlist} setWaitlist={setWaitlist} addDayStat={addDayStat} clockNow={clockNow} onTableUpgrade={()=>setObjStats(s=>({...s,tablesUpgraded:s.tablesUpgraded+1}))} setComplaints={setComplaints} dailySpecials={dailySpecials} activeEvent={activeEvent} setChallengeProgress={setChallengeProgress} reputation={reputation} updateReputation={updateReputation} restoLvN={rl.l} stock={stock} formulas={formulas} bp={bp}/>}
-        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} bp={bp}/>}
-        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} restoLvN={rl.l} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp}/>}
+        {tab==="servers"    &&<ServersView    servers={servers} setServers={setServers} tables={activeTables} clockNow={clockNow} restoLvN={rl.l} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} candidatePool={candidatePool} setCandidatePool={setCandidatePool} candidateDate={candidateDate} setCandidateDate={setCandidateDate} kitchen={kitchen} setKitchen={setKitchen} commisPool={commisPool} setCommisPool={setCommisPool} commisPoolDate={commisPoolDate} setCommisPoolDate={setCommisPoolDate} bp={bp} autoPrimeBrigade={autoPrimeBrigade} setAutoPrimeBrigade={setAutoPrimeBrigade} autoPrimeServeurs={autoPrimeServeurs} setAutoPrimeServeurs={setAutoPrimeServeurs}/>}
+        {tab==="cuisine"    &&<KitchenView    kitchen={kitchen}     setKitchen={setKitchen}  stock={stock} setStock={setStock} tables={activeTables} setTables={setTables} servers={servers} setServers={setServers} addToast={addToast} cash={cash} setCash={setCash} addTx={addTx} restoLvN={rl.l} bp={bp}/>}
         {tab==="menu"       &&<MenuView       menu={menu} setMenu={setMenu} stock={stock} formulas={formulas} setFormulas={setFormulas} dailyStats={dailyStats} restoLvN={rl.l} bp={bp}/>}
-        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} restoLvN={rl.l} bp={bp}/>}
+        {tab==="stock"      &&<StockView      stock={stock} setStock={setStock} cash={cash} setCash={setCash} addTx={addTx} addToast={addToast} addDayStat={addDayStat} kitchen={kitchen} supplierMode={supplierMode} setSupplierMode={setSupplierMode} pendingDeliveries={pendingDeliveries} setPendingDeliveries={setPendingDeliveries} menu={menu} restoLvN={rl.l} bp={bp}/>}
         {tab==="objectives" &&<ObjectivesView objStats={objStats} completedIds={completedIds} onClaim={claimObjective} pendingClaim={pendingClaim} todayChallenges={todayChallenges} challengeProgress={challengeProgress} challengeClaimed={challengeClaimed} setChallengeClaimed={setChallengeClaimed} challengeLostToday={challengeLostToday} setCash={setCash} addTx={addTx} addRestoXp={addRestoXp} addToast={addToast} restoXp={restoXp} restoLvN={rl.l} bp={bp}/>}
         {tab==="complaints" &&<ComplaintsView complaints={complaints} setComplaints={setComplaints} tables={activeTables} servers={servers} seenIds={seenIds}/>}
-        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} bp={bp}/>}
+        {tab==="stats"      &&<StatsView dailyStats={dailyStats} loan={loan} objStats={objStats} restoXp={restoXp} kitchen={kitchen} servers={servers} reputation={reputation} transactions={transactions} menu={menu} currentGameDay={dailyStats[dailyStats.length-1]?.day??1} bp={bp}/>}
         </div>
+        </TabErrorBoundary>
       </div>
 
       {/* Barre file d'attente + cash — toujours visible */}
@@ -1174,94 +962,6 @@ export default function App(){
 
 
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
-      {showBank&&<BankModal onClose={()=>setShowBank(false)} cash={cash} loan={loan}
-        setLoan={setLoan} setCash={setCash} addTx={addTx} addToast={addToast}/>}
-      {/* Ledger modal */}
-      {showLedger&&(
-        <div onClick={()=>setShowLedger(false)} style={{position:"fixed",inset:0,
-          background:"rgba(0,0,0,0.45)",zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:18,
-            width:"100%",maxWidth:560,maxHeight:"80vh",display:"flex",flexDirection:"column",
-            boxShadow:"0 24px 60px rgba(0,0,0,0.25)"}}>
-            {/* Header */}
-            <div style={{padding:"18px 22px",borderBottom:`1px solid ${C.border}`,
-              display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-              <div>
-                <div style={{fontSize:17,fontWeight:700,color:C.ink,fontFamily:F.title}}>💰 Grand livre</div>
-                <div style={{fontSize:11,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                  Solde actuel : <span style={{fontWeight:700,color:cash<200?C.red:C.green}}>
-                    {cash.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
-                  </span>
-                </div>
-              </div>
-              <button onClick={()=>setShowLedger(false)} style={{
-                background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,
-                width:32,height:32,cursor:"pointer",fontSize:16,color:C.muted}}>✕</button>
-            </div>
-            {/* Summary row */}
-            {(()=>{
-              const totalIn=transactions.filter(t=>t.type==="revenu").reduce((s,t)=>s+t.amount,0);
-              const totalOut=transactions.filter(t=>t.type!=="revenu").reduce((s,t)=>s+t.amount,0);
-              return(
-                <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
-                  {[
-                    {label:"Recettes",val:totalIn,c:C.green,bg:C.greenP,icon:"📈"},
-                    {label:"Dépenses",val:totalOut,c:C.red,bg:C.redP,icon:"📉"},
-                    {label:"Résultat",val:totalIn-totalOut,c:totalIn-totalOut>=0?C.green:C.red,bg:totalIn-totalOut>=0?C.greenP:C.redP,icon:"⚖️"},
-                  ].map(s=>(
-                    <div key={s.label} style={{flex:1,background:s.bg,padding:"10px 14px",textAlign:"center",
-                      borderRight:`1px solid ${C.border}`}}>
-                      <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginBottom:2}}>{s.icon} {s.label}</div>
-                      <div style={{fontSize:14,fontWeight:700,color:s.c,fontFamily:F.title}}>
-                        {s.val>=0?"+":""}{s.val.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-            {/* Transaction list */}
-            <div style={{overflowY:"auto",flex:1,padding:"8px 0"}}>
-              {transactions.length===0?(
-                <div style={{padding:24,textAlign:"center",color:C.muted,fontFamily:F.body,fontSize:13}}>
-                  Aucune transaction
-                </div>
-              ):transactions.map(tx=>{
-                const isIn=tx.type==="revenu";
-                const typeColors={revenu:C.green,achat:C.terra,salaire:C.navy};
-                const typeIcons={revenu:"💶",achat:"🛒",salaire:"💸"};
-                const c=typeColors[tx.type]||C.muted;
-                const hm=tx.gameTime??"—";
-                return(
-                  <div key={tx.id} style={{display:"flex",alignItems:"flex-start",gap:12,
-                    padding:"10px 22px",borderBottom:`1px solid ${C.border}11`}}>
-                    <div style={{width:32,height:32,background:c+"18",border:`1px solid ${c}33`,
-                      borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",
-                      fontSize:15,flexShrink:0}}>
-                      {typeIcons[tx.type]||"💰"}
-                    </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12,fontWeight:600,color:C.ink,fontFamily:F.body,
-                        whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                        {tx.label}
-                      </div>
-                      <div style={{fontSize:10,color:C.muted,fontFamily:F.body,marginTop:2}}>
-                        {hm} · {tx.type}
-                      </div>
-                    </div>
-                    <div style={{fontSize:13,fontWeight:700,color:isIn?C.green:C.red,
-                      fontFamily:F.title,flexShrink:0}}>
-                      {isIn?"+":"-"}{tx.amount.toLocaleString("fr-FR",{minimumFractionDigits:2})} €
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modale confirmation reset */}
       {showResetModal&&(
         <div onClick={()=>setShowResetModal(false)} style={{position:"fixed",inset:0,
           background:"rgba(0,0,0,0.55)",zIndex:10001,
@@ -1271,43 +971,39 @@ export default function App(){
             boxShadow:"0 24px 60px rgba(0,0,0,0.3)",textAlign:"center"}}>
             <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
             <div style={{fontSize:18,fontWeight:700,color:C.ink,fontFamily:F.title,marginBottom:8}}>
-              Nouvelle partie ?
+              {tl("app.newGame")}
             </div>
             <div style={{fontSize:13,color:C.muted,fontFamily:F.body,marginBottom:24,lineHeight:1.6}}>
-              Toute la progression sera effacée.<br/>
-              Cette action est <strong>irréversible</strong>.
+              {tl("app.newGameWarning")}<br/>
+              {tl("app.irreversible")}
             </div>
             <div style={{display:"flex",gap:10,justifyContent:"center"}}>
               <button onClick={()=>setShowResetModal(false)} style={{
                 padding:"10px 22px",borderRadius:9,border:`1.5px solid ${C.border}`,
                 background:C.bg,color:C.muted,cursor:"pointer",
                 fontSize:13,fontWeight:600,fontFamily:F.body}}>
-                Annuler
+                {tl("app.cancel")}
               </button>
               <button onClick={doReset} style={{
                 padding:"10px 22px",borderRadius:9,border:"none",
                 background:C.red,color:"#fff",cursor:"pointer",
                 fontSize:13,fontWeight:700,fontFamily:F.body,
                 boxShadow:`0 4px 14px ${C.red}55`}}>
-                🗑 Recommencer
+                {tl("app.restart")}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {showSummary&&(
-        <DailySummaryModal
-          onClose={startNewDay}
-          dailyStats={dailyStats}
-          objStats={objStats}
-          servers={servers}
-          menu={menu}
-          transactions={transactions}
-          isRecord={summaryIsRecord}/>
-      )}
+      {showBank&&<BankModal onClose={()=>setShowBank(false)} cash={cash} loan={loan}
+        setLoan={setLoan} setCash={setCash} addTx={addTx} addToast={addToast}/>}
+      {/* Ledger modal */}
+      {showLedger&&<LedgerModal onClose={()=>setShowLedger(false)} cash={cash} transactions={transactions}/>}
 
       <Toasts list={toasts} onDismiss={dismissToast} onNavigate={setTab}/>
+
+      {/* ══ Historique des notifications ══ */}
+      {showToastHistory&&<NotificationHistory onClose={()=>setShowToastHistory(false)} toastHistory={toastHistory} setToastHistory={setToastHistory}/>}
 
       {/* Dialogues tutoriels — affichés une seule fois chacun */}
       {levelUpData && <LevelUpModal levelData={levelUpData} onClose={()=>setLevelUpData(null)}/>}
@@ -1320,6 +1016,7 @@ export default function App(){
       {showStockTutorial       && isLoaded && <StockDialog      onDone={handleStockTutorialDone}/>}
       {showMenuTutorial     && isLoaded && <MenuDialog    onDone={handleMenuTutorialDone}/>}
       {showKitchenTutorial  && isLoaded && <KitchenDialog onDone={handleKitchenTutorialDone}/>}
+
     </div>
   );
 }

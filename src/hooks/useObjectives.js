@@ -11,6 +11,7 @@
 
 import { useEffect } from "react";
 import { OBJECTIVES_DEF } from "../constants/gameData.js";
+import { useLang } from "../i18n/index.jsx";
 
 /**
  * @param {{
@@ -28,6 +29,7 @@ export const useObjectives = ({
   setPendingClaim,
   addToast,
 }) => {
+  const { t } = useLang();
   useEffect(() => {
     const newPending = OBJECTIVES_DEF
       .filter(o =>
@@ -41,17 +43,7 @@ export const useObjectives = ({
 
     setPendingClaim(p => [...p, ...newPending]);
 
-    newPending.forEach(id => {
-      const obj = OBJECTIVES_DEF.find(o => o.id === id);
-      if (obj)
-        addToast({
-          icon  : "🎯",
-          title : "Objectif atteint !",
-          msg   : obj.title,
-          color : "#b87d10",
-          tab   : "objectives",
-        });
-    });
+    newPending.forEach(_id => {});
   // pendingClaim est en dépendance pour éviter les doublons
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objStats]);

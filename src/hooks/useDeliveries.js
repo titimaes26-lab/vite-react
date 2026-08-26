@@ -8,6 +8,8 @@
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
+import { useLang } from "../i18n/index.jsx";
+import { addLot } from "../utils/orderUtils.js";
 
 /**
  * @param {{
@@ -17,6 +19,7 @@ import { useEffect } from "react";
  * }} params
  */
 export const useDeliveries = ({ setPendingDeliveries, setStock, addToast }) => {
+  const { t } = useLang();
   useEffect(() => {
     const iv = setInterval(() => {
       const now = Date.now();
@@ -30,17 +33,16 @@ export const useDeliveries = ({ setPendingDeliveries, setStock, addToast }) => {
           setStock(s =>
             s.map(item => {
               const match = d.items.find(x => x.stockId === item.id);
-              return match
-                ? { ...item, qty: +(item.qty + match.qty).toFixed(3), freshness: 100 }
-                : item;
+              return match ? addLot(item, match.qty) : item;
             })
           );
           addToast({
             icon  : "🚚",
-            title : "Livraison arrivée !",
+            title : t("toast.deliveryArrived"),
             msg   : d.labels,
             color : "#2a5c3f",
             tab   : "stock",
+            silent:true,
           });
         });
 
@@ -49,5 +51,5 @@ export const useDeliveries = ({ setPendingDeliveries, setStock, addToast }) => {
     }, 5_000);
 
     return () => clearInterval(iv);
-  }, [setPendingDeliveries, setStock, addToast]);
+  }, [setPendingDeliveries, setStock, addToast, t]);
 };

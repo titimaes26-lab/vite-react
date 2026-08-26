@@ -250,7 +250,7 @@ export const TABLES0 = [
 
 /* ─── État initial : serveurs ────────────────────────── */
 export const SERVERS0 = [
-  { id: 1, name: "Marie Dupont", status: "actif", totalXp: 320, rating: 4.8, salary: 14, moral: 90, specialty: null },
+  { id: 1, name: "Marie Dupont", status: "actif", totalXp: 320, rating: 4.8, salary: 14, moral: 90, specialty: null, shift: null },
 ];
 
 /* ─── Taux de dégradation de la fraîcheur (%/min) ───── */
@@ -295,7 +295,12 @@ export const STOCK0 = [
   { id: 20, name: "Vin blanc",     qty: 18,  unit: "btl",    alert: 4,    cat: "Boissons", price: 6    },
   { id: 21, name: "Bordeaux",      qty: 24,  unit: "btl",    alert: 8,    cat: "Boissons", price: 12   },
   { id: 22, name: "Eau minérale",  qty: 48,  unit: "btl",    alert: 12,   cat: "Boissons", price: 0.5  },
-].map(item => ({ ...item, freshness: 100 }));
+  // Petit déjeuner
+  { id: 27, name: "Café",          qty: 5,   unit: "kg",     alert: 1,    cat: "Épicerie", price: 18   },
+  { id: 28, name: "Lait",          qty: 10,  unit: "L",      alert: 2,    cat: "Laitiers", price: 1.2  },
+  { id: 29, name: "Jus d'orange",  qty: 12,  unit: "L",      alert: 2,    cat: "Boissons", price: 3    },
+  { id: 30, name: "Confiture",     qty: 4,   unit: "kg",     alert: 0.5,  cat: "Épicerie", price: 5    },
+].map(item => ({ ...item, freshness: 100, lots: [{ qty: item.qty, freshness: 100, boughtAt: 0 }] }));
 
 /* ─── Ingrédients premium — injectés au déblocage du plat ── */
 // Non présents dans STOCK0 ; ajoutés automatiquement quand le plat se débloque.
@@ -304,7 +309,7 @@ export const PREMIUM_STOCK = [
   { id: 24, name: "Homard vivant",   qty: 4,   unit: "pcs",    alert: 1,    cat: "Poissons", price: 45   },
   { id: 25, name: "Pigeonneau",      qty: 6,   unit: "pcs",    alert: 1,    cat: "Viandes",  price: 22   },
   { id: 26, name: "Champagne",       qty: 12,  unit: "btl",    alert: 3,    cat: "Boissons", price: 28   },
-].map(item => ({ ...item, freshness: 100 }));
+].map(item => ({ ...item, freshness: 100, lots: [{ qty: item.qty, freshness: 100, boughtAt: 0 }] }));
 
 /* ─── État initial : menu (plats définis par recette) ── */
 // prepTime    : temps de préparation de base en secondes (avant bonus chef)
@@ -455,7 +460,69 @@ export const MENU0 = [
       { stockId: 17, qty: 0.06 },  // sucre
     ],
   },
+  // ── Petit Déjeuner ───────────────────────────────────
+  {
+    id: 21, name: "Croissant beurre", cat: "Petit Déjeuner", price: 4, prepTime: 10, unlockLevel: 0,
+    ingredients: [
+      { stockId: 16, qty: 0.05 },  // farine
+      { stockId: 11, qty: 0.03 },  // beurre
+    ],
+  },
+  {
+    id: 22, name: "Pain au chocolat", cat: "Petit Déjeuner", price: 4.5, prepTime: 12, unlockLevel: 0,
+    ingredients: [
+      { stockId: 16, qty: 0.05 },  // farine
+      { stockId: 11, qty: 0.03 },  // beurre
+      { stockId: 17, qty: 0.02 },  // sucre
+    ],
+  },
+  {
+    id: 23, name: "Omelette nature", cat: "Petit Déjeuner", price: 8, prepTime: 20, unlockLevel: 0,
+    ingredients: [
+      { stockId: 13, qty: 3    },  // œufs
+      { stockId: 11, qty: 0.02 },  // beurre
+      { stockId: 28, qty: 0.05 },  // lait
+    ],
+  },
+  {
+    id: 24, name: "Pancakes sirop d'érable", cat: "Petit Déjeuner", price: 11, prepTime: 30, unlockLevel: 4,
+    ingredients: [
+      { stockId: 16, qty: 0.10 },  // farine
+      { stockId: 13, qty: 2    },  // œufs
+      { stockId: 28, qty: 0.15 },  // lait
+      { stockId: 11, qty: 0.02 },  // beurre
+      { stockId: 17, qty: 0.03 },  // sucre
+    ],
+  },
+  {
+    id: 25, name: "Tartines confiture", cat: "Petit Déjeuner", price: 5, prepTime: 8, unlockLevel: 0,
+    ingredients: [
+      { stockId: 16, qty: 0.08 },  // farine (pain)
+      { stockId: 11, qty: 0.02 },  // beurre
+      { stockId: 30, qty: 0.04 },  // confiture
+    ],
+  },
+  {
+    id: 26, name: "Œufs Bénédicte", cat: "Petit Déjeuner", price: 14, prepTime: 45, unlockLevel: 8,
+    ingredients: [
+      { stockId: 13, qty: 3    },  // œufs
+      { stockId: 11, qty: 0.06 },  // beurre (hollandaise)
+      { stockId: 12, qty: 0.05 },  // crème fraîche
+      { stockId: 16, qty: 0.06 },  // farine (muffin anglais)
+    ],
+  },
   // ── Boissons ─────────────────────────────────────────
+  {
+    id: 27, name: "Café crème", cat: "Boissons", price: 4, prepTime: 5, unlockLevel: 0,
+    ingredients: [
+      { stockId: 27, qty: 0.01 },  // café
+      { stockId: 28, qty: 0.05 },  // lait
+    ],
+  },
+  {
+    id: 28, name: "Jus d'orange pressé", cat: "Boissons", price: 6, prepTime: 6, unlockLevel: 0,
+    ingredients: [{ stockId: 29, qty: 0.25 }],
+  },
   {
     id: 10, name: "Bordeaux 75cl", cat: "Boissons", price: 32, prepTime: 8, unlockLevel: 0,
     ingredients: [{ stockId: 21, qty: 1 }],
@@ -501,7 +568,9 @@ export const KITCHEN0 = {
     specialty: "Cuisine française",
     signature: "Entrecôte maison",
     salary: 28,
+    shift: null,
   },
+  chefs: [],
   commis: [],
   queue:        [],
   cooking:      [],
@@ -671,7 +740,7 @@ export const GAME_EVENTS = [
       const alerts = stock.filter(s => s.qty <= s.alert).length;
       if (alerts >= 3) {
         const fine = 300;
-        setCash(c => Math.max(0, c - fine));
+        setCash(c => +(c - fine).toFixed(2));
         addTx("dépense", "Amende inspection sanitaire (infractions stock)", fine);
         setComplaints(p => [{
           id: Date.now(), date: new Date().toLocaleDateString("fr-FR"),
@@ -841,8 +910,8 @@ export const GAME_EVENTS = [
 /* ─── Onglets de navigation ──────────────────────────── */
 export const TABS = [
   { id: "tables",      label: "Tables",       icon: "⊞"  },
-  { id: "servers",     label: "Serveurs",     icon: "👤"  },
   { id: "cuisine",     label: "Cuisine",      icon: "👨‍🍳" },
+  { id: "servers",     label: "Personnels",   icon: "👤"  },
   { id: "menu",        label: "Menu",         icon: "📋"  },
   { id: "stock",       label: "Stocks",       icon: "📦"  },
   { id: "objectives",  label: "Objectifs",    icon: "🎯"  },

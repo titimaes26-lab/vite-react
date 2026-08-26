@@ -19,6 +19,7 @@
 ═══════════════════════════════════════════════════════ */
 
 import { useEffect } from "react";
+import { useLang } from "../i18n/index.jsx";
 
 export const useExpiry = ({
   queueRef,
@@ -32,28 +33,32 @@ export const useExpiry = ({
   addDayStat,
   updateReputation,
   repDeltaLostClient,
+  pausedRef,
 }) => {
+  const { t } = useLang();
   useEffect(() => {
     const iv = setInterval(() => {
-      const t = Date.now();
+      if (pausedRef?.current) return;
+      const now = Date.now();
 
       /* ── 1. File d'attente expirée → waitlist ─────────── */
       const queue   = queueRef.current ?? [];
-      const expired = queue.filter(c => t >= c.expiresAt);
+      const expired = queue.filter(c => now >= c.expiresAt);
 
       if (expired.length > 0) {
-        setQueue(queue.filter(c => t < c.expiresAt));
+        setQueue(queue.filter(c => now < c.expiresAt));
         setWaitlist(w => [
           ...w,
-          ...expired.map(c => ({ ...c, leftAt: t, recallUntil: t + 120_000 })),
+          ...expired.map(c => ({ ...c, leftAt: now, recallUntil: now + 120_000 })),
         ]);
         expired.forEach(c => {
           addToast({
             icon  : "😤",
-            title : "Groupe parti !",
-            msg   : `${c.name} n'a plus patience — rappelable 2 min · Rép. ${repDeltaLostClient}`,
+            title : t("toast.groupLeft", {name:c.name}),
+            msg   : t("toast.groupLeftDetail", {rep:repDeltaLostClient}),
             color : "#c4622d",
             tab   : "tables",
+            silent: true,
           });
           if (updateReputation) updateReputation(repDeltaLostClient, "client impatient");
         });
@@ -61,33 +66,25 @@ export const useExpiry = ({
 
       /* ── 2. Waitlist : groupes non rappelés → perdus ───── */
       const waitlist   = waitlistRef.current ?? [];
-      const reallyLost = waitlist.filter(c => t >= c.recallUntil);
+      const reallyLost = waitlist.filter(c => now >= c.recallUntil);
 
       if (reallyLost.length > 0) {
-        setWaitlist(waitlist.filter(c => t < c.recallUntil));
-        reallyLost.forEach(() => addDayStat("lost"));
+        setWaitlist(waitlist.filter(c => now < c.recallUntil));
+        reallyLost.forEach(c => addDayStat("lost", c.size ?? 1));
       }
 
       /* ── 3. Fin de nettoyage → tables libres ─────────── */
       const tables    = tablesRef.current ?? [];
       const doneTables = tables.filter(
-        tb => tb.status === "nettoyage" && tb.cleanUntil && t >= tb.cleanUntil
+        tb => tb.status === "nettoyage" && tb.cleanUntil && now >= tb.cleanUntil
       );
 
       if (doneTables.length > 0) {
-        doneTables.forEach(tb =>
-          addToast({
-            icon  : "✨",
-            title : "Table prête",
-            msg   : `${tb.name} est de nouveau disponible.`,
-            color : "#2a5c3f",
-            tab   : "tables",
-          })
-        );
+        doneTables.forEach(_tb => {});
         setTables(prev =>
           prev.map(tb =>
             doneTables.find(d => d.id === tb.id)
-              ? { ...tb, status: "libre", server: null, cleanServer: null, cleanUntil: null, cleanDur: null, freedAt: t }
+              ? { ...tb, status: "libre", server: null, cleanServer: null, cleanUntil: null, cleanDur: null, freedAt: now }
               : tb
           )
         );
@@ -96,9 +93,9 @@ export const useExpiry = ({
       /* ── 4. Fin de service / nettoyage → serveurs actifs ── */
       setServers(prev =>
         prev.map(s => {
-          if (s.status === "service" && s.serviceUntil && t >= s.serviceUntil)
+          if (s.status === "service" && s.serviceUntil && now >= s.serviceUntil)
             return { ...s, status: "actif", serviceUntil: null };
-          if (s.status === "nettoyage" && s.cleanUntil && t >= s.cleanUntil)
+          if (s.status === "nettoyage" && s.cleanUntil && now >= s.cleanUntil)
             return { ...s, status: "actif", cleanUntil: null };
           return s;
         })
@@ -106,5 +103,5 @@ export const useExpiry = ({
     }, 500);
 
     return () => clearInterval(iv);
-  }, [queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient]);
+  }, [queueRef, waitlistRef, tablesRef, setQueue, setWaitlist, setTables, setServers, addToast, addDayStat, updateReputation, repDeltaLostClient, t]);
 };

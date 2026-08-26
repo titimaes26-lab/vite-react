@@ -1,0 +1,26 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/main.jsx",
+    "src/App.jsx",
+    "restaurant-manager.jsx",
+    "src/services/adBridge.js"
+  ],
+  "project": [
+    "src/**/*.{js,jsx}",
+    "restaurant-manager.jsx"
+  ],
+  "ignore": [
+    "dist/**",
+    "node_modules/**"
+  ],
+  "ignoreDependencies": [
+    "@vitejs/plugin-react"
+  ],
+  "rules": {
+    "files": "error",
+    "exports": "error",
+    "types": "warn",
+    "duplicates": "warn"
+  }
+}
